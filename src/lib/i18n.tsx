@@ -71,7 +71,8 @@ const translations = {
     // Roadmap Banner
     roadmapTitle: 'Step-by-Step Build Progress',
     phase1Done: 'Phase 1 Live: Supabase Cloud + PIN Auth + Bilingual UI + Team & 2-Tech Crews',
-    phase2Next: 'Phase 2 Next: Daily Group-Chat Picture (JPEG/PNG OCR) + Excel/PDF Extractor for Galinta & Cilada',
+    phase2Done: 'Phase 2 Live: Group-chat picture OCR (Galinta & Cilada), Excel/CSV/paste, Group F1 filter, carry-over & repeat-fault decisions, undo',
+    phase2Next: 'Phase 3 Next: Xaafada & Cablebox clustering, individual/crew assignment, 1-click WhatsApp summary',
     phase3Pending: 'Phase 3: Xaafada & Cablebox Clustering + 1-Click WhatsApp Summary',
     phase4Pending: 'Phase 4: Mobile Execution, Live Timer, Blockers & Optical dBm',
     phase5Pending: 'Phase 5: Full Cablebox Port History & Efficiency Analytics',
@@ -145,7 +146,8 @@ const translations = {
     // Roadmap Banner
     roadmapTitle: 'Heerarka Dhismaha Nidaamka (Mid-Mid)',
     phase1Done: 'Qaybta 1aad (Shaqaynaysa): Supabase Cloud + PIN Auth + Af-Soomaali/English + Maamulka Shaqaalaha & Crews',
-    phase2Next: 'Qaybta 2aad (Xigta): Sawirka Maalinlaha (JPEG/PNG OCR) + Excel/PDF — Soo-saarista Galinta & Cilada F1',
+    phase2Done: 'Qaybta 2aad (Shaqaynaysa): Sawirka Kooxda (OCR) — Galinta & Cilada, Excel/CSV, shaandhaynta F1, go\'aamadaha Baaqi & Cilad-soo-noqod, Undo',
+    phase2Next: 'Qaybta 3aad (Xigta): Isku-xidhka Xaafadaha & Cablebox, qaybinta shaqaalaha, fariinta WhatsApp-ka',
     phase3Pending: 'Qaybta 3aad: Isku-xidhka Xaafadaha & Cablebox + Fariinta WhatsApp-ka Kooxda',
     phase4Pending: 'Qaybta 4aad: Mobile-ka Farsamayaqaanka, Saacadda (Timer), Caqabadaha & Cabirka dBm',
     phase5Pending: 'Qaybta 5aad: Taariikhda Port-yada Cablebox & Warbixinta Waxqabadka',
