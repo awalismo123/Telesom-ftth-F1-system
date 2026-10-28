@@ -18,6 +18,7 @@ import { useLanguage } from '../../lib/i18n';
 import type { Cablebox } from '../../types/database';
 import { TeamAndCrewManager } from './TeamAndCrewManager';
 import { IngestWizard } from './ingest/IngestWizard';
+import { DispatchBoard } from './dispatch/DispatchBoard';
 
 type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'cableboxes' | 'team';
 
@@ -29,11 +30,12 @@ export function SupervisorShell() {
   const [techCount, setTechCount] = useState(0);
   const [crewCount, setCrewCount] = useState(0);
   const [taskCount, setTaskCount] = useState(0);
+  const [unassignedCount, setUnassignedCount] = useState(0);
   const [cableboxes, setCableboxes] = useState<Cablebox[]>([]);
 
   const loadSummary = useCallback(async () => {
     if (!activeGroup?.id) return;
-    const [techRes, crewRes, taskRes, boxRes] = await Promise.all([
+    const [techRes, crewRes, taskRes, boxRes, poolRes] = await Promise.all([
       supabase
         .from('users')
         .select('id', { count: 'exact', head: true })
@@ -51,11 +53,17 @@ export function SupervisorShell() {
         .eq('group_id', activeGroup.id)
         .neq('status', 'completed'),
       supabase.from('cableboxes').select('*').order('box_code', { ascending: true }),
+      supabase
+        .from('tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('group_id', activeGroup.id)
+        .eq('status', 'unassigned'),
     ]);
 
     setTechCount(techRes.count ?? 0);
     setCrewCount(crewRes.count ?? 0);
     setTaskCount(taskRes.count ?? 0);
+    setUnassignedCount(poolRes.count ?? 0);
     if (boxRes.data) setCableboxes(boxRes.data as Cablebox[]);
   }, [activeGroup?.id]);
 
@@ -67,7 +75,7 @@ export function SupervisorShell() {
     { id: 'overview', label: t('navOverview'), icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'team', label: t('navTeam'), icon: <Users className="w-4 h-4" />, badge: 'LIVE' },
     { id: 'ingest', label: t('navIngest'), icon: <Camera className="w-4 h-4" />, badge: 'NEW' },
-    { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" />, badge: 'P3' },
+    { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" />, badge: 'LIVE' },
     {
       id: 'cableboxes',
       label: t('navCablebox'),
@@ -151,6 +159,14 @@ export function SupervisorShell() {
               <div className="text-[11px] text-slate-500 font-medium mt-1">
                 Galinta &amp; Cilada Queue
               </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('dispatch')}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 cursor-pointer"
+              >
+                <Route className="w-3 h-3" />
+                {unassignedCount} {t('dispatchUnassignedShort')} · {t('dispatchAssignTo').replace('…', '')}
+              </button>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
@@ -195,14 +211,14 @@ export function SupervisorShell() {
                 <span className="font-semibold text-emerald-100">{t('phase2Done')}</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-start gap-3">
-                <Route className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
-                <span className="font-semibold text-amber-100">{t('phase2Next')}</span>
+              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="font-semibold text-emerald-100">{t('phase3Done')}</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
-                <Clock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                <span className="text-slate-300">{t('phase4Pending')}</span>
+              <div className="p-3.5 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-start gap-3">
+                <Clock className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                <span className="font-semibold text-amber-100">{t('phase4Next')}</span>
               </div>
             </div>
           </div>
@@ -213,21 +229,7 @@ export function SupervisorShell() {
 
       {activeTab === 'ingest' && <IngestWizard />}
 
-      {activeTab === 'dispatch' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-2xl mx-auto space-y-3 shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
-            <Route className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-extrabold text-slate-900">
-            Module 2 (Phase 3): Route Clustering &amp; WhatsApp Summary
-          </h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Clusters unassigned Group {activeGroup?.code} jobs by <strong>Xaafada</strong> and{' '}
-            <strong>Cablebox</strong>, assigns routes to Individual Techs or 2-Tech Crews, and
-            formats a 1-click group chat dispatch message.
-          </p>
-        </div>
-      )}
+      {activeTab === 'dispatch' && <DispatchBoard />}
 
       {activeTab === 'cableboxes' && (
         <div className="space-y-4">
