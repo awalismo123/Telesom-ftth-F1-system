@@ -11,3 +11,9 @@ build/
 .env.*.local
 *.tsbuildinfo
 .DS_Store
+
+# OCR assets copied out of node_modules by scripts/vendor-tesseract.mjs
+public/tesseract/
+
+# Dev scratch
+scripts/tmp/

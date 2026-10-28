@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import type { Cablebox } from '../../types/database';
 import { TeamAndCrewManager } from './TeamAndCrewManager';
+import { IngestWizard } from './ingest/IngestWizard';
 
 type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'cableboxes' | 'team';
 
@@ -65,7 +66,7 @@ export function SupervisorShell() {
   const navItems: { id: SupervisorTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'overview', label: t('navOverview'), icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'team', label: t('navTeam'), icon: <Users className="w-4 h-4" />, badge: 'LIVE' },
-    { id: 'ingest', label: t('navIngest'), icon: <Camera className="w-4 h-4" />, badge: 'P2' },
+    { id: 'ingest', label: t('navIngest'), icon: <Camera className="w-4 h-4" />, badge: 'NEW' },
     { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" />, badge: 'P3' },
     {
       id: 'cableboxes',
@@ -97,7 +98,7 @@ export function SupervisorShell() {
               {item.badge && (
                 <span
                   className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
-                    item.badge === 'LIVE'
+                    item.badge === 'LIVE' || item.badge === 'NEW'
                       ? isActive
                         ? 'bg-emerald-400 text-emerald-950'
                         : 'bg-emerald-100 text-emerald-800'
@@ -189,14 +190,14 @@ export function SupervisorShell() {
                 <span className="font-semibold text-emerald-100">{t('phase1Done')}</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-start gap-3">
-                <Camera className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
-                <span className="font-semibold text-amber-100">{t('phase2Next')}</span>
+              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="font-semibold text-emerald-100">{t('phase2Done')}</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
-                <Clock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                <span className="text-slate-300">{t('phase3Pending')}</span>
+              <div className="p-3.5 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-start gap-3">
+                <Route className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                <span className="font-semibold text-amber-100">{t('phase2Next')}</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
@@ -210,24 +211,7 @@ export function SupervisorShell() {
 
       {activeTab === 'team' && <TeamAndCrewManager />}
 
-      {activeTab === 'ingest' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-2xl mx-auto space-y-3 shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
-            <Camera className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-extrabold text-slate-900">
-            Module 1 (Phase 2 Next): Daily Picture (JPEG/PNG) &amp; Sheet Extractor
-          </h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Calibrated directly to Telesom&apos;s{' '}
-            <strong>Pending Installation (Galinta)</strong> and{' '}
-            <strong>CILADA KU TAAGAN GROUP-KA</strong> daily group-chat images—extracting only{' '}
-            <span className="font-bold text-emerald-700">Group {activeGroup?.code}</span> rows,
-            detecting urgent <code>degdeg / dd / dadaji</code> tickets, and preventing duplicate
-            lines.
-          </p>
-        </div>
-      )}
+      {activeTab === 'ingest' && <IngestWizard />}
 
       {activeTab === 'dispatch' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-2xl mx-auto space-y-3 shadow-xs">
