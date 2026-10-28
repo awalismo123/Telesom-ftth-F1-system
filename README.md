@@ -14,9 +14,23 @@ It replaces the daily *"picture of the table"* workflow sent in the group chat w
 | :--- | :--- | :--- |
 | **Phase 1** | Supabase schema, Fast PIN auth, bilingual UI, Supervisor shell, Mobile technician shell, **Team & 2-Tech Crew manager**, multi-group (F1→F2/F3/F5/GA) | ✅ **Live** |
 | **Phase 2** | Daily picture (**JPEG/PNG OCR**, on-device) + Excel/CSV/paste ingestion, Group F1 filter, carry-over / repeat-fault decisions, undo | ✅ **Live** |
-| **Phase 3** | Xaafada & Cablebox route clustering, bulk assignment, 1-click WhatsApp dispatch summary | ⏳ Planned |
+| **Phase 3** | Xaafada & Cablebox route clustering, bulk assignment, 1-click WhatsApp / Telegram dispatch summary | ✅ **Live** |
 | **Phase 4** | Technician mobile route, `tel:` click-to-call, live timer, blockers, optical `dBm` capture | ⏳ Planned |
 | **Phase 5** | Cablebox port & fault history registry, analytics dashboard, exports | ⏳ Planned |
+
+---
+
+## Dispatching the day (Phase 3)
+
+1. **Unassigned pool** — every open F1 job, with search (name, line, phone, box) and an *Urgent* filter. Tick jobs with the checkbox (or *Select all*).
+2. **Assign** — the bottom bar opens the technician / crew picker. Crews are listed first because they are the normal unit; each row shows the load it will carry.
+3. **Auto-cluster** — groups the pool by **cablebox** and, when a sheet has no box column (Galinta), by **xaafada**. Urgent clusters are placed first, then the rest go to the free team that already covers that area or box, so the load comes out even. You can untick any route before applying.
+4. **Group-chat message** — one tap produces the WhatsApp text:
+   * *Copy full plan* (every team underneath), *Copy for this team* (one short message), *Share*, or open WhatsApp / Telegram directly;
+   * Somali or English, with an editable template (`{group} {date} {count} {crews} {crewsLabel} {blocks}`) saved per group;
+   * phone numbers and urgency markers included, honouring the `063 441 8376` local format;
+   * every generated message is written to `dispatch_log` for audit.
+5. **Undo** — *Return to pool* releases a job; a job that has already been started can never be silently re-dispatched (the database refuses it and reports why).
 
 ---
 

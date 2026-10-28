@@ -61,8 +61,13 @@ Because daily sheets arrive as **table images (`.jpeg`, `.png`)** in the group c
   * Build Bilingual (`SO` / `EN`) UI, Fast 4-Digit PIN Login, Supervisor Command Center shell, Mobile Technician shell, and live **Team & 2-Tech Crew Management**.
 * **Phase 2 — Module 1: Daily Picture (`JPEG/PNG`) + Excel/PDF Smart Ingestion**
   * Build and test the Telesom Image Grid OCR Extractor directly against both `Pending Installation` and `CILADA KU TAAGAN GROUP-KA` formats, plus Excel/CSV/PDF/Paste, strict `F1` filtering, and deduplication.
-* **Phase 3 — Module 2: Supervisor Dispatch, Route Clustering & Group Chat Summary**
-  * Cluster unassigned F1 tasks by `Xaafada` & `Cablebox`, assign to individual techs or 2-tech crews, balance workloads, and generate 1-click WhatsApp/Telegram dispatch summaries.
+* **Phase 3 — Module 2: Supervisor Dispatch, Route Clustering & Group Chat Summary** ✅ **Shipped**
+  * Cluster unassigned F1 tasks by `Cablebox` first and `Xaafada` second, assign to individual techs or 2-tech crews, balance workloads, and generate 1-click WhatsApp/Telegram dispatch summaries.
+  * **Clustering (`src/lib/dispatch.ts`)** — bucket key = canonical box code (`FAT48-1` → `FAT48`) else the neighbourhood; within a bucket: urgent → carried-over → oldest `Date In`. Clusters larger than six jobs are cut into numbered chunks.
+  * **Auto-plan** — urgent and large clusters are placed first; each goes to the target with the lowest load, with bonuses for a crew whose `zone_focus` covers the area, or one already working that box. A soft ceiling of six jobs per target nudges the split without ever blocking a route.
+  * **Assignment (`assign_tasks` RPC)** — supervisor-only, same-group, one technician *or* one crew per call. Jobs that are `in_progress`, `completed` or `blocked` are refused and returned in `skipped_detail` with their reason, so the board can say *why* rather than silently reassigning live work. Every assignment/unassignment writes a `task_work_logs` row.
+  * **Message** — one master plan or one message per team; Somali/English; editable template stored per group in `localStorage`; `{group} {date} {count} {crews} {crewsLabel} {blocks}` placeholders; local `063 441 8376` phone formatting; copy / Web Share / `wa.me` / `t.me`; each generated message recorded in `dispatch_log`.
+  * **Load (`dispatch_load` RPC)** — per technician and per crew: open, in-progress, urgent and completed-today counts, plus crew membership, so the lanes are accurate even for a technician with nothing assigned.
 * **Phase 4 — Modules 3 & 4: Technician Mobile View + Live Execution & Timer Engine**
   * Mobile route cards, `tel:` click-to-call, `XNumber` (`Qaatay`/`Muu`) & `Cablebox` warnings, persistent live timer, standardized blockers, and `dBm` optical power completion flow.
 * **Phase 5 — Module 5: Cablebox Infrastructure Registry & Supervisor Analytics**
