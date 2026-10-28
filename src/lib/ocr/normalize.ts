@@ -256,6 +256,17 @@ export function interpretXNumber(raw: string): 'collected' | 'not_collected' | '
   return 'unknown';
 }
 
+const EDGE_JUNK = /^[\s|\[\]{(<>:'"~`!.,;=_+\-]+|[\s|\[\]{(<>:'"~`!.,;=_+\-]+$/g;
+
+/** Strip the border glyphs OCR likes to attach ("|waaheen", "[Fiber", ":634…"). */
+export function cleanHumanText(value: string): string {
+  return value
+    .replace(/\s+/g, ' ')
+    .replace(EDGE_JUNK, '')
+    .replace(/\s+([.,'’])/g, '$1')
+    .trim();
+}
+
 export function titleCase(value: string): string {
   return value
     .toLowerCase()
@@ -334,7 +345,9 @@ function normalizeValue(
       return Number.isFinite(n) && n > 0 ? n : null;
     }
     case 'line': {
-      const digits = repairDigits(raw);
+      let digits = repairDigits(raw);
+      // A faint cell border read as a leading "1" is the most common artifact.
+      if (digits.length === 7 && digits.startsWith('1')) digits = digits.slice(1);
       if (!digits) {
         issues.push({ column: col.key, message: 'Line number could not be read', severity: 'error' });
         return null;
@@ -349,7 +362,11 @@ function normalizeValue(
       return digits;
     }
     case 'phone': {
-      const digits = repairDigits(raw);
+      let digits = repairDigits(raw);
+      // Strip border artifacts / country codes: 1633277158 → 633277158.
+      if (digits.length === 10 && digits.startsWith('1')) digits = digits.slice(1);
+      if (digits.length === 9 && digits.startsWith('0')) digits = digits.slice(1);
+      if (digits.length === 12 && digits.startsWith('252')) digits = digits.slice(3);
       if (!digits) return null;
       if (digits.length < 6) {
         issues.push({ column: col.key, message: 'Phone number looks too short', severity: 'warning' });
@@ -383,11 +400,12 @@ function normalizeValue(
     case 'complain':
       return raw;
     case 'name':
+      return cleanHumanText(raw);
     case 'text':
     case 'code':
     case 'speed':
     default:
-      return raw;
+      return cleanHumanText(raw);
   }
 }
 

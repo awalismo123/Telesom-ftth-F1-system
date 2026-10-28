@@ -76,6 +76,33 @@ export function buildRowsFromRecords(
       });
     }
 
+    // A customer the technician cannot call, or a job with no area / cablebox,
+    // is still importable — but the supervisor has to see it before confirming.
+    const phone = v.customer_phone ? String(v.customer_phone) : null;
+    if (!phone && template.columns.some((c) => c.kind === 'phone')) {
+      issues.push({
+        column: 'customer_phone',
+        message: 'Phone number was not read — the technician cannot call this customer',
+        severity: 'warning',
+      });
+    }
+
+    if (template.id === 'cilada') {
+      if (!parsedBox.boxCode && !parsedBox.oltPath) {
+        issues.push({
+          column: 'cablebox_code_raw',
+          message: 'No cablebox recognised — this job cannot be clustered by box',
+          severity: 'warning',
+        });
+      }
+    } else if (!v.xaafada) {
+      issues.push({
+        column: 'xaafada',
+        message: 'Neighbourhood was not read — routing will be less accurate',
+        severity: 'warning',
+      });
+    }
+
     return {
       id: localId(),
       raw: normalized.raw,
@@ -85,7 +112,7 @@ export function buildRowsFromRecords(
         lineNumber,
         groupCode: String(v.group_code ?? '').toUpperCase(),
         customerName: String(v.customer_name ?? '').trim(),
-        phone: v.customer_phone ? String(v.customer_phone) : null,
+        phone,
         xaafada: v.xaafada ? String(v.xaafada).trim() : null,
         cableboxCode: parsedBox.boxCode,
         cableboxPort: parsedBox.port,

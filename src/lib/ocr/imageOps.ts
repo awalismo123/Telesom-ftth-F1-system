@@ -271,6 +271,133 @@ export function removeRules(mask: BinaryMask, grid: GridModel, pad = 2): BinaryM
   return { data: out, width, height };
 }
 
+/**
+ * Rule removal that only deletes the *rules themselves*.
+ *
+ * A plain band-based eraser also removes glyph pixels that touch a border
+ * (phones printed tight against the cell edge), which is exactly how columns
+ * end up empty. Here a pixel is only cleared when it belongs to a long
+ * horizontal/vertical run of ink — i.e. it is part of a ruled line, not a
+ * letter (letters never produce 40+ px runs).
+ */
+export function removeRulesSmart(
+  mask: BinaryMask,
+  grid: GridModel,
+  opts?: { minH?: number; minV?: number },
+): BinaryMask {
+  const { width, height } = mask;
+  const out = new Uint8Array(mask.data);
+  const minH = opts?.minH ?? Math.max(24, Math.round(width * 0.02));
+  const minV = opts?.minV ?? Math.max(40, Math.round(height * 0.02));
+
+  const inH = new Uint8Array(height);
+  for (const band of grid.horizontalLines) {
+    for (let y = Math.max(0, band.start - 1); y <= Math.min(height - 1, band.end + 1); y++) {
+      inH[y] = 1;
+    }
+  }
+
+  // Horizontal runs inside the detected rule rows.
+  for (let y = 0; y < height; y++) {
+    if (!inH[y]) continue;
+    const base = y * width;
+    let runStart = -1;
+    for (let x = 0; x <= width; x++) {
+      const ink = x < width ? out[base + x] : 0;
+      if (ink) {
+        if (runStart < 0) runStart = x;
+      } else if (runStart >= 0) {
+        if (x - runStart >= minH) out.fill(0, base + runStart, base + x);
+        runStart = -1;
+      }
+    }
+  }
+
+  const inV = new Uint8Array(width);
+  for (const band of grid.verticalLines) {
+    for (let x = Math.max(0, band.start - 1); x <= Math.min(width - 1, band.end + 1); x++) {
+      inV[x] = 1;
+    }
+  }
+
+  // Vertical runs inside the detected rule columns.
+  for (let x = 0; x < width; x++) {
+    if (!inV[x]) continue;
+    let runStart = -1;
+    for (let y = 0; y <= height; y++) {
+      const ink = y < height ? out[y * width + x] : 0;
+      if (ink) {
+        if (runStart < 0) runStart = y;
+      } else if (runStart >= 0) {
+        if (y - runStart >= minV) {
+          for (let yy = runStart; yy < y; yy++) out[yy * width + x] = 0;
+        }
+        runStart = -1;
+      }
+    }
+  }
+
+  return { data: out, width, height };
+}
+
+/** Crop a rectangle out of an image, optionally padding with white. */
+export function cropImage(
+  img: RgbaImage,
+  rect: { x: number; y: number; w: number; h: number },
+  pad = 0,
+  paper: [number, number, number] = [255, 255, 255],
+): RgbaImage {
+  const w = Math.max(1, Math.round(rect.w));
+  const h = Math.max(1, Math.round(rect.h));
+  const outW = w + pad * 2;
+  const outH = h + pad * 2;
+  const out = new Uint8ClampedArray(outW * outH * 4);
+
+  for (let i = 0; i < outW * outH; i++) {
+    out[i * 4] = paper[0];
+    out[i * 4 + 1] = paper[1];
+    out[i * 4 + 2] = paper[2];
+    out[i * 4 + 3] = 255;
+  }
+
+  for (let y = 0; y < h; y++) {
+    const sy = Math.round(rect.y) + y;
+    if (sy < 0 || sy >= img.height) continue;
+    for (let x = 0; x < w; x++) {
+      const sx = Math.round(rect.x) + x;
+      if (sx < 0 || sx >= img.width) continue;
+      const src = (sy * img.width + sx) * 4;
+      const dst = ((y + pad) * outW + (x + pad)) * 4;
+      out[dst] = img.data[src];
+      out[dst + 1] = img.data[src + 1];
+      out[dst + 2] = img.data[src + 2];
+      out[dst + 3] = 255;
+    }
+  }
+
+  return { data: out, width: outW, height: outH };
+}
+
+/** Stretch contrast between the darkest/lightest pixel of a crop. */
+export function stretchContrast(img: RgbaImage): RgbaImage {
+  let lo = 255;
+  let hi = 0;
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = (img.data[i] * 299 + img.data[i + 1] * 587 + img.data[i + 2] * 114) / 1000;
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  const span = Math.max(1, hi - lo);
+  const out = new Uint8ClampedArray(img.data.length);
+  for (let i = 0; i < img.data.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      out[i + c] = Math.round(((img.data[i + c] - lo) / span) * 255);
+    }
+    out[i + 3] = 255;
+  }
+  return { data: out, width: img.width, height: img.height };
+}
+
 /** Binary mask → white-background RGBA (what Tesseract should be fed). */
 export function maskToRgba(mask: BinaryMask): RgbaImage {
   const out = new Uint8ClampedArray(mask.width * mask.height * 4);
@@ -320,4 +447,98 @@ export function resizeRgba(img: RgbaImage, scale: number): RgbaImage {
   }
 
   return { data: out, width, height };
+}
+
+/**
+ * Estimate how far a photographed sheet is rotated.
+ *
+ * Scores candidate angles by how strongly the ink concentrates into rows: when
+ * the table is straight, each ruled border lands in a single scanline, so the
+ * sum of squared row projections peaks. Runs on a subsampled grid, so it costs
+ * a few milliseconds even for a 2200px picture.
+ */
+export function estimateSkew(mask: BinaryMask, maxDegrees = 2.5, step = 0.5): number {
+  const { width, height } = mask;
+  const stepPx = Math.max(1, Math.round(width / 700)); // subsample horizontally
+  let best = { angle: 0, score: -1 };
+
+  for (let angle = -maxDegrees; angle <= maxDegrees + 1e-9; angle += step) {
+    const rad = (angle * Math.PI) / 180;
+    const tan = Math.tan(rad);
+    const offsetRange = Math.ceil(Math.abs(tan) * width) + 2;
+    const proj = new Float64Array(height + offsetRange * 2);
+    const base = offsetRange;
+
+    for (let y = 0; y < height; y += 2) {
+      const rowBase = y * width;
+      for (let x = 0; x < width; x += stepPx) {
+        if (!mask.data[rowBase + x]) continue;
+        const shift = Math.round(x * tan);
+        const idx = y + shift + base;
+        if (idx >= 0 && idx < proj.length) proj[idx] += 1;
+      }
+    }
+
+    let sum = 0;
+    let sq = 0;
+    for (let i = 0; i < proj.length; i++) {
+      sum += proj[i];
+      sq += proj[i] * proj[i];
+    }
+    // Concentration: high when ink collapses onto few rows.
+    const score = sum > 0 ? sq / sum : 0;
+    if (score > best.score) best = { angle, score };
+  }
+
+  return Math.abs(best.angle) < step ? 0 : best.angle;
+}
+
+/** Rotate an RGBA image (degrees, clockwise) around its centre, white fill. */
+export function rotateRgba(img: RgbaImage, degrees: number): RgbaImage {
+  if (!degrees) return img;
+  const rad = (degrees * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const { width: w, height: h, data } = img;
+  const out = new Uint8ClampedArray(w * h * 4);
+  const cx = (w - 1) / 2;
+  const cy = (h - 1) / 2;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - cx;
+      const dy = y - cy;
+      const sx = cos * dx + sin * dy + cx;
+      const sy = -sin * dx + cos * dy + cy;
+      const o = (y * w + x) * 4;
+
+      if (sx < 0 || sy < 0 || sx > w - 1 || sy > h - 1) {
+        out[o] = 255;
+        out[o + 1] = 255;
+        out[o + 2] = 255;
+        out[o + 3] = 255;
+        continue;
+      }
+
+      const x0 = Math.floor(sx);
+      const y0 = Math.floor(sy);
+      const x1 = Math.min(w - 1, x0 + 1);
+      const y1 = Math.min(h - 1, y0 + 1);
+      const wx = sx - x0;
+      const wy = sy - y0;
+      const i00 = (y0 * w + x0) * 4;
+      const i10 = (y0 * w + x1) * 4;
+      const i01 = (y1 * w + x0) * 4;
+      const i11 = (y1 * w + x1) * 4;
+
+      for (let c = 0; c < 3; c++) {
+        const top = data[i00 + c] * (1 - wx) + data[i10 + c] * wx;
+        const bottom = data[i01 + c] * (1 - wx) + data[i11 + c] * wx;
+        out[o + c] = top * (1 - wy) + bottom * wy;
+      }
+      out[o + 3] = 255;
+    }
+  }
+
+  return { data: out, width: w, height: h };
 }

@@ -9,6 +9,7 @@
 import { supabase } from './supabase';
 import type { Task } from '../types/database';
 import type { ExtractedRow } from './ocr/extract';
+import { normalizeDate } from './ocr/normalize';
 
 export type ConflictKind =
   | 'new' // brand new line for this group
@@ -42,6 +43,23 @@ export interface ImportPlan {
     repeats: number;
     duplicates: number;
   };
+}
+
+/**
+ * Guarantee an ISO `YYYY-MM-DD` string (or '') before anything reaches Postgres.
+ * Telesom sheets print dates as `28-10-2026` or `10/26/2026`, and a raw value
+ * passed to a `date` column makes the whole import fail with
+ * "date/time field value out of range".
+ */
+export function isoDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const trimmed = String(value).trim();
+  const strict = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (strict) {
+    const d = new Date(`${trimmed}T00:00:00Z`);
+    if (!Number.isNaN(d.getTime())) return trimmed;
+  }
+  return normalizeDate(trimmed) ?? '';
 }
 
 function dayKey(value: string | null | undefined): string {
@@ -241,14 +259,14 @@ export function toTaskPayload(plan: PlanRow, taskType: 'installation' | 'cilada'
     cablebox_code: d.cableboxCode ?? '',
     olt_path: d.oltPath ?? '',
     port_number: d.cableboxPort !== null ? String(d.cableboxPort) : '',
-    reported_date: d.reportedDate ?? '',
+    reported_date: isoDate(d.reportedDate ?? str('reported_date')),
     reported_time: str('reported_time'),
     complain_type: str('complain_type'),
     priority: d.urgent ? 'urgent' : 'normal',
     is_urgent: d.urgent,
     is_repeat_fault: plan.conflict === 'repeat',
     previous_task_id: plan.conflict === 'repeat' ? (plan.existing?.id ?? '') : '',
-    scheduled_date: new Date().toISOString().slice(0, 10),
+    scheduled_date: new Date().toISOString().slice(0, 10), // always ISO
   };
 }
 
@@ -292,6 +310,9 @@ export async function commitImport(params: {
   const { token, groupId, sheetCategory, sourceType, fileName, printDate, sourceImagePath, plan } =
     params;
 
+  // Never let a raw sheet date reach a Postgres `date` parameter.
+  const safePrintDate = isoDate(printDate) || null;
+
   const rows = plan.rows
     .filter((r) => r.included && r.decision !== 'skip' && r.conflict !== 'invalid')
     .map((r) => ({
@@ -323,7 +344,7 @@ export async function commitImport(params: {
     p_sheet_category: sheetCategory,
     p_source_type: sourceType,
     p_file_name: fileName,
-    p_print_date: printDate,
+    p_print_date: safePrintDate,
     p_source_image_path: sourceImagePath,
     p_summary: summary,
     p_rows: rows,

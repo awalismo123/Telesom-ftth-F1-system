@@ -19,7 +19,7 @@ import {
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
-import { extractFromImage, type OcrProgress, type OcrResult } from '../../../lib/ocr/engine';
+import type { OcrProgress, OcrResult } from '../../../lib/ocr/engine';
 import { buildRowsFromRecords, type ExtractedRow } from '../../../lib/ocr/extract';
 import { parseTabularText, parseCsvFile } from '../../../lib/ocr/paste';
 import { GALINTA_TEMPLATE, CILADA_TEMPLATE, type SheetTemplate } from '../../../lib/ocr/templates';
@@ -63,6 +63,7 @@ export function IngestWizard() {
   const [progress, setProgress] = useState<OcrProgress | null>(null);
   const [rows, setRows] = useState<ExtractedRow[]>([]);
   const [extraction, setExtraction] = useState<OcrResult | null>(null);
+  const ocrUsedRef = useRef(false);
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [sourceLabel, setSourceLabel] = useState<string>('');
   const [sourceKind, setSourceKind] = useState<'image' | 'excel' | 'paste' | 'pdf'>('image');
@@ -99,6 +100,17 @@ export function IngestWizard() {
     void loadHistory();
   }, [loadHistory]);
 
+  useEffect(() => {
+    return () => {
+      // Free the WASM worker + the trained data when the supervisor leaves the
+      // wizard; phones run out of memory otherwise. Only do this if the OCR
+      // bundle was actually loaded — importing it here would defeat the
+      // on-demand split.
+      if (!ocrUsedRef.current) return;
+      void import('../../../lib/ocr/engine').then((m) => m.terminateOcrWorker());
+    };
+  }, []);
+
   const reset = () => {
     setPhase('source');
     setRows([]);
@@ -124,18 +136,17 @@ export function IngestWizard() {
     setProgress({ stage: 'preparing', progress: 0.01, message: so ? 'Sawirka waa la diyaarinayaa…' : 'Preparing the picture…' });
 
     try {
+      // Loaded on demand: the Tesseract bundle is ~500 kB and most sessions
+      // never open this wizard, so it must not block the first paint on 3G.
+      const { extractFromImage } = await import('../../../lib/ocr/engine');
+      ocrUsedRef.current = true;
       const ocr = await extractFromImage(file, setProgress, templateHint);
       setExtraction(ocr);
-      const built = buildRowsFromRecords(ocr.table.records, ocr.table.template);
-      if (!built.length) {
-        throw new Error(
-          so
-            ? 'Sawirka wax saf ah lama akhrin. Hubi in sawirku cad yahay ama isku day inaad xogta koobi-gasho.'
-            : 'No rows could be read from this picture. Make sure the picture is sharp, or paste the table instead.',
-        );
-      }
+      const built = buildRowsFromRecords(ocr.records, ocr.template);
+      // Even with zero rows we go to the review screen: the supervisor can then
+      // paste the table or type the rows instead of losing the attempt.
       setRows(built);
-      setSheetType(ocr.table.template.id === 'galinta' ? 'galinta' : 'cilada');
+      setSheetType(ocr.template.id === 'galinta' ? 'galinta' : 'cilada');
       setPhase('review');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to read the picture');
@@ -228,7 +239,7 @@ export function IngestWizard() {
         sheetCategory: sheetType === 'galinta' ? 'installation' : 'cilada',
         sourceType: sourceKind,
         fileName: sourceLabel || 'daily-sheet',
-        printDate: extraction?.table.records?.[0]?.reported_date || null,
+        printDate: rows[0]?.derived.reportedDate ?? null,
         sourceImagePath: imagePath,
         plan,
       });
@@ -276,7 +287,7 @@ export function IngestWizard() {
   const activeStepIndex =
     phase === 'source' ? 0 : phase === 'processing' ? 0 : phase === 'review' ? 1 : phase === 'conflicts' ? 2 : 3;
 
-  const template = extraction?.table.template ?? templateHint ?? CILADA_TEMPLATE;
+  const template = extraction?.template ?? templateHint ?? CILADA_TEMPLATE;
 
   return (
     <div className="space-y-5">
@@ -607,7 +618,13 @@ export function IngestWizard() {
             }
             groupCode={activeGroup?.code ?? 'F1'}
             titleText={extraction?.titleText}
-            warnings={extraction?.table.warnings ?? []}
+            warnings={extraction?.warnings ?? []}
+            perColumn={extraction?.stats.perColumn}
+            onAddRow={() => setRows((prev) => [...prev, ...buildRowsFromRecords([{}], template)])}
+            onPasteInstead={() => {
+              setPasteOpen(true);
+              setPhase('source');
+            }}
           />
 
           <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl border border-slate-200 p-4">
