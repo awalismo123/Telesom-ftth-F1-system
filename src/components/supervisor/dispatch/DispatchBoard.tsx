@@ -38,6 +38,7 @@ import {
 import { TaskCard } from './TaskCard';
 import { ClusterPlanSheet } from './ClusterPlanSheet';
 import { DispatchMessageSheet } from './DispatchMessageSheet';
+import { LiveStrip } from './LiveStrip';
 
 type Filter = 'all' | 'urgent';
 
@@ -282,6 +283,8 @@ export function DispatchBoard() {
           </button>
         </div>
       </div>
+
+      <LiveStrip />
 
       {error && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 flex items-start gap-2">
