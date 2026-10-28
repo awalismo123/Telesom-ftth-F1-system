@@ -35,6 +35,7 @@ import {
   startTask,
 } from '../../lib/executionService';
 import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
+import { BoxSheet } from '../registry/BoxSheet';
 
 type Mode = 'idle' | 'blocker' | 'complete' | 'confirm-start';
 
@@ -91,6 +92,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<WorkLogRow[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showBox, setShowBox] = useState(false);
 
   // blocker form
   const [reason, setReason] = useState<BlockerReason>('customer_unreachable');
@@ -328,6 +330,22 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                 </div>
               ))}
             </div>
+          )}
+
+          {/* box history shortcut */}
+          {task.cablebox_id && (
+            <button
+              type="button"
+              onClick={() => setShowBox(true)}
+              className="w-full inline-flex items-center justify-between gap-2 px-3 h-10 rounded-2xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 active:scale-[0.99] transition cursor-pointer"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                {so ? 'Taariikhda sanduuqa' : 'Box history'}
+                <span className="font-mono text-slate-400">{task.cablebox_code_raw}</span>
+              </span>
+              <span className="text-slate-400">›</span>
+            </button>
           )}
 
           {/* timer */}
@@ -762,6 +780,16 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           )}
         </div>
       </div>
+
+      {showBox && task.cablebox_id && (
+        <BoxSheet
+          boxId={task.cablebox_id}
+          token={token}
+          lang={lang}
+          canEdit
+          onClose={() => setShowBox(false)}
+        />
+      )}
     </div>
   );
 }

@@ -77,5 +77,13 @@ Because daily sheets arrive as **table images (`.jpeg`, `.png`)** in the group c
   * **`complete_task`** — requires an optical `dBm` between `0` and `−40` (`NULL`, `> 0` and `< −40` are rejected in the database, not just the form), optionally records the port the customer was moved to, banks the session, and stamps `completed_at` / `completed_by`.
   * **`live_status`** — supervisor read-only view of every `in_progress` / `blocked` job in the group with the worker (technician or crew) name, for the *Live in the field* strip.
   * **Guard hardening** — every RPC uses `IF is_task_worker(...) IS NOT TRUE THEN RAISE`, because `assigned_user_id = user` is `NULL` for crew jobs and a plain `IF NOT NULL` would silently pass; `is_task_worker` also `COALESCE`s to `false`.
-* **Phase 5 — Module 5: Cablebox Infrastructure Registry & Supervisor Analytics**
+* **Phase 5 — Module 5: Cablebox Infrastructure Registry & Supervisor Analytics** ✅ **Shipped**
   * Port-level damage & `dBm` history per `Cablebox`, chronic box alerts, real-time field operations monitor, efficiency metrics, and daily export report.
+  * **`cablebox_ports`** — one row per port (`free` / `occupied` / `damaged` / `reserved` / `unknown`) with the line, customer, note, who changed it and when. Materialised from the box's `total_ports` on first read, so a new box needs no setup.
+  * **`set_port_status`** — technicians *and* the supervisor can mark a port from the phone; the RPC validates the port against `total_ports`, writes a `port_damaged` (or release `note`) incident, and calls `recompute_box_state`, which re-derives `damaged_ports`, `health_status` and `last_optical_dbm`.
+  * **Health rule** — `critical` at ≥3 damaged ports or ≥4 faults in 30 days; `warning` with any damaged port, any recent fault or the latest reading below −27 dBm; otherwise `healthy`. `chronic` = ≥3 faults in the window.
+  * **`box_directory` / `box_detail`** — the list view (usage, faults, 30-day completions, open jobs, average dBm, last activity) and the deep view (port map, 40 most recent incidents, 25 most recent jobs, 30-day stats).
+  * **`ops_analytics`** — KPI totals, dBm bands, a zero-filled daily series, per-worker rows (crew *or* technician via `coalesce(crew.name, user.full_name)`), per-box rows with chronic detection, and the blocker breakdown from `task_work_logs`.
+  * **`report_jobs`** — the flat completed-job list behind the CSV export, kept separate so the dashboard payload stays small.
+  * **Exports** — CSV (jobs, teams, boxes; UTF-8 BOM for Somali names) built entirely in the browser, and a WhatsApp/Telegram report in Somali or English.
+  * **Demo mode** — `seed_demo_data` / `clear_demo_data` create and remove 36 flagged sample jobs with incidents, blockers and port states so the screens can be judged on day one; `is_demo` keeps them separate from real work and the supervisor sees a banner whenever they are present.

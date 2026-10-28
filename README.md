@@ -16,7 +16,7 @@ It replaces the daily *"picture of the table"* workflow sent in the group chat w
 | **Phase 2** | Daily picture (**JPEG/PNG OCR**, on-device) + Excel/CSV/paste ingestion, Group F1 filter, carry-over / repeat-fault decisions, undo | ✅ **Live** |
 | **Phase 3** | Xaafada & Cablebox route clustering, bulk assignment, 1-click WhatsApp / Telegram dispatch summary | ✅ **Live** |
 | **Phase 4** | Technician mobile route, `tel:` click-to-call, live timer, blockers, optical `dBm` capture | ✅ **Live** |
-| **Phase 5** | Cablebox port & fault history registry, analytics dashboard, exports | ⏳ Planned |
+| **Phase 5** | Cablebox port & fault history registry, supervisor analytics, CSV + WhatsApp daily report | ✅ **Live** |
 
 ---
 
@@ -48,6 +48,31 @@ Open the app on a phone and sign in with the technician PIN — the route is alr
 8. **History** — every start, block, resume and completion of the job is listed with its time, the blocker reason, the `dBm` and the note, so the supervisor can reconstruct the day.
 
 Supervisors see the same clocks read-only: the **Live in the field** strip on the dispatch board shows who is on which line right now, the ticking elapsed time, and every blocked job with its reason.
+
+---
+
+## The cablebox register & insights (Phase 5)
+
+**Every box remembers everything.** Open *Cablebox History* (supervisor) or the *Boxes* tab (technician) and each box shows its port map, its health, every incident ever logged on it and every job done there — so the person sent to a box next week inherits what happened last week.
+
+1. **Port map** — a tile per port: *Free*, *In use*, *Damaged*, *Reserved* or *Not checked*. Tap a port and set it in two taps; technicians and the supervisor can both do it in the field. Each change is stamped with who did it and writes an incident into the box history, and the box's damaged-port list and health colour follow immediately.
+2. **Health that means something** — a box turns **warning** when it has a damaged port, a recent fault or a weak optical reading, and **critical** at three damaged ports or four faults in thirty days. A **chronic** badge marks any box with three or more faults in the window.
+3. **History timeline** — installations, faults fixed, ports broken, box-full and fiber-break events, each with the port, the dBm, the note, the technician and how long ago.
+4. **Jobs on that box** — line, customer, worker, time on the job and the dBm that was measured there.
+5. **From the job to the box** — inside a technician's job sheet, *Box history* opens the same page without leaving the job.
+
+**Insights** (supervisor) puts team output and infrastructure health side by side over 7, 30 or 90 days:
+
+* **KPIs** — jobs completed, urgent share, average time on the job, share of readings inside the healthy `−27…−8 dBm` window, what is open / running / blocked right now;
+* **Daily bars** — jobs completed per day, so a quiet Tuesday is visible at a glance;
+* **Teams** — completed, average minutes, urgent, repeat visits and average dBm per crew or technician, plus live/blocked badges;
+* **Cablebox health** — faults, damaged ports, average dBm and a chronic flag per box, clicking through to the full register;
+* **Blockers** — which standard reason is costing the group the most time;
+* **dBm quality** — how many readings were healthy, weak or too strong, and the group average.
+
+**Leaving the app:** *Download CSV* writes the job list, the team table and the box table (Excel-ready, UTF-8 with BOM so Somali names stay intact), and *Copy WhatsApp report* produces the group-chat message — completed jobs, average time, dBm quality, team lines, boxes needing attention and the top blockers.
+
+**Demo history:** because a brand-new register is empty and impossible to judge, *Load demo history* seeds 36 realistic completed jobs, incidents and port states across thirty days, every row flagged `is_demo`. They feed the analytics so you can see what the screens look like, and *Remove demo data* deletes them again in one tap — real jobs are never touched.
 
 ---
 

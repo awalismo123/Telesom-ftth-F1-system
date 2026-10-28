@@ -6,11 +6,11 @@ import {
   Server,
   Users,
   CheckCircle2,
-  Clock,
   Camera,
   AlertTriangle,
   Wifi,
   Truck,
+  BarChart3,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,8 +19,10 @@ import type { Cablebox } from '../../types/database';
 import { TeamAndCrewManager } from './TeamAndCrewManager';
 import { IngestWizard } from './ingest/IngestWizard';
 import { DispatchBoard } from './dispatch/DispatchBoard';
+import { BoxRegistry } from './BoxRegistry';
+import { Analytics } from './Analytics';
 
-type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'cableboxes' | 'team';
+type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'insights' | 'cableboxes' | 'team';
 
 export function SupervisorShell() {
   const { activeGroup } = useAuth();
@@ -76,6 +78,12 @@ export function SupervisorShell() {
     { id: 'team', label: t('navTeam'), icon: <Users className="w-4 h-4" />, badge: 'LIVE' },
     { id: 'ingest', label: t('navIngest'), icon: <Camera className="w-4 h-4" />, badge: 'NEW' },
     { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" />, badge: 'LIVE' },
+    {
+      id: 'insights',
+      label: t('navInsights'),
+      icon: <BarChart3 className="w-4 h-4" />,
+      badge: 'NEW',
+    },
     {
       id: 'cableboxes',
       label: t('navCablebox'),
@@ -221,9 +229,9 @@ export function SupervisorShell() {
                 <span className="font-semibold text-emerald-100">{t('phase4Done')}</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-start gap-3">
-                <Clock className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
-                <span className="font-semibold text-amber-100">{t('phase4Next')}</span>
+              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="font-semibold text-emerald-100">{t('phase5Done')}</span>
               </div>
             </div>
           </div>
@@ -236,66 +244,9 @@ export function SupervisorShell() {
 
       {activeTab === 'dispatch' && <DispatchBoard />}
 
-      {activeTab === 'cableboxes' && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <h3 className="text-base font-extrabold text-slate-900">
-              Seeded Cablebox Registry (Full Port &amp; Log Explorer in Phase 5)
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Initial boxes recognized from Telesom Group F1 records in Supabase:
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {cableboxes.map((box) => (
-              <div
-                key={box.id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="font-extrabold text-slate-900 text-base">{box.box_code}</div>
-                    {box.olt_path && (
-                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                        {box.olt_path}
-                      </div>
-                    )}
-                  </div>
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                      box.health_status === 'healthy'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-800 border border-amber-200'
-                    }`}
-                  >
-                    {box.health_status.toUpperCase()}
-                  </span>
-                </div>
-                <div className="text-xs text-slate-600 flex flex-wrap gap-3">
-                  <span>
-                    <strong>Xaafada:</strong> {box.xaafada || '—'}
-                  </span>
-                  <span>
-                    <strong>Ports:</strong> {box.total_ports}
-                  </span>
-                  <span>
-                    <strong>Last dBm:</strong>{' '}
-                    {box.last_optical_dbm !== null ? `${box.last_optical_dbm} dBm` : '—'}
-                  </span>
-                </div>
-                {box.damaged_ports.length > 0 && (
-                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-xs text-amber-900 font-semibold">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>
-                      Damaged Port(s): {box.damaged_ports.join(', ')} — {box.location_notes}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {activeTab === 'cableboxes' && <BoxRegistry />}
+
+      {activeTab === 'insights' && <Analytics />}
     </div>
   );
 }
