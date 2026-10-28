@@ -5,16 +5,16 @@ import {
   UserCheck,
   Truck,
   Phone,
-  AlertTriangle,
   MapPin,
   Wrench,
 } from 'lucide-react';
 import { RouteView } from './RouteView';
 import { RunningPill } from './RunningPill';
+import { BoxRegistry } from '../supervisor/BoxRegistry';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
-import type { Cablebox, UserProfile } from '../../types/database';
+import type { UserProfile } from '../../types/database';
 
 export function TechnicianShell() {
   const { session, activeGroup } = useAuth();
@@ -22,17 +22,10 @@ export function TechnicianShell() {
 
   const [tab, setTab] = useState<'route' | 'boxes' | 'profile'>('route');
   const [teammates, setTeammates] = useState<UserProfile[]>([]);
-  const [boxes, setBoxes] = useState<Cablebox[]>([]);
 
   useEffect(() => {
     const loadMobileContext = async () => {
       if (!session) return;
-
-      const boxRes = await supabase
-        .from('cableboxes')
-        .select('*')
-        .order('box_code', { ascending: true });
-      if (boxRes.data) setBoxes(boxRes.data as Cablebox[]);
 
       if (session.crews.length > 0) {
         const crewIds = session.crews.map((c) => c.id);
@@ -96,32 +89,7 @@ export function TechnicianShell() {
       {/* Tab Views */}
       {tab === 'route' && <RouteView />}
 
-      {tab === 'boxes' && (
-        <div className="space-y-3">
-          {boxes.map((box) => (
-            <div
-              key={box.id}
-              className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-extrabold text-slate-900 text-sm">{box.box_code}</span>
-                <span className="text-xs font-semibold text-slate-500">{box.xaafada || '—'}</span>
-              </div>
-              {box.olt_path && (
-                <div className="text-[11px] font-mono text-slate-500">{box.olt_path}</div>
-              )}
-              {box.damaged_ports.length > 0 && (
-                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-xs text-amber-900 font-semibold">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>
-                    Bad Port(s): {box.damaged_ports.join(', ')} — {box.location_notes}
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {tab === 'boxes' && <BoxRegistry />}
 
       {tab === 'profile' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">

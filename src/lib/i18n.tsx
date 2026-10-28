@@ -26,6 +26,7 @@ const translations = {
     navOverview: 'Command Overview',
     navIngest: 'Daily Sheet Upload',
     navDispatch: 'Dispatch & Clustering',
+    navInsights: 'Insights',
     navCablebox: 'Cablebox History',
     navTeam: 'Team & Crews',
 
@@ -126,6 +127,7 @@ const translations = {
     phase3Done: 'Phase 3 (live): Cablebox & Xaafada route clustering, technician/crew dispatch, one-tap WhatsApp plan',
     phase4Done: 'Phase 4 (live): technician mobile route, server-side live timer, standard blockers, mandatory dBm capture',
     phase4Next: 'Phase 5 Next: cablebox port & fault history, analytics and daily export',
+    phase5Done: 'Phase 5 (live): cablebox port registry, full box history for the next technician, team & box analytics, CSV + WhatsApp report',
     phase3Pending: 'Phase 3: Xaafada & Cablebox Clustering + 1-Click WhatsApp Summary',
     phase4Pending: 'Phase 4: Mobile Execution, Live Timer, Blockers & Optical dBm',
     phase5Pending: 'Phase 5: Full Cablebox Port History & Efficiency Analytics',
@@ -154,6 +156,7 @@ const translations = {
     navOverview: 'Guudmar & Xaaladda',
     navIngest: 'Soo Geli Warqadda (Pic/Excel)',
     navDispatch: 'Qaybinta & Xaafadaha',
+    navInsights: 'Falanqayn',
     navCablebox: 'Taariikhda Cablebox',
     navTeam: 'Shaqaalaha & Gaadiidka',
 
@@ -255,6 +258,7 @@ const translations = {
     phase3Done: 'Qaybta 3aad (Shaqaynaysa): Isku-xidhka Cablebox & Xaafadaha, qaybinta shaqaalaha, fariinta WhatsApp-ka hal guji',
     phase4Done: 'Qaybta 4aad (Shaqaynaysa): Mobile-ka farsamayaqaanka, saacadda server-ka, caqabadaha, cabbirka dBm ee qasabka ah',
     phase4Next: 'Qaybta 5aad (Xigta): Taariikhda port-yada cablebox, falanqaynta iyo warbixinta maalinlaha ah',
+    phase5Done: 'Qaybta 5aad (Shaqaynaysa): Diiwaanka port-yada cablebox, taariikhda buuxda farsamayaqaanka xiga, falanqaynta kooxda & sanduuqa, CSV + warbixinta WhatsApp',
     phase3Pending: 'Qaybta 3aad: Isku-xidhka Xaafadaha & Cablebox + Fariinta WhatsApp-ka Kooxda',
     phase4Pending: 'Qaybta 4aad: Mobile-ka Farsamayaqaanka, Saacadda (Timer), Caqabadaha & Cabirka dBm',
     phase5Pending: 'Qaybta 5aad: Taariikhda Port-yada Cablebox & Warbixinta Waxqabadka',
