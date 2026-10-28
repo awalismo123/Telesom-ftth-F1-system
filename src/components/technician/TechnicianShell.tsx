@@ -9,6 +9,8 @@ import {
   MapPin,
   Wrench,
 } from 'lucide-react';
+import { RouteView } from './RouteView';
+import { RunningPill } from './RunningPill';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
@@ -92,20 +94,7 @@ export function TechnicianShell() {
       </div>
 
       {/* Tab Views */}
-      {tab === 'route' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center space-y-3 shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
-            <ClipboardList className="w-6 h-6" />
-          </div>
-          <h3 className="font-extrabold text-slate-900 text-sm">{t('techMyRoute')}</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            No tasks assigned yet today. Once the Supervisor uploads the daily{' '}
-            <strong>Galinta</strong> or <strong>Cilada</strong> picture sheet and dispatches jobs to{' '}
-            <strong>{activeCrew ? activeCrew.name : session.user.full_name}</strong>, your route
-            cards, <code>tel:</code> call buttons, and live timer will appear right here.
-          </p>
-        </div>
-      )}
+      {tab === 'route' && <RouteView />}
 
       {tab === 'boxes' && (
         <div className="space-y-3">
@@ -177,6 +166,8 @@ export function TechnicianShell() {
           )}
         </div>
       )}
+
+      {tab !== 'route' && <RunningPill onGoToRoute={() => setTab('route')} />}
 
       {/* Fixed Bottom Mobile Tab Bar */}
       <nav className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-lg">

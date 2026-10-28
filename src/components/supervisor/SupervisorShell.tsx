@@ -216,6 +216,11 @@ export function SupervisorShell() {
                 <span className="font-semibold text-emerald-100">{t('phase3Done')}</span>
               </div>
 
+              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="font-semibold text-emerald-100">{t('phase4Done')}</span>
+              </div>
+
               <div className="p-3.5 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-start gap-3">
                 <Clock className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
                 <span className="font-semibold text-amber-100">{t('phase4Next')}</span>

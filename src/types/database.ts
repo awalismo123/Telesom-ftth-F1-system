@@ -84,6 +84,10 @@ export interface Task {
   customer_name: string;
   customer_phone: string | null;
   x_number: string | null;
+  /** Qaatay / Muu interpretation of the XNumber cell (Galinta sheets) */
+  router_state: 'collected' | 'not_collected' | 'unknown' | null;
+  complain_type: string | null;
+  dedup_key: string | null;
   disc_code: string | null;
   service_type: string;
   work_subtype: string | null;
@@ -97,19 +101,26 @@ export interface Task {
   priority: 'normal' | 'urgent';
   carryover_count: number;
   is_repeat_fault: boolean;
+  is_urgent: boolean;
+  previous_task_id: string | null;
   previous_fault_summary: string | null;
   status: TaskStatus;
   assigned_user_id: string | null;
   assigned_crew_id: string | null;
+  assigned_by: string | null;
   assigned_at: string | null;
   active_started_at: string | null;
   active_started_by: string | null;
   accumulated_seconds: number;
   blocker_reason: BlockerReason | null;
   blocker_notes: string | null;
+  blocked_at: string | null;
   optical_dbm: number | null;
   completion_notes: string | null;
   completed_at: string | null;
+  completed_by: string | null;
   scheduled_date: string;
+  last_seen_on_sheet_date?: string | null;
   created_at: string;
+  updated_at?: string;
 }

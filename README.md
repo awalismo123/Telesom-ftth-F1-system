@@ -15,7 +15,7 @@ It replaces the daily *"picture of the table"* workflow sent in the group chat w
 | **Phase 1** | Supabase schema, Fast PIN auth, bilingual UI, Supervisor shell, Mobile technician shell, **Team & 2-Tech Crew manager**, multi-group (F1→F2/F3/F5/GA) | ✅ **Live** |
 | **Phase 2** | Daily picture (**JPEG/PNG OCR**, on-device) + Excel/CSV/paste ingestion, Group F1 filter, carry-over / repeat-fault decisions, undo | ✅ **Live** |
 | **Phase 3** | Xaafada & Cablebox route clustering, bulk assignment, 1-click WhatsApp / Telegram dispatch summary | ✅ **Live** |
-| **Phase 4** | Technician mobile route, `tel:` click-to-call, live timer, blockers, optical `dBm` capture | ⏳ Planned |
+| **Phase 4** | Technician mobile route, `tel:` click-to-call, live timer, blockers, optical `dBm` capture | ✅ **Live** |
 | **Phase 5** | Cablebox port & fault history registry, analytics dashboard, exports | ⏳ Planned |
 
 ---
@@ -31,6 +31,23 @@ It replaces the daily *"picture of the table"* workflow sent in the group chat w
    * phone numbers and urgency markers included, honouring the `063 441 8376` local format;
    * every generated message is written to `dispatch_log` for audit.
 5. **Undo** — *Return to pool* releases a job; a job that has already been started can never be silently re-dispatched (the database refuses it and reports why).
+
+---
+
+## Working the day (Phase 4)
+
+Open the app on a phone and sign in with the technician PIN — the route is already there.
+
+1. **My route** — only the jobs assigned to *you* or to *your crew*, grouped by **cablebox** and then by `Xaafada`, in the order they should be worked: running → blocked → urgent → rest. Completed-today jobs fold away underneath. Cards show the box and port, the speed plan, repeat-fault history and the box's warning flags (damaged port, weak box, box full).
+2. **Call the customer** — the big green button is a real `tel:` link, so it dials from the handset; the local `063 444 8080` format is what the technician reads out.
+3. **Start** — one tap on the card (or inside the sheet). The timer is stored **on the server**, not on the phone: `accumulated_seconds + (now − active_started_at)`, with the phone clock corrected by the server offset. Closing the app, losing signal or switching tab never loses time. A *Job running* pill floats above the tab bar on every other tab so the clock is never hidden.
+4. **Several timers at once are allowed, with a warning** — if another job is already running the app asks first and lists what is running; only an explicit *Start anyway* opens a second clock.
+5. **Blocker** — one of the standardized reasons (*Customer Unreachable*, *Fiber Break*, *Box Full*, *Hardware Defective*, *Other*), each with a hint and the action to take. Saving it **pauses the clock** and leaves the job **Blocked** on the route; a `Fiber Break` / `Box Full` also writes a cablebox incident and raises the box's fault count.
+6. **Resume** — the same card continues from the banked time; nothing is recalculated or lost.
+7. **Complete** — the **optical `dBm` reading is mandatory** for every job (install and fault). Type it with the keypad in any habit (`-21.5`, `21.5`, `21,5` all become `-21.5`), or use a preset. The field colour tells the truth immediately: healthy `−27…−8 dBm`, a warning below `−27` (weak) or above `−8` (too strong), and an error outside `0…−40`. Add the port you moved the customer to (if you changed it) and what you did; both are stored with the duration and written to the job history.
+8. **History** — every start, block, resume and completion of the job is listed with its time, the blocker reason, the `dBm` and the note, so the supervisor can reconstruct the day.
+
+Supervisors see the same clocks read-only: the **Live in the field** strip on the dispatch board shows who is on which line right now, the ticking elapsed time, and every blocked job with its reason.
 
 ---
 
