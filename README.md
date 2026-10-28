@@ -38,8 +38,11 @@ It replaces the daily *"picture of the table"* workflow sent in the group chat w
 
 1. **Upload** the group-chat picture (or take a photo, drop a CSV, or paste rows out of Excel).
 2. **On-device OCR** (`Tesseract.js`, self-hosted — the picture never leaves the device):
-   * Otsu binarisation → ruled-line detection (horizontal + vertical) → **rules erased** so the text is clean → recognition.
+   * Deskew (hand-held photos) → Otsu binarisation → ruled-line detection (horizontal + vertical) → **rules erased** so the text is clean → recognition.
    * Words are mapped into the detected cells by their coordinates, then fuzzy-matched onto the **Galinta** (12 cols) or **Cilada** (13 cols) template — OCR typos such as `Shagada`, `Refiumber`, `Datelin` still resolve correctly.
+   * Every column is then re-read as a strip with a character whitelist (`digits` for line/phone, `0-9:.` for time, …) and every cell that is still empty is re-read on its own from a contrast-stretched crop.
+   * Readings are **scored against the column type** instead of "longest wins": a phone must be 9 digits starting with `6`, a line 6 digits, a group one of `F1…F6 / GA / GB`. A stray border read as a leading `1` (`1633277158`) is dropped, `Fl / FI / FS` become `F1 / F1 / F5`, and a reading that cannot be right is left **empty** rather than filled with garbage.
+   * A merged or missed divider (a whole column shifting by one) is detected by scoring the alignment and corrected automatically.
 3. **Field intelligence**: `degdeg / DEG DEG / dd / dadaji` → auto **URGENT**; `Qaatay / Muu` → router picked-up state; `F2 OLt2-1 ODF4-45 SPL1-1 FAT48-1` → box `FAT48` + port `1`; day-first vs month-first dates decided per sheet.
 4. **Verify & fix** every cell against the source picture before anything is written.
 5. **Decide per existing line** — nothing is auto-overwritten:
@@ -48,7 +51,22 @@ It replaces the daily *"picture of the table"* workflow sent in the group chat w
    * *Duplicate of today* → skip (default) or refresh
 6. **Confirm** → one atomic transaction, with **undo** available from the import history.
 
-OCR tuning harness (dev only): `npm run ocr:lab -- samples/cilada-sample.jpeg`.
+### Measured accuracy (both real sample pictures, in `samples/`)
+
+| | Galinta (13 rows) | Cilada (19 rows) |
+|---|---|---|
+| Template recognised | 0.92 header score | 1.00 header score |
+| Rows found | 13 / 13 | 19 / 19 |
+| Line number | 13 / 13 | 18 / 19 |
+| Customer name | 13 / 13 | 18 / 19 |
+| Phone | 12 / 13 | 17 / 19 |
+| Group | 13 / 13 | 19 / 19 |
+| Xaafada | 13 / 13 | — |
+
+The same pictures pushed through a *field-photo* simulation (72 % scale, JPEG quality 45) still give line/name 100 % / 95 %, phone 85 % / 74 %, group 92 % / 89 %.
+Anything that cannot be read is **left empty and highlighted** in the review screen — the app never guesses a phone number — and the per-column read quality is shown above the table.
+
+OCR tuning harness (dev only): `npm run ocr:lab` (clean + rotated + degraded modes).
 
 ## Project Structure
 

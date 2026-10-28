@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
+  ClipboardPaste,
+  Plus,
   Image as ImageIcon,
   Pencil,
   ScanLine,
@@ -14,6 +16,14 @@ import { updateRowCell } from '../../../lib/ocr/extract';
 import type { SheetTemplate } from '../../../lib/ocr/templates';
 import { useLanguage } from '../../../lib/i18n';
 
+export interface ColumnFill {
+  key: string;
+  label: string;
+  filled: number;
+  total: number;
+  weak: boolean;
+}
+
 interface Props {
   template: SheetTemplate;
   rows: ExtractedRow[];
@@ -24,6 +34,12 @@ interface Props {
   groupCode: string;
   titleText?: string;
   warnings?: string[];
+  /** per-column read quality straight from the OCR pipeline */
+  perColumn?: ColumnFill[];
+  /** append an empty row the supervisor can type into */
+  onAddRow?: () => void;
+  /** switch to the paste-a-table flow when the picture was unreadable */
+  onPasteInstead?: () => void;
 }
 
 export function ExtractionReview({
@@ -36,6 +52,9 @@ export function ExtractionReview({
   groupCode,
   titleText,
   warnings,
+  perColumn,
+  onAddRow,
+  onPasteInstead,
 }: Props) {
   const { lang } = useLanguage();
   const so = lang === 'so';
@@ -52,6 +71,27 @@ export function ExtractionReview({
     [rows, groupCode],
   );
   const visibleRows = showAllGroups ? rows : f1Rows;
+
+  /** key → true when the OCR itself could not read that column reliably */
+  const weakKeys = useMemo(
+    () => new Set((perColumn ?? []).filter((c) => c.weak).map((c) => c.key)),
+    [perColumn],
+  );
+
+  /** Fields that must never be silently empty on an imported row. */
+  const criticalKeys = useMemo(() => {
+    const keys = ['line_number', 'customer_phone'];
+    keys.push(template.id === 'cilada' ? 'cablebox_code_raw' : 'xaafada');
+    return new Set(keys);
+  }, [template]);
+
+  /**
+   * Cells that are empty are the dangerous ones: the row looks complete but a
+   * field was silently dropped. Paint those amber — always for critical
+   * fields, and for everything else when the OCR flagged that column as weak.
+   */
+  const needsAttention = (row: ExtractedRow, key: string) =>
+    (weakKeys.has(key) || criticalKeys.has(key)) && !(row.raw[key] ?? '').trim();
 
   const withIssues = f1Rows.filter((r) => r.issues.length > 0).length;
   const urgentCount = f1Rows.filter((r) => r.derived.urgent).length;
@@ -70,7 +110,7 @@ export function ExtractionReview({
   };
 
   const issueFor = (row: ExtractedRow, key: string) =>
-    row.issues.find((i) => i.column === key && i.severity !== 'warning');
+    row.issues.find((i) => i.column === key);
 
   return (
     <div className="space-y-4">
@@ -110,6 +150,52 @@ export function ExtractionReview({
               <span>{w}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {perColumn && perColumn.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              <ScanLine className="w-3.5 h-3.5" />
+              {so ? 'Akhriska unug kasta' : 'Column read quality'}
+            </div>
+            <span className="text-[11px] text-slate-400">
+              {so ? 'Guji unug si aad u saxdo' : 'Tap a cell to correct it'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {perColumn.map((c) => {
+              const ratio = c.total > 0 ? c.filled / c.total : 1;
+              const tone =
+                ratio >= 0.999
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : c.weak
+                    ? 'bg-amber-50 text-amber-900 border-amber-300'
+                    : 'bg-slate-50 text-slate-600 border-slate-200';
+              return (
+                <span
+                  key={c.key}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-semibold ${tone}`}
+                  title={
+                    c.weak
+                      ? so
+                        ? 'Taxanahan si fiican lama akhriyin — hubi unugyada madhan'
+                        : 'This column was not read reliably — check the empty cells'
+                      : undefined
+                  }
+                >
+                  {c.weak && <AlertTriangle className="w-3 h-3" />}
+                  {so
+                    ? template.columns.find((col) => col.key === c.key)?.labelSo ?? c.label
+                    : c.label}
+                  <span className="font-mono opacity-70">
+                    {c.filled}/{c.total}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -218,6 +304,17 @@ export function ExtractionReview({
                   : `Group ${groupCode} only`}
             </button>
 
+            {onAddRow && (
+              <button
+                type="button"
+                onClick={onAddRow}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {so ? 'Ku dar saf' : 'Add row'}
+              </button>
+            )}
+
             {preview && !showPreview && (
               <button
                 type="button"
@@ -270,6 +367,8 @@ export function ExtractionReview({
                           const issue = issueFor(row, col.key);
                           const isEditing =
                             editingCell?.rowId === row.id && editingCell?.key === col.key;
+                          const missing = needsAttention(row, col.key);
+                          const isError = issue?.severity === 'error';
                           return (
                             <td key={col.key} className="px-1 py-1">
                               <div className="relative">
@@ -278,18 +377,23 @@ export function ExtractionReview({
                                   onChange={(e) => handleEdit(row.id, col.key, e.target.value)}
                                   onFocus={() => setEditingCell({ rowId: row.id, key: col.key })}
                                   onBlur={() => setEditingCell(null)}
-                                  className={`w-full px-2 py-1.5 rounded-md border text-xs font-medium bg-transparent transition focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white ${
-                                    issue
+                                  placeholder={missing ? (so ? 'maqan' : 'missing') : undefined}
+                                  className={`w-full px-2 py-1.5 rounded-md border text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white ${
+                                    isError
                                       ? 'border-rose-400 bg-rose-50/60 text-rose-900'
-                                      : isEditing
-                                        ? 'border-emerald-400'
-                                        : 'border-transparent hover:border-slate-200'
+                                      : issue || missing
+                                        ? 'border-amber-300 bg-amber-50/70 text-amber-900 placeholder:text-amber-500'
+                                        : isEditing
+                                          ? 'border-emerald-400 bg-transparent'
+                                          : 'border-transparent bg-transparent hover:border-slate-200'
                                   }`}
                                 />
                                 {issue && (
                                   <span
                                     title={issue.message}
-                                    className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500"
+                                    className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
+                                      isError ? 'bg-rose-500' : 'bg-amber-400'
+                                    }`}
                                   />
                                 )}
                               </div>
@@ -315,9 +419,33 @@ export function ExtractionReview({
                         colSpan={template.columns.length + 2}
                         className="px-4 py-8 text-center text-slate-500"
                       >
-                        {so
-                          ? 'Wax saf ah lama helin. Isku day inaad sawirka mar kale soo geliso.'
-                          : 'No rows could be read. Try uploading the picture again or paste the table instead.'}
+                        <p className="mb-3 font-medium">
+                          {so
+                            ? 'Wax saf ah lama helin. Sawirka mar kale soo geli, ama xogta koobi-gasho.'
+                            : 'No rows could be read. Upload the picture again in better light, paste the table, or type the rows in by hand.'}
+                        </p>
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          {onPasteInstead && (
+                            <button
+                              type="button"
+                              onClick={onPasteInstead}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 cursor-pointer"
+                            >
+                              <ClipboardPaste className="w-3.5 h-3.5" />
+                              {so ? 'Xogta koobi-gasho' : 'Paste the table instead'}
+                            </button>
+                          )}
+                          {onAddRow && (
+                            <button
+                              type="button"
+                              onClick={onAddRow}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              {so ? 'Ku dar saf gacan ku qoran' : 'Add a row by hand'}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -331,6 +459,10 @@ export function ExtractionReview({
             <span className="inline-flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-rose-500" />
               {so ? 'Unug aan la hubin' : 'Cell needs checking'}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              {so ? 'Maqan (taxane aan la akhrin)' : 'Missing (weak column)'}
             </span>
             <span className="inline-flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" />

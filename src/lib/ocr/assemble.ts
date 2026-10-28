@@ -30,7 +30,6 @@ export interface CellGrid {
 
 function bandIndexFor(bands: Band[], value: number): number {
   if (!bands.length) return -1;
-  // Binary search for the band containing value.
   let lo = 0;
   let hi = bands.length - 1;
   while (lo <= hi) {
@@ -40,14 +39,28 @@ function bandIndexFor(bands: Band[], value: number): number {
     else if (value > band.end) lo = mid + 1;
     else return mid;
   }
-  // Snap to nearest band when the word centre falls on a rule.
   const nearest = lo < bands.length ? lo : bands.length - 1;
   const centre = bands[nearest].center;
   const tolerance = Math.max(6, (bands[nearest].end - bands[nearest].start) * 0.25);
   return Math.abs(value - centre) <= tolerance ? nearest : -1;
 }
 
-/** Group words into cells of the detected grid. */
+function joinWords(words: OcrWord[]): string {
+  const sorted = [...words].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+  return sorted
+    .map((w) => w.text)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Group words into cells of the detected grid.
+ *
+ * Assignment is by *overlap area* rather than by word centre: a word printed
+ * against a cell border (very common in these narrow numeric columns) still
+ * lands in the cell that physically contains most of it.
+ */
 export function assignWordsToGrid(words: OcrWord[], grid: GridModel): CellGrid {
   const rowCount = grid.rowBands.length;
   const colCount = grid.colBands.length;
@@ -59,33 +72,47 @@ export function assignWordsToGrid(words: OcrWord[], grid: GridModel): CellGrid {
   for (const word of words) {
     const cx = (word.x0 + word.x1) / 2;
     const cy = (word.y0 + word.y1) / 2;
-    if (cx < grid.table.left || cx > grid.table.right) continue;
+    if (cx < grid.table.left - 4 || cx > grid.table.right + 4) continue;
+    if (cy < grid.table.top || cy > grid.table.bottom) continue;
 
-    const r = bandIndexFor(grid.rowBands, cy);
-    if (r < 0) continue;
-    const c = bandIndexFor(grid.colBands, cx);
-    if (c < 0) continue;
+    // Rows: overlap on the y axis (fall back to centre proximity).
+    let bestRow = -1;
+    let bestRowOverlap = 0;
+    for (let r = 0; r < rowCount; r++) {
+      const band = grid.rowBands[r];
+      const overlap = Math.min(word.y1, band.end) - Math.max(word.y0, band.start);
+      if (overlap > bestRowOverlap) {
+        bestRowOverlap = overlap;
+        bestRow = r;
+      }
+    }
+    if (bestRow < 0 || bestRowOverlap <= 0) {
+      bestRow = bandIndexFor(grid.rowBands, cy);
+    }
+    if (bestRow < 0) continue;
 
-    buckets[r][c].push(word);
+    // Columns: overlap on the x axis, allowing a small crop tolerance.
+    let bestCol = -1;
+    let bestColOverlap = 0;
+    for (let c = 0; c < colCount; c++) {
+      const band = grid.colBands[c];
+      const overlap = Math.min(word.x1, band.end + 3) - Math.max(word.x0, band.start - 3);
+      if (overlap > bestColOverlap) {
+        bestColOverlap = overlap;
+        bestCol = c;
+      }
+    }
+    if (bestCol < 0 || bestColOverlap <= 0) {
+      bestCol = bandIndexFor(grid.colBands, cx);
+    }
+    if (bestCol < 0) {
+      bestCol = cx < grid.colBands[0].start ? 0 : colCount - 1;
+    }
+
+    buckets[bestRow][bestCol].push(word);
   }
 
-  const rows = buckets.map((cells) =>
-    cells.map((words) => {
-      const sorted = [...words].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
-      // Preserve visual lines with a newline so wrapped cells stay readable.
-      let out = '';
-      let lastY = -1;
-      for (const w of sorted) {
-        if (lastY >= 0) {
-          const lineHeight = Math.max(6, w.y1 - w.y0);
-          out += Math.abs(w.y0 - lastY) > lineHeight * 0.6 ? ' ' : ' ';
-        }
-        out += w.text;
-        if (lastY < 0) lastY = w.y0;
-      }
-      return out.replace(/\s+/g, ' ').trim();
-    }),
-  );
+  const rows = buckets.map((cells) => cells.map((words) => joinWords(words)));
 
   return { rows, rowBands: grid.rowBands, colBands: grid.colBands };
 }
@@ -93,8 +120,6 @@ export function assignWordsToGrid(words: OcrWord[], grid: GridModel): CellGrid {
 /**
  * Fallback used when the picture has no detectable ruled grid
  * (re-photographed print-outs, cropped screenshots, etc.).
- * Cluster words into rows by vertical position, then into columns by
- * projecting the word boxes onto the x axis and splitting at empty gutters.
  */
 export function buildGridFromWords(words: OcrWord[]): CellGrid {
   if (!words.length) return { rows: [], rowBands: [], colBands: [] };
@@ -119,21 +144,9 @@ export function buildGridFromWords(words: OcrWord[]): CellGrid {
   }
   if (current.length) lineGroups.push(current);
 
-  // Columns: histogram of x-start positions across all lines, then find the
-  // left-most alignment of each column by looking at large horizontal gaps.
   const minX = Math.min(...words.map((w) => w.x0));
   const maxX = Math.max(...words.map((w) => w.x1));
-  const binCount = Math.max(1, Math.round((maxX - minX) / 4));
-  const occupied = new Uint8Array(binCount + 1);
 
-  for (const w of words) {
-    const startBin = Math.floor((w.x0 - minX) / 4);
-    const endBin = Math.ceil((w.x1 - minX) / 4);
-    for (let b = startBin; b <= endBin && b < occupied.length; b++) occupied[b] = 1;
-  }
-
-  // Column starts: a gutter of >= 12px empty space followed by ink, where the
-  // ink column is a "start" position of many words.
   const startCounts = new Map<number, number>();
   for (const w of words) {
     const bin = Math.floor((w.x0 - minX) / 4);
@@ -152,14 +165,17 @@ export function buildGridFromWords(words: OcrWord[]): CellGrid {
     lastAccepted = x;
   }
 
+  const rowBandsOf = (): Band[] =>
+    lineGroups.map((g) => {
+      const start = Math.min(...g.map((w) => w.y0));
+      const end = Math.max(...g.map((w) => w.y1));
+      return { start, end, center: Math.round((start + end) / 2) };
+    });
+
   if (starts.length < 2) {
     return {
       rows: lineGroups.map((g) => [g.map((w) => w.text).join(' ')]),
-      rowBands: lineGroups.map((g, i) => ({
-        start: Math.min(...g.map((w) => w.y0)),
-        end: Math.max(...g.map((w) => w.y1)),
-        center: i,
-      })),
+      rowBands: rowBandsOf(),
       colBands: [{ start: minX, end: maxX, center: (minX + maxX) / 2 }],
     };
   }
@@ -180,40 +196,29 @@ export function buildGridFromWords(words: OcrWord[]): CellGrid {
     return cells.map((c) => c.join(' ').trim());
   });
 
-  const rowBands: Band[] = lineGroups.map((g) => {
-    const start = Math.min(...g.map((w) => w.y0));
-    const end = Math.max(...g.map((w) => w.y1));
-    return { start, end, center: Math.round((start + end) / 2) };
-  });
-
-  return { rows, rowBands, colBands };
+  return { rows, rowBands: rowBandsOf(), colBands };
 }
 
-export interface AssembledTable {
+export interface AnalyzeResult {
   template: SheetTemplate;
-  /** Template column key → value for each extracted row. */
-  records: Record<string, string>[];
-  /** Detected header labels (for the "what did we read" panel). */
+  headerIndex: number;
+  /** template column index → detected column index (-1 when unmatched) */
+  mapping: number[];
+  /** detected column index → template column index (null when unmatched) */
+  detectedToTemplate: (number | null)[];
   headerCells: string[];
   headerScore: number;
-  columnBoundaries: number[];
   warnings: string[];
+  cellGrid: CellGrid;
+  /** data rows only (header removed), cleaned of empty lines */
+  dataRows: string[][];
+  usedFallbackLayout: boolean;
 }
 
-function cellTexts(row: string[]): string[] {
-  return row.map((c) => (c ?? '').trim());
-}
-
-/** Find the header row (if any) and map template columns onto detected columns. */
 function locateHeader(
   rows: string[][],
   templateHint?: SheetTemplate,
-): {
-  headerIndex: number;
-  mapping: number[];
-  template: SheetTemplate;
-  score: number;
-} {
+): { headerIndex: number; mapping: number[]; template: SheetTemplate; score: number } {
   let best = {
     headerIndex: -1,
     mapping: [] as number[],
@@ -221,10 +226,8 @@ function locateHeader(
     score: 0,
   };
 
-  const candidates = rows.slice(0, Math.min(6, rows.length));
-
-  candidates.forEach((row, idx) => {
-    const cells = cellTexts(row);
+  rows.slice(0, Math.min(8, rows.length)).forEach((row, idx) => {
+    const cells = row.map((c) => (c ?? '').trim());
     const detected = templateHint
       ? { template: templateHint, score: scoreTemplate(cells, templateHint) }
       : detectTemplateFromHeaders(cells);
@@ -243,17 +246,60 @@ function locateHeader(
 }
 
 /**
- * Full assembly: grid + words → template-shaped records.
+ * Fill the gaps in a header mapping.
+ *
+ * Real sheets often merge two header labels into one visual cell ("XNumber" and
+ * "Ref-Number" printed with no divider), or OCR mangles a single label. Without
+ * this, an entire column is silently dropped. When the unmatched template
+ * columns and the unclaimed detected columns line up one-to-one between two
+ * matched neighbours, we re-attach them.
  */
-export function assembleTable(
+export function gapFillMapping(mapping: number[], detectedCols: number): number[] {
+  const out = [...mapping];
+  const claimed = new Set(out.filter((i) => i >= 0));
+
+  let i = 0;
+  while (i < out.length) {
+    if (out[i] >= 0) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < out.length && out[j] < 0) j++;
+
+    const left = i > 0 ? out[i - 1] : -1;
+    const right = j < out.length ? out[j] : detectedCols;
+    const free: number[] = [];
+    for (let d = left + 1; d < right; d++) {
+      if (!claimed.has(d)) free.push(d);
+    }
+
+    const needed = j - i;
+    if (free.length >= needed && needed > 0) {
+      // One-to-one when possible, otherwise keep the left-most alignment.
+      const offset = free.length - needed;
+      for (let k = 0; k < needed; k++) {
+        out[i + k] = free[k + offset];
+        claimed.add(free[k + offset]);
+      }
+    }
+
+    i = j;
+  }
+
+  return out;
+}
+
+/** Analyse the grid + words: template, header row, column mapping, data rows. */
+export function analyzeTable(
   words: OcrWord[],
   grid: GridModel,
   templateHint?: SheetTemplate,
-): AssembledTable {
+): AnalyzeResult {
   const warnings: string[] = [];
   const usableGrid = grid.rowBands.length >= 2 && grid.colBands.length >= 2;
-
   const cellGrid = usableGrid ? assignWordsToGrid(words, grid) : buildGridFromWords(words);
+
   if (!usableGrid) {
     warnings.push(
       'No ruled table lines were detected — rows and columns were estimated from the text layout. Please double-check the extraction.',
@@ -262,27 +308,54 @@ export function assembleTable(
 
   const rows = cellGrid.rows.filter((r) => r.some((c) => (c ?? '').trim().length > 0));
   const header = locateHeader(rows, templateHint);
-
   const template = templateHint ?? header.template;
-  const dataRows = rows.filter((r) => r !== undefined);
-  const startIndex = header.headerIndex >= 0 ? header.headerIndex + 1 : 0;
 
-  // If the header matched, honour it; otherwise assume 1:1 column order.
+  const detectedCols = Math.max(...rows.map((r) => r.length), 0);
   const mapping =
     header.headerIndex >= 0 && header.mapping.some((m) => m >= 0)
-      ? header.mapping
+      ? gapFillMapping(header.mapping, detectedCols)
       : template.columns.map((_, i) => i);
+
+  // If the header was found in the *filtered* list we must remove it there too.
+  const headerRowText = header.headerIndex >= 0 ? rows[header.headerIndex] : [];
+  const dataRows = rows.filter((r) => r !== headerRowText);
+
+  const detectedToTemplate: (number | null)[] = Array.from({ length: detectedCols }, () => null);
+  mapping.forEach((detectedIdx, templateIdx) => {
+    if (detectedIdx >= 0 && detectedIdx < detectedCols) {
+      detectedToTemplate[detectedIdx] = templateIdx;
+    }
+  });
 
   if (header.headerIndex < 0) {
     warnings.push(
-      'Header row was not recognised — columns are assumed to be in the standard sheet order. Use "Fix columns" if they are not.',
+      'Header row was not recognised — columns are assumed to be in the standard sheet order. Please verify the columns below.',
     );
   }
 
+  return {
+    template,
+    headerIndex: header.headerIndex,
+    mapping,
+    detectedToTemplate,
+    headerCells: headerRowText.map((c) => c ?? ''),
+    headerScore: header.score,
+    warnings,
+    cellGrid,
+    dataRows,
+    usedFallbackLayout: !usableGrid,
+  };
+}
+
+/** Cell matrix (data rows only) → template-shaped records. */
+export function buildRecordsFromCells(
+  dataRows: string[][],
+  mapping: number[],
+  template: SheetTemplate,
+): Record<string, string>[] {
   const records: Record<string, string>[] = [];
 
-  for (let i = startIndex; i < dataRows.length; i++) {
-    const cells = cellTexts(dataRows[i]);
+  for (const cells of dataRows) {
     const record: Record<string, string> = {};
     let filled = 0;
 
@@ -296,12 +369,31 @@ export function assembleTable(
     if (filled >= 2) records.push(record);
   }
 
+  return records;
+}
+
+export interface AssembledTable {
+  template: SheetTemplate;
+  records: Record<string, string>[];
+  headerCells: string[];
+  headerScore: number;
+  columnBoundaries: number[];
+  warnings: string[];
+}
+
+/** Convenience wrapper (used by the dev harness and the fallback path). */
+export function assembleTable(
+  words: OcrWord[],
+  grid: GridModel,
+  templateHint?: SheetTemplate,
+): AssembledTable {
+  const analysis = analyzeTable(words, grid, templateHint);
   return {
-    template,
-    records,
-    headerCells: header.headerIndex >= 0 ? cellTexts(dataRows[header.headerIndex]) : [],
-    headerScore: header.score,
-    columnBoundaries: cellGrid.colBands.map((b) => b.center),
-    warnings,
+    template: analysis.template,
+    records: buildRecordsFromCells(analysis.dataRows, analysis.mapping, analysis.template),
+    headerCells: analysis.headerCells,
+    headerScore: analysis.headerScore,
+    columnBoundaries: analysis.cellGrid.colBands.map((b) => b.center),
+    warnings: analysis.warnings,
   };
 }
