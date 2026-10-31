@@ -267,7 +267,12 @@ different person signing in on another tab signs this tab out.
 publication, so the dispatch board, the live strip and the technician's route
 subscribe to change events (debounced) instead of polling. A slow fallback
 refresh runs only while the tab is visible, and timers stop ticking when it is
-hidden.
+hidden. Every subscription gets its **own channel topic** — the library
+de-duplicates channels by topic, so two screens watching the same table would
+otherwise share one channel and the second `.on()` would throw. Go through
+`useTableChanges` / `subscribeTableChanges`; never call `supabase.channel()`
+directly. A subscription failure falls back to the poll instead of breaking the
+screen, and each on-demand panel has its own error boundary.
 
 **Errors are translated at the edge.** `src/lib/errors.ts` maps Postgres,
 network and configuration failures to one sentence per language; a rejected
