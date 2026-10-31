@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { describeError } from '../../lib/useErrorMessage';
 import {
   Users,
   Truck,
@@ -24,7 +25,7 @@ interface CrewMemberRow {
 
 export function TeamAndCrewManager() {
   const { session, activeGroup, availableGroups, refreshGroups } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [subTab, setSubTab] = useState<'members' | 'crews' | 'groups'>('members');
   const [members, setMembers] = useState<UserProfile[]>([]);
@@ -149,7 +150,7 @@ export function TeamAndCrewManager() {
       setMemberModalOpen(false);
       await loadData();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to save member');
+      setFormError(describeError(err, lang));
     } finally {
       setSaving(false);
     }
@@ -206,7 +207,7 @@ export function TeamAndCrewManager() {
       setCrewModalOpen(false);
       await loadData();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to save crew');
+      setFormError(describeError(err, lang));
     } finally {
       setSaving(false);
     }
@@ -244,7 +245,7 @@ export function TeamAndCrewManager() {
       setGDesc('');
       await refreshGroups();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to save group');
+      setFormError(describeError(err, lang));
     } finally {
       setSaving(false);
     }

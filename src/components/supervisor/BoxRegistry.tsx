@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { describeError } from '../../lib/useErrorMessage';
 import {
   AlertTriangle,
   Cable,
@@ -49,7 +50,7 @@ export function BoxRegistry() {
       setData(payload);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load the cablebox registry');
+      setError(describeError(err, lang));
     } finally {
       setLoading(false);
     }

@@ -68,6 +68,24 @@ Each batch is a working, deployable PR. Order is deliberate: safety first, then 
 - **GitHub Action**: typecheck → test → build on every PR.
 - Acceptance: no white screens; every action gives feedback; CI blocks a broken build.
 
+**Shipped & verified (31/10/2026)**
+
+| Check | Result |
+| :--- | :--- |
+| `tsc -b` | clean |
+| `npm test` | **29/29** — errors, timers, dBm, ordering, CSV, reports, plus a real `renderToString` mount of the app shell, the login screen and the toast live region |
+| `npm run build` | clean |
+| Live DB write path | temp job 998101: start → block (clock banked) → resume → complete at −20.40 dBm; job and its logs deleted afterwards, `tasks` back to 8 real + 36 demo |
+| Live DB read path | `box_directory` 2 boxes · `ops_analytics` 36 completed / 36 demo flagged · `report_jobs` 36 rows · `technician_route` 4 jobs for Crew A |
+| Toast coverage | start, resume, block, complete, dispatch assign, return-to-pool, auto-plan, port change, import commit, import undo, demo seed/clear, CSV export, WhatsApp copy, PIN change |
+| Error text | 30 catch sites now go through `describeError`, so no raw `ERROR: P0001 … CONTEXT: PL/pgSQL` can reach a screen |
+
+**Residual items, honestly noted**
+
+1. **GitHub Actions does not execute on this account** (a one-step `echo` workflow fails in 2 s with no steps run). `.github/workflows/ci.yml` is correct and will start working once Actions is enabled/billed; until then `npm run verify` is the gate and Vercel still builds every push.
+2. **The demo account list is hidden in production but its strings remain in the bundle.** The render is gated by `DEV_BUILD` (false in prod) so no user ever sees it; full removal belongs with Batch B's credential hygiene.
+3. `dispatchService` / `importer` still throw the raw Postgres message; every screen that displays it maps it through `describeError`, so the wording is clean, but those two modules should adopt `rpc()` when Batch B touches them.
+
 ### Batch B — Security & data integrity *(1–2 sessions)* — ⏸ **parked by owner**
 - **PIN throttling**: `login_attempts` table, 5 failures → 15-minute lock per user *and* per IP-ish fingerprint, `Retry-After` surfaced in the UI, supervisor can unlock.
 - **RPC-only data access**: replace the 14 direct `.from()` reads with token-checked RPCs, then **drop** the `USING (true)` policies on `tasks`, `users`, `cablebox_logs`, `task_work_logs`, `dispatch_log` so the anon key can read nothing on its own.

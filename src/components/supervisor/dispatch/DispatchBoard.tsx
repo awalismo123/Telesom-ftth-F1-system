@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { describeError } from '../../../lib/useErrorMessage';
 import {
   AlertTriangle,
   ChevronRight,
@@ -39,6 +40,7 @@ import { TaskCard } from './TaskCard';
 import { ClusterPlanSheet } from './ClusterPlanSheet';
 import { DispatchMessageSheet } from './DispatchMessageSheet';
 import { LiveStrip } from './LiveStrip';
+import { useToast } from '../../ui/Toast';
 
 type Filter = 'all' | 'urgent';
 
@@ -52,7 +54,7 @@ export function DispatchBoard() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const toast = useToast();
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -77,7 +79,7 @@ export function DispatchBoard() {
       setTasks(taskRows);
       setLoad(loadData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load the dispatch board');
+      setError(describeError(err, lang));
     } finally {
       setLoading(false);
     }
@@ -86,12 +88,6 @@ export function DispatchBoard() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 4500);
-    return () => window.clearTimeout(id);
-  }, [toast]);
 
   const targets = useMemo(() => toTargets(load), [load]);
   const targetByKey = useMemo(() => {
@@ -144,13 +140,15 @@ export function DispatchBoard() {
     try {
       const result = await assignTasks({ token, groupId, taskIds: selected, target });
       const skipped = result.skipped ? ` · ${result.skipped} ${t('dispatchAssignSkipped')}` : '';
-      setToast(`${result.assigned} → ${t('dispatchAssignOk')} ${target.name}${skipped}`);
+      toast.success(`${result.assigned} ${so ? 'shaqo →' : 'jobs →'} ${target.name}`, {
+        description: skipped ? skipped.replace(/^ · /, '') : undefined,
+      });
       setSelected([]);
       setPickerFor(null);
       await refresh();
       return result.assigned;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Assignment failed');
+      setError(describeError(err, lang));
       return 0;
     } finally {
       setBusy(false);
@@ -162,9 +160,10 @@ export function DispatchBoard() {
     setError(null);
     try {
       await unassignTasks({ token, groupId, taskIds: [taskId] });
+      toast.info(so ? 'Shaqada waa lagu celiyay liiska' : 'Job returned to the pool');
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not return the job to the pool');
+      setError(describeError(err, lang));
     } finally {
       setBusy(false);
     }
@@ -187,14 +186,13 @@ export function DispatchBoard() {
         skipped += result.skipped;
       }
       setPlanOpen(false);
-      setToast(
-        `${total} ${so ? 'shaqo la qaybiyay' : 'jobs dispatched'}${
-          skipped ? ` · ${skipped} ${t('dispatchAssignSkipped')}` : ''
-        }`,
+      toast.success(
+        `${total} ${so ? 'shaqo la qaybiyay' : 'jobs dispatched'}`,
+        { description: skipped ? `${skipped} ${t('dispatchAssignSkipped')}` : undefined },
       );
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not apply the plan');
+      setError(describeError(err, lang));
     } finally {
       setBusy(false);
     }
@@ -590,13 +588,6 @@ export function DispatchBoard() {
         groupId={groupId}
       />
 
-      {toast && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 px-3">
-          <div className="rounded-xl bg-emerald-950 text-white text-xs font-bold px-4 py-2.5 shadow-lg">
-            {toast}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
