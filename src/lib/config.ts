@@ -88,10 +88,38 @@ export function maskSecret(key: string): string {
   return `${key.slice(0, 10)}…${key.slice(-4)}`;
 }
 
-/** The `pjrzncnhhlfaxuvlcdse` part of a Supabase URL, used in diagnostics. */
+/** `pjrzncnhhlfaxuvlcdse` part of a Supabase URL, used in diagnostics. */
 export function projectRef(url: string): string {
   const match = /^https?:\/\/([a-z0-9-]+)\.supabase\.co/i.exec(url);
   return match ? match[1] : '';
+}
+
+/**
+ * Does this response mean "the key was rejected"?
+ *
+ * Only two things can mean that, and neither is a status code on its own:
+ *
+ *  • the gateway's own key errors — `Invalid API key`, `No API key found in
+ *    request`, an unverifiable JWT;
+ *  • anything else — 200, 400, 403, an RLS denial, a bad RPC — means the
+ *    request was *authenticated* and the key is fine.
+ *
+ * This distinction matters: Supabase answers 401 with `{"message":"Invalid API
+ * key","hint":"Only the service_role API key can be used for this endpoint"}`
+ * for endpoints an anon key may not read (the PostgREST root document is one).
+ * Trusting the status code made a working project look broken.
+ */
+const KEY_REJECTED =
+  /invalid api key|no api key found|missing api key|invalid apikey|incorrect api key|invalid jwt|jwt signature|signature verification failed/i;
+
+export function classifyProbeResponse(status: number, body: string): 'ok' | 'bad-key' {
+  // A server-side failure is an outage, not a configuration mistake: never
+  // replace the app with a card because the backend had a bad minute.
+  if (status >= 500) return 'ok';
+  if (KEY_REJECTED.test(body)) return 'bad-key';
+  // Authenticated, whatever the answer was. Authorisation (RLS/grants) and
+  // availability are the app's normal error paths.
+  return 'ok';
 }
 
 /**

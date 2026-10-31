@@ -14,6 +14,7 @@ import { ConfigErrorScreen } from './ConfigErrorScreen';
 export function ConfigGate({ children }: { children: React.ReactNode }) {
   const [probe, setProbe] = useState<SupabaseProbe | null>(null);
   const [blocked, setBlocked] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const check = useCallback(async (force: boolean) => {
     const result = await probeSupabase({ force });
@@ -37,8 +38,14 @@ export function ConfigGate({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  if (blocked) {
-    return <ConfigErrorScreen probe={probe} onRetry={() => check(true)} />;
+  if (blocked && !dismissed) {
+    return (
+      <ConfigErrorScreen
+        probe={probe}
+        onRetry={() => check(true)}
+        onContinue={() => setDismissed(true)}
+      />
+    );
   }
 
   return <>{children}</>;

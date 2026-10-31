@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
+  classifyProbeResponse,
   keyShape,
   maskSecret,
   projectRef,
@@ -108,28 +109,43 @@ export interface SupabaseProbe {
 
 interface Attempt {
   status: number;
+  body: string;
   networkError: boolean;
 }
 
+/**
+ * One cheap, ordinary read — the same one the app makes on mount.
+ *
+ * Do NOT probe the PostgREST root document (`/rest/v1/`): Supabase restricts it
+ * to `service_role` and answers a perfectly valid anon key with
+ * `401 {"message":"Invalid API key","hint":"Only the service_role API key can
+ * be used for this endpoint"}`. Probing it declared a healthy project broken.
+ */
 async function ping(url: string, key: string, timeoutMs: number): Promise<Attempt> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    // PostgREST's root document needs a valid key but touches no table and no
-    // RLS policy, so it is the honest "can this key talk to this project" check.
-    const response = await fetch(`${url}/rest/v1/`, {
+    const response = await fetch(`${url}/rest/v1/groups?select=code&limit=1`, {
       method: 'GET',
       headers: {
         apikey: key,
         Authorization: `Bearer ${key}`,
-        Accept: 'application/openapi+json',
+        Accept: 'application/json',
       },
       signal: controller.signal,
       cache: 'no-store',
     });
-    return { status: response.status, networkError: false };
+
+    let body = '';
+    try {
+      body = (await response.text()).slice(0, 400);
+    } catch {
+      body = '';
+    }
+
+    return { status: response.status, body, networkError: false };
   } catch {
-    return { status: 0, networkError: true };
+    return { status: 0, body: '', networkError: true };
   } finally {
     clearTimeout(timer);
   }
@@ -158,7 +174,7 @@ export function probeSupabase(options: { force?: boolean; timeoutMs?: number } =
 
     if (first.networkError) {
       result = { health: 'unreachable', recovered: false, status: 0, detail: 'network' };
-    } else if (first.status === 401 || first.status === 403) {
+    } else if (classifyProbeResponse(first.status, first.body) === 'bad-key') {
       if (config.source === 'env') {
         // The deployment's env key is not accepted. Try the built-in project
         // before giving up: a wrong env var must not take the field app down.
@@ -170,7 +186,7 @@ export function probeSupabase(options: { force?: boolean; timeoutMs?: number } =
         };
         client = buildClient(config);
         const second = await ping(config.url, config.anonKey, timeoutMs);
-        if (second.status >= 200 && second.status < 300) {
+        if (!second.networkError && classifyProbeResponse(second.status, second.body) === 'ok') {
           result = { health: 'ok', recovered: true, status: second.status, detail: 'recovered' };
         } else {
           result = {
@@ -183,10 +199,15 @@ export function probeSupabase(options: { force?: boolean; timeoutMs?: number } =
       } else {
         result = { health: 'bad-key', recovered: false, status: first.status, detail: `rejected (${first.status})` };
       }
-    } else if (first.status >= 200 && first.status < 300) {
-      result = { health: 'ok', recovered: false, status: first.status, detail: 'ok' };
     } else {
-      result = { health: 'unreachable', recovered: false, status: first.status, detail: `status ${first.status}` };
+      // Any authenticated answer (200, an RLS 403, an RPC 400) proves the key
+      // reached PostgREST. Only a key rejection replaces the app.
+      result = {
+        health: 'ok',
+        recovered: false,
+        status: first.status,
+        detail: first.status >= 200 && first.status < 300 ? 'ok' : `key accepted (${first.status})`,
+      };
     }
 
     cachedProbe = result;

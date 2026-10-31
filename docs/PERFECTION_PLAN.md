@@ -235,3 +235,41 @@ Migration `007_session_and_health_fixes.sql` (applied and verified live):
 **Still for the owner:** if `VITE_SUPABASE_ANON_KEY` is set in Vercel, correct or
 delete it and redeploy. `src/lib/config.ts` now recovers from a bad value, but
 the deployment should not carry one.
+
+### 5.5 Correction (31/10/2026, same day) — the health check was the false alarm
+
+The first build of the configuration card blocked a **working** deployment:
+it reported `health: bad-key`, `status 401`, `key source: built-in default`.
+
+**Cause.** `probeSupabase()` asked the PostgREST root document (`GET /rest/v1/`)
+whether the key was accepted. Supabase restricts that document to `service_role`
+and answers a perfectly valid anon key with:
+
+```json
+{"message":"Invalid API key","hint":"Only the `service_role` API key can be used for this endpoint."}
+```
+
+The probe read a 401 plus the words "Invalid API key" and declared the project
+broken. Proven directly against the live project:
+
+| Request | Result |
+| :--- | :--- |
+| `GET /rest/v1/` + valid anon key | `401 {"message":"Invalid API key", "hint":"Only the service_role API key…"}` |
+| `GET /rest/v1/groups?select=code` + the same key | `200 [{"code":"F1"},{"code":"F2"}]` |
+
+**Fix.**
+
+* The probe now performs the same ordinary read the app performs on mount
+  (`groups?select=code&limit=1`) — an endpoint the anon key is entitled to.
+* Classification is by **body**, not status: only the gateway's real key errors
+  (`Invalid API key`, `No API key found`, `JWT signature…`) count as a bad key.
+  A 401/403 for authorisation, a 400 from an RPC, or a 5xx outage all mean "the
+  key reached PostgREST" and never replace the app.
+* The card gained **Continue anyway**: no check may ever trap a working
+  deployment behind a screen.
+* Regression tests: 401 + `permission denied`, 403 + RLS, 400 + PGRST error and
+  502 must all report healthy; only the key-error bodies may block.
+
+Lesson recorded for the remaining batches: a synthetic health probe may only
+assert what the app itself is entitled to do, and it must never be the sole
+authority on whether the app works.

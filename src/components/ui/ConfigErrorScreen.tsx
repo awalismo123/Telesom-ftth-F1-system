@@ -15,9 +15,12 @@ import { describeConnection, getConfigNotes, type SupabaseProbe } from '../../li
 export function ConfigErrorScreen({
   probe,
   onRetry,
+  onContinue,
 }: {
   probe: SupabaseProbe | null;
   onRetry: () => Promise<void> | void;
+  /** escape hatch: never trap a working deployment behind a failed check */
+  onContinue?: () => void;
 }) {
   const { lang, setLang } = useLanguage();
   const [retrying, setRetrying] = useState(false);
@@ -156,6 +159,18 @@ export function ConfigErrorScreen({
                 {copied ? (lang === 'so' ? 'La koobiyay' : 'Copied') : copy}
               </button>
             </div>
+
+            {onContinue && (
+              <button
+                type="button"
+                onClick={onContinue}
+                className="w-full py-2 text-[11px] font-semibold text-slate-500 hover:text-slate-800 underline underline-offset-2 cursor-pointer"
+              >
+                {lang === 'so'
+                  ? 'Sii wad si kastaba — haddii aad horey u gashay, isku day inaad gasho'
+                  : 'Continue anyway — if you could sign in before, try signing in'}
+              </button>
+            )}
           </div>
         </div>
 
