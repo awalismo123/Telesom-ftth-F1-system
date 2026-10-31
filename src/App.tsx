@@ -5,27 +5,34 @@ import { LoginScreen } from './components/LoginScreen';
 import { HeaderBar } from './components/HeaderBar';
 import { SupervisorShell } from './components/supervisor/SupervisorShell';
 import { TechnicianShell } from './components/technician/TechnicianShell';
+import { ToastProvider } from './components/ui/Toast';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { OfflineBanner } from './components/ui/OfflineBanner';
+import { Splash } from './components/ui/Splash';
 
 function AppRouter() {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-emerald-950 flex items-center justify-center text-emerald-200 text-sm font-semibold">
-        Loading Telesom FTTH System...
-      </div>
-    );
+    return <Splash />;
   }
 
   if (!session) {
     return <LoginScreen />;
   }
 
+  const supervisor = session.user.role === 'supervisor';
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <HeaderBar />
+      <ErrorBoundary label="Header">
+        <HeaderBar />
+      </ErrorBoundary>
+      <OfflineBanner />
       <main className="flex-1">
-        {session.user.role === 'supervisor' ? <SupervisorShell /> : <TechnicianShell />}
+        <ErrorBoundary label={supervisor ? 'Supervisor' : 'My route'}>
+          {supervisor ? <SupervisorShell /> : <TechnicianShell />}
+        </ErrorBoundary>
       </main>
     </div>
   );
@@ -33,10 +40,14 @@ function AppRouter() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <AppRouter />
-      </AuthProvider>
-    </LanguageProvider>
+    <ErrorBoundary label="Telesom FTTH">
+      <ToastProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <AppRouter />
+          </AuthProvider>
+        </LanguageProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

@@ -5,7 +5,7 @@
  * check the caller's group and (for writes) stamp who changed what.
  */
 
-import { supabase } from './supabase';
+import { rpc, rpcRead } from './rpc';
 import type {
   AnalyticsResponse,
   BoxDetail,
@@ -15,22 +15,18 @@ import type {
 } from './registry';
 
 export async function fetchDirectory(token: string, groupId: string): Promise<DirectoryResponse> {
-  const { data, error } = await supabase.rpc('box_directory', {
+  const payload = await rpcRead<DirectoryResponse>('box_directory', {
     p_token: token,
     p_group_id: groupId,
   });
-  if (error) throw new Error(error.message);
-  const payload = data as DirectoryResponse;
   return { ...payload, boxes: payload.boxes ?? [] };
 }
 
 export async function fetchBoxDetail(token: string, boxId: string): Promise<BoxDetail> {
-  const { data, error } = await supabase.rpc('box_detail', {
+  const payload = await rpcRead<BoxDetail>('box_detail', {
     p_token: token,
     p_box_id: boxId,
   });
-  if (error) throw new Error(error.message);
-  const payload = data as BoxDetail;
   return {
     ...payload,
     ports: payload.ports ?? [],
@@ -46,15 +42,13 @@ export async function setPortStatus(params: {
   status: PortStatus;
   notes?: string;
 }): Promise<PortResult> {
-  const { data, error } = await supabase.rpc('set_port_status', {
+  return rpc<PortResult>('set_port_status', {
     p_token: params.token,
     p_box_id: params.boxId,
     p_port_number: params.portNumber,
     p_status: params.status,
     p_notes: params.notes ?? null,
   });
-  if (error) throw new Error(error.message);
-  return data as PortResult;
 }
 
 export async function fetchAnalytics(
@@ -62,13 +56,11 @@ export async function fetchAnalytics(
   groupId: string,
   days = 30,
 ): Promise<AnalyticsResponse> {
-  const { data, error } = await supabase.rpc('ops_analytics', {
+  const payload = await rpcRead<AnalyticsResponse>('ops_analytics', {
     p_token: token,
     p_group_id: groupId,
     p_days: days,
   });
-  if (error) throw new Error(error.message);
-  const payload = data as AnalyticsResponse;
   return {
     ...payload,
     daily: payload.daily ?? [],
@@ -98,31 +90,28 @@ export async function fetchReportJobs(
   groupId: string,
   days = 30,
 ): Promise<ReportJob[]> {
-  const { data, error } = await supabase.rpc('report_jobs', {
+  const payload = await rpcRead<{ jobs?: ReportJob[] }>('report_jobs', {
     p_token: token,
     p_group_id: groupId,
     p_days: days,
   });
-  if (error) throw new Error(error.message);
-  return ((data as { jobs?: ReportJob[] })?.jobs ?? []) as ReportJob[];
+  return (payload?.jobs ?? []) as ReportJob[];
 }
 
 export async function seedDemoData(
   token: string,
   groupId: string,
 ): Promise<{ tasks_created: number; logs_created: number }> {
-  const { data, error } = await supabase.rpc('seed_demo_data', {
+  return rpc<{ tasks_created: number; logs_created: number }>('seed_demo_data', {
     p_token: token,
     p_group_id: groupId,
   });
-  if (error) throw new Error(error.message);
-  return data as { tasks_created: number; logs_created: number };
 }
 
 export async function clearDemoData(
   token: string,
 ): Promise<{ removed_tasks: number; removed_logs: number; removed_ports: number }> {
-  const { data, error } = await supabase.rpc('clear_demo_data', { p_token: token });
-  if (error) throw new Error(error.message);
-  return data as { removed_tasks: number; removed_logs: number; removed_ports: number };
+  return rpc<{ removed_tasks: number; removed_logs: number; removed_ports: number }>('clear_demo_data', {
+    p_token: token,
+  });
 }
