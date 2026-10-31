@@ -86,10 +86,19 @@
 
 /* The dispatch plan should print cleanly for the office wall. */
 @media print {
+  @page {
+    margin: 12mm;
+  }
+
   header,
   nav,
-  button,
+  [data-print='hide'],
   .no-print {
+    display: none !important;
+  }
+
+  /* Controls are noise on paper, but a screen may mark one to survive. */
+  button:not(.print-keep) {
     display: none !important;
   }
 
@@ -97,7 +106,31 @@
     background: #ffffff !important;
   }
 
+  main,
+  main * {
+    box-shadow: none !important;
+  }
+
+  .print-block {
+    break-inside: avoid;
+  }
+
   .print-only {
     display: block !important;
   }
+
+  /* Never let a link print as a raw URL. */
+  a[href]::after {
+    content: '';
+  }
+}
+
+/* Below this width a control that is smaller than a thumb is a bug. */
+@utility tap {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.print-only {
+  display: none;
 }

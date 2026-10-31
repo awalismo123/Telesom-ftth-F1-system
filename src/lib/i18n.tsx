@@ -67,6 +67,14 @@ const translations = {
     zoneFocus: 'Default Xaafada / Zone Focus',
     selectCrewMembers: 'Assign Technicians to Crew',
     noCrewAssigned: 'Individual (No Crew)',
+    assignedCrew: 'Assigned crew',
+    crewPartner: 'Crew partner',
+    noCrewPartner: 'Working solo today.',
+    myAccount: 'My account',
+    phoneLabel: 'Phone',
+    identifierLabelShort: 'Username',
+    changePinHint: 'Use “Change PIN” in the header to update your 4-digit PIN.',
+    call: 'Call',
     addGroup: 'Add New FBB Group',
 
     // Dispatch & Route Clustering (Phase 3)
@@ -197,6 +205,14 @@ const translations = {
     zoneFocus: 'Xaafadaha U Gaarka ah',
     selectCrewMembers: 'U Dooro Farsamayaqaannada Crew-gan',
     noCrewAssigned: 'Keli (Crew ma laha)',
+    assignedCrew: 'Crew-ga la qoondeeyay',
+    crewPartner: 'Jaalka crew-ga',
+    noCrewPartner: 'Maanta keligaa baad shaqeynaysaa.',
+    myAccount: 'Akoonkayga',
+    phoneLabel: 'Telefoon',
+    identifierLabelShort: 'Magaca isticmaalaha',
+    changePinHint: 'Isticmaal “Beddel PIN” ee madaxa si aad u beddesho PIN-kaaga 4-ta lambar.',
+    call: 'Wac',
     addGroup: 'Ku Dar Group Cusub',
 
     // Dispatch & Route Clustering (Phase 3)

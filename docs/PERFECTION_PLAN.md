@@ -273,3 +273,38 @@ broken. Proven directly against the live project:
 Lesson recorded for the remaining batches: a synthetic health probe may only
 assert what the app itself is entitled to do, and it must never be the sole
 authority on whether the app works.
+
+---
+
+## 6. Batch C — design system, responsive & accessibility (first half, 31/10/2026)
+
+### What shipped
+
+| Area | Change |
+| :--- | :--- |
+| **UI kit** (`src/components/ui/`) | `Button` (6 variants, 5 sizes; `md`/`icon` are 44 px), `Card` + `CardHeader`, `Badge` (6 tones, dot, solid), `Input` / `Select` / `Textarea` with label→control→hint/error wiring, `EmptyState`, `Skeleton` / `SkeletonCard` / `SkeletonList`, `Tabs`, `Stat`, `Sheet`. |
+| **Tabs** | Real ARIA tabs: `role="tablist"`, `aria-selected`, `aria-controls`, roving tabindex, Arrow/Home/End navigation, two shapes (`pills` for modules, `bar` for tablet navigation). |
+| **Sheet** | Modal dialog with focus trap, focus restore, Escape, backdrop close, body scroll lock, safe-area padding, and a drag-to-dismiss handle on touch. |
+| **Supervisor shell** | ≥1024 px gets a real sticky sidebar (brand, modules, group); below that the pill strip stays, because a thumb should not have to cross a wide screen. KPIs are now `Stat` cards; the open-tasks card jumps to dispatch. |
+| **Technician shell** | No longer locked to `max-w-md`. Tablets get a two-column layout — route in the main column, crew context and the running pill in a sticky rail — with segmented tabs at the top instead of a bar under the thumb. Phones keep the bottom bar, now safe-area aware with ≥44 px targets and `aria-current`. |
+| **Install identity** | Generated PNG icon set from a dependency-free writer (`scripts/generate-icons.mjs`): 192, 512, maskable 512, Apple 180, plus a refreshed `favicon.svg`, a real `manifest.webmanifest`, and the links/theme colours in `index.html`. |
+| **Print** | `@page` margins, navigation/controls hidden, `break-inside: avoid` blocks, `.print-keep` for the rare control that must survive, and no printed link URLs. |
+| **Accessibility** | Labels bound by id, `aria-invalid` + `role="alert"` on field errors, `aria-busy` on async buttons, decorative icons `aria-hidden`, `aria-current` on navigation, focus-visible ring retained, reduced-motion honoured. |
+| **Tests** | **71 / 71** (was 59): the kit's a11y contract (roles, aria, 44 px default size, label wiring) and an asset-integrity test that fails if the manifest points at a missing or wrong-size icon. |
+
+### Deliberately left for the second half of Batch C
+
+* The kit is adopted in the **shells, login and navigation**; the feature screens
+  (`DispatchBoard`, `IngestWizard`, `BoxRegistry`, `Analytics`,
+  `TeamAndCrewManager`) still carry their own card/button/empty-state copies.
+  Replacing those is mechanical but touches ~30 files and should be done with the
+  same feature-by-feature review the earlier phases used.
+* Lighthouse ≥ 95 needs a real browser run (no headless browser in this
+  environment); the structural work that score depends on — labels, roles, target
+  sizes, contrast tokens, reduced motion — is in place.
+* A contrast sweep of the remaining amber-on-white and emerald-on-emerald-tint
+  pairs in feature screens.
+
+Recorded once, applies to every later batch: **derived UI is a bug**. Anything a
+screen renders twice (a status colour, a button size, a dialog shell) belongs in
+the kit, not in the screen.

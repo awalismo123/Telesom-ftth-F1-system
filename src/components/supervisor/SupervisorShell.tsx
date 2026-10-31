@@ -5,12 +5,11 @@ import {
   Route,
   Server,
   Users,
-  CheckCircle2,
   Camera,
-  AlertTriangle,
   Wifi,
   Truck,
   BarChart3,
+  CheckCircle2,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +20,9 @@ import { IngestWizard } from './ingest/IngestWizard';
 import { DispatchBoard } from './dispatch/DispatchBoard';
 import { BoxRegistry } from './BoxRegistry';
 import { Analytics } from './Analytics';
+import { Tabs, type TabItem } from '../ui/Tabs';
+import { Stat } from '../ui/Stat';
+import { cx } from '../ui/cx';
 
 type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'insights' | 'cableboxes' | 'team';
 
@@ -73,180 +75,171 @@ export function SupervisorShell() {
     void loadSummary();
   }, [loadSummary, activeTab]);
 
-  const navItems: { id: SupervisorTab; label: string; icon: React.ReactNode; badge?: string }[] = [
+  const navItems: TabItem<SupervisorTab>[] = [
     { id: 'overview', label: t('navOverview'), icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'team', label: t('navTeam'), icon: <Users className="w-4 h-4" />, badge: 'LIVE' },
-    { id: 'ingest', label: t('navIngest'), icon: <Camera className="w-4 h-4" />, badge: 'NEW' },
-    { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" />, badge: 'LIVE' },
-    {
-      id: 'insights',
-      label: t('navInsights'),
-      icon: <BarChart3 className="w-4 h-4" />,
-      badge: 'NEW',
-    },
+    { id: 'team', label: t('navTeam'), icon: <Users className="w-4 h-4" /> },
+    { id: 'ingest', label: t('navIngest'), icon: <Camera className="w-4 h-4" /> },
+    { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" /> },
+    { id: 'insights', label: t('navInsights'), icon: <BarChart3 className="w-4 h-4" /> },
     {
       id: 'cableboxes',
       label: t('navCablebox'),
       icon: <Server className="w-4 h-4" />,
-      badge: `${cableboxes.length}`,
+      badge: cableboxes.length,
     },
   ];
 
+  const activeLabel = navItems.find((item) => item.id === activeTab)?.label ?? '';
+
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-6">
-      {/* Top Module Navigation Pills */}
-      <nav className="flex items-center gap-2 overflow-x-auto pb-1">
-        {navItems.map((item) => {
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setActiveTab(item.id)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap border transition cursor-pointer ${
-                isActive
-                  ? 'bg-emerald-950 text-white border-emerald-950 shadow-sm'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50/50 hover:border-emerald-200'
-              }`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-              {item.badge && (
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
-                    item.badge === 'LIVE' || item.badge === 'NEW'
-                      ? isActive
+    <div className="mx-auto w-full max-w-[1400px] px-3 sm:px-6 py-4 sm:py-5">
+      <div className="lg:flex lg:gap-6 lg:items-start">
+        {/*
+          Desktop: a real sidebar. Phone and tablet keep the horizontal strip so
+          the thumb never has to reach for the far edge of a wide screen.
+        */}
+        <aside className="hidden lg:block w-60 shrink-0 lg:sticky lg:top-20">
+          <div className="rounded-2xl bg-emerald-950 border border-emerald-800/60 p-3 text-white shadow-sm">
+            <div className="flex items-center gap-2 px-2 pt-1 pb-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-400 flex items-center justify-center">
+                <Wifi className="w-4 h-4 text-emerald-950 stroke-[2.5]" aria-hidden="true" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-xs font-extrabold">Group F1</div>
+                <div className="text-[10px] text-emerald-300/80">{t('supervisorRole')}</div>
+              </div>
+            </div>
+
+            <nav aria-label={t('appName')} className="space-y-1">
+              {navItems.map((item) => {
+                const active = item.id === activeTab;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={cx(
+                      'w-full min-h-11 flex items-center gap-2.5 px-2.5 rounded-xl text-xs font-bold text-left transition cursor-pointer',
+                      active
                         ? 'bg-emerald-400 text-emerald-950'
-                        : 'bg-emerald-100 text-emerald-800'
-                      : isActive
-                        ? 'bg-white/20 text-white'
-                        : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+                        : 'text-emerald-100/85 hover:bg-emerald-900 hover:text-white',
+                    )}
+                  >
+                    <span aria-hidden="true">{item.icon}</span>
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.badge != null && (
+                      <span
+                        className={cx(
+                          'text-[10px] font-extrabold px-1.5 py-0.5 rounded-md',
+                          active ? 'bg-emerald-950/15 text-emerald-950' : 'bg-emerald-900 text-emerald-200',
+                        )}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
 
-      {/* Active View */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          {/* KPI Strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-bold text-slate-500">{t('activeTechs')}</span>
-                <Users className="w-4 h-4 text-emerald-600" />
-              </div>
-              <div className="text-2xl font-extrabold text-slate-900">{techCount}</div>
-              <div className="text-[11px] text-emerald-700 font-semibold mt-1">
-                Group {activeGroup?.code} Field Ready
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-bold text-slate-500">{t('fieldCrews')}</span>
-                <Truck className="w-4 h-4 text-sky-600" />
-              </div>
-              <div className="text-2xl font-extrabold text-slate-900">{crewCount}</div>
-              <div className="text-[11px] text-sky-700 font-semibold mt-1">
-                Individual + 2-Tech Vehicles
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-bold text-slate-500">{t('openTasks')}</span>
-                <FileSpreadsheet className="w-4 h-4 text-amber-600" />
-              </div>
-              <div className="text-2xl font-extrabold text-slate-900">{taskCount}</div>
-              <div className="text-[11px] text-slate-500 font-medium mt-1">
-                Galinta &amp; Cilada Queue
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('dispatch')}
-                className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 cursor-pointer"
-              >
-                <Route className="w-3 h-3" />
-                {unassignedCount} {t('dispatchUnassignedShort')} · {t('dispatchAssignTo').replace('…', '')}
-              </button>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-bold text-slate-500">{t('trackedBoxes')}</span>
-                <Server className="w-4 h-4 text-purple-600" />
-              </div>
-              <div className="text-2xl font-extrabold text-slate-900">{cableboxes.length}</div>
-              <div className="text-[11px] text-purple-700 font-semibold mt-1">
-                FAT / Cablebox Memory
-              </div>
+            <div className="mt-3 pt-3 border-t border-emerald-800/60 px-2 pb-1 text-[10px] text-emerald-300/60">
+              {t('deptSubtitle')}
             </div>
           </div>
+        </aside>
 
-          {/* Step-by-Step Build Progress Card */}
-          <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-950 text-white rounded-3xl p-6 shadow-lg border border-emerald-800/50">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-white/10">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold mb-2">
-                  <Wifi className="w-3.5 h-3.5" />
-                  <span>SUPABASE LIVE • VERCEL READY</span>
+        <div className="flex-1 min-w-0 space-y-5 sm:space-y-6">
+          <Tabs
+            items={navItems}
+            value={activeTab}
+            onChange={setActiveTab}
+            label={t('appName')}
+            className="lg:hidden"
+          />
+
+          <div
+            id={`panel-${activeTab}`}
+            role="tabpanel"
+            aria-label={activeLabel}
+            className="space-y-5 sm:space-y-6"
+          >
+            {activeTab === 'overview' && (
+              <div className="space-y-5 sm:space-y-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <Stat
+                    label={t('activeTechs')}
+                    value={techCount}
+                    icon={<Users className="w-4 h-4" />}
+                    hint={`Group ${activeGroup?.code ?? 'F1'} field ready`}
+                  />
+                  <Stat
+                    label={t('fieldCrews')}
+                    value={crewCount}
+                    icon={<Truck className="w-4 h-4" />}
+                    tone="sky"
+                    hint="Individual + 2-tech vehicles"
+                  />
+                  <Stat
+                    label={t('openTasks')}
+                    value={taskCount}
+                    icon={<FileSpreadsheet className="w-4 h-4" />}
+                    tone="amber"
+                    hint={`${unassignedCount} ${t('dispatchUnassignedShort')}`}
+                    onClick={() => setActiveTab('dispatch')}
+                  />
+                  <Stat
+                    label={t('trackedBoxes')}
+                    value={cableboxes.length}
+                    icon={<Server className="w-4 h-4" />}
+                    tone="violet"
+                    hint="FAT / cablebox memory"
+                  />
                 </div>
-                <h2 className="text-lg sm:text-xl font-extrabold">{t('roadmapTitle')}</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('team')}
-                className="self-start md:self-auto px-4 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-extrabold text-xs transition cursor-pointer"
-              >
-                {t('navTeam')} →
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5 text-xs">
-              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="font-semibold text-emerald-100">{t('phase1Done')}</span>
-              </div>
+                <div className="rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-950 text-white p-5 sm:p-6 shadow-lg border border-emerald-800/50 print-block">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-white/10">
+                    <div>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold mb-2">
+                        <Wifi className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>SUPABASE LIVE • VERCEL READY</span>
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-extrabold">{t('roadmapTitle')}</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('team')}
+                      className="self-start md:self-auto min-h-11 px-4 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-extrabold text-xs transition cursor-pointer print-keep"
+                    >
+                      {t('navTeam')} →
+                    </button>
+                  </div>
 
-              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="font-semibold text-emerald-100">{t('phase2Done')}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5 text-xs">
+                    {[t('phase1Done'), t('phase2Done'), t('phase3Done'), t('phase4Done'), t('phase5Done')].map(
+                      (phase) => (
+                        <div
+                          key={phase}
+                          className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
+                          <span className="font-semibold text-emerald-100">{phase}</span>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
               </div>
+            )}
 
-              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="font-semibold text-emerald-100">{t('phase3Done')}</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="font-semibold text-emerald-100">{t('phase4Done')}</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="font-semibold text-emerald-100">{t('phase5Done')}</span>
-              </div>
-            </div>
+            {activeTab === 'team' && <TeamAndCrewManager />}
+            {activeTab === 'ingest' && <IngestWizard />}
+            {activeTab === 'dispatch' && <DispatchBoard />}
+            {activeTab === 'cableboxes' && <BoxRegistry />}
+            {activeTab === 'insights' && <Analytics />}
           </div>
         </div>
-      )}
-
-      {activeTab === 'team' && <TeamAndCrewManager />}
-
-      {activeTab === 'ingest' && <IngestWizard />}
-
-      {activeTab === 'dispatch' && <DispatchBoard />}
-
-      {activeTab === 'cableboxes' && <BoxRegistry />}
-
-      {activeTab === 'insights' && <Analytics />}
+      </div>
     </div>
   );
 }
