@@ -64,7 +64,7 @@ export function LiveStrip() {
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-300">
           {so ? 'Hadda goobta' : 'Live in the field'}
         </span>
-        <span className="ml-auto text-[10px] font-bold text-slate-400">
+        <span className="ml-auto text-[10px] font-bold text-slate-500">
           {running.length} {so ? 'socda' : 'running'}
           {rows.length > running.length ? ` · ${rows.length - running.length} ${so ? 'caqabad' : 'blocked'}` : ''}
         </span>
@@ -94,9 +94,9 @@ export function LiveStrip() {
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-bold truncate">
                   {row.worker_name}
-                  <span className="font-mono font-normal text-slate-400"> · {row.line_number}</span>
+                  <span className="font-mono font-normal text-slate-500"> · {row.line_number}</span>
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">
+                <div className="text-[10px] text-slate-500 truncate">
                   {row.customer_name}
                   {row.cablebox_code_raw ? ` · ${row.cablebox_code_raw}` : row.xaafada ? ` · ${row.xaafada}` : ''}
                 </div>

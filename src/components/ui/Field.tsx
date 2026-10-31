@@ -10,7 +10,7 @@ import { cx } from './cx';
  */
 
 const CONTROL =
-  'w-full rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 transition ' +
+  'w-full rounded-xl border bg-white text-slate-900 placeholder:text-slate-500 transition ' +
   'focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500';
 
 const OK = 'border-slate-300 focus:border-emerald-600 focus:ring-emerald-600/25';
@@ -41,7 +41,7 @@ function FieldShell({
               {label}
             </label>
           )}
-          {aside && <span className="text-[11px] font-medium text-slate-400">{aside}</span>}
+          {aside && <span className="text-[11px] font-medium text-slate-500">{aside}</span>}
         </div>
       )}
       {children}
@@ -61,25 +61,55 @@ function FieldShell({
 export interface InputProps extends React.ComponentPropsWithRef<'input'>, FieldShell {
   /** visual size only — the font stays ≥16 px for mobile browsers */
   inputSize?: 'md' | 'lg';
+  /** decorative icon inside the field (search, phone, pin…) */
+  leadingIcon?: React.ReactNode;
 }
 
-export function Input({ label, hint, error, aside, id, className, inputSize = 'md', ...rest }: InputProps) {
+export function Input({
+  label,
+  hint,
+  error,
+  aside,
+  id,
+  className,
+  inputSize = 'md',
+  leadingIcon,
+  ...rest
+}: InputProps) {
   const autoId = React.useId();
   const controlId = id ?? autoId;
+
+  const field = (
+    <input
+      {...rest}
+      id={controlId}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={error ? `${controlId}-error` : hint ? `${controlId}-hint` : undefined}
+      className={cx(
+        CONTROL,
+        error ? BAD : OK,
+        inputSize === 'lg' ? 'h-12 text-base' : 'h-11 text-base',
+        leadingIcon ? 'pl-10 pr-3.5' : inputSize === 'lg' ? 'px-4' : 'px-3.5',
+        className,
+      )}
+    />
+  );
+
   return (
     <FieldShell id={controlId} label={label} hint={hint} error={error} aside={aside}>
-      <input
-        {...rest}
-        id={controlId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${controlId}-error` : hint ? `${controlId}-hint` : undefined}
-        className={cx(
-          CONTROL,
-          error ? BAD : OK,
-          inputSize === 'lg' ? 'h-12 px-4 text-base' : 'h-11 px-3.5 text-base',
-          className,
-        )}
-      />
+      {leadingIcon ? (
+        <div className="relative">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+          >
+            {leadingIcon}
+          </span>
+          {field}
+        </div>
+      ) : (
+        field
+      )}
     </FieldShell>
   );
 }

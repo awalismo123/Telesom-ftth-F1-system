@@ -87,7 +87,7 @@ export function TechnicianShell() {
 
       {teammates.length > 0 ? (
         <div className="pt-3 border-t border-slate-100 space-y-2">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             {t('crewPartner') || 'Crew partner'}
           </div>
           {teammates.map((partner) => (
@@ -164,7 +164,7 @@ export function TechnicianShell() {
               {crewCard}
 
               <Card padding="md">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                   {t('myAccount') || 'My account'}
                 </div>
                 <dl className="grid grid-cols-2 gap-3 text-xs">
@@ -215,7 +215,7 @@ export function TechnicianShell() {
                 aria-current={active ? 'page' : undefined}
                 className={cx(
                   'min-h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-bold cursor-pointer transition',
-                  active ? 'text-emerald-700' : 'text-slate-400 hover:text-slate-600',
+                  active ? 'text-emerald-700' : 'text-slate-500 hover:text-slate-600',
                 )}
               >
                 <span aria-hidden="true">{item.icon}</span>

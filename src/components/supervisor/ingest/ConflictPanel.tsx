@@ -291,7 +291,7 @@ export function ConflictPanel({ plan, onChange }: Props) {
 
                   <div className="shrink-0">
                     {row.decision === 'skip' || row.conflict === 'invalid' ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500">
                         <XCircle className="w-3.5 h-3.5" />
                         {so ? 'La dhaafayaa' : 'Skipped'}
                       </span>

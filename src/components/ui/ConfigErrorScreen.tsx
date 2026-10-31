@@ -174,7 +174,7 @@ export function ConfigErrorScreen({
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-emerald-300/60 mt-4">
+        <p className="text-center text-[11px] text-emerald-300/80 mt-4">
           Telesom Fixed Broadband Department • Group F1 Field System
         </p>
       </div>

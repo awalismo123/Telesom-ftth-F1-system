@@ -28,6 +28,8 @@ import { useNow } from '../../lib/useNow';
 import { RouteCard } from './RouteCard';
 import { ExecutionSheet } from './ExecutionSheet';
 import { useToast } from '../ui/Toast';
+import { Alert } from '../ui/Alert';
+import { Button } from '../ui/Button';
 
 interface ConfirmState {
   task: RouteTask;
@@ -160,13 +162,13 @@ export function RouteView() {
       {/* summary */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-2xl bg-white border border-slate-200 p-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
             {so ? 'Furan' : 'Open'}
           </div>
           <div className="text-2xl font-extrabold text-slate-900">{stats.open}</div>
         </div>
         <div className="rounded-2xl bg-white border border-slate-200 p-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
             {so ? 'Degdeg' : 'Urgent'}
           </div>
           <div className={`text-2xl font-extrabold ${stats.urgent > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
@@ -174,7 +176,7 @@ export function RouteView() {
           </div>
         </div>
         <div className="rounded-2xl bg-white border border-slate-200 p-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
             {so ? 'Maanta' : 'Done today'}
           </div>
           <div className="text-2xl font-extrabold text-emerald-700">{stats.doneToday}</div>
@@ -182,13 +184,16 @@ export function RouteView() {
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-[11px] font-semibold text-rose-800 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="flex-1">{error}</span>
-          <button type="button" onClick={() => void load()} className="underline cursor-pointer">
-            {so ? 'Isku day' : 'Retry'}
-          </button>
-        </div>
+        <Alert
+          tone="danger"
+          action={
+            <Button variant="ghost" size="sm" onClick={() => void load()} className="underline">
+              {so ? 'Isku day' : 'Retry'}
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       )}
 
       <div className="flex items-center justify-between px-1">
@@ -205,7 +210,7 @@ export function RouteView() {
         <button
           type="button"
           onClick={() => void load()}
-          className="p-2 rounded-xl text-slate-400 hover:bg-white hover:text-slate-600 cursor-pointer"
+          className="p-2 rounded-xl text-slate-500 hover:bg-white hover:text-slate-600 cursor-pointer"
           title={so ? 'Cusbooneysii' : 'Refresh'}
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -221,11 +226,11 @@ export function RouteView() {
 
       {!loading && stats.open === 0 && (
         <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center space-y-2">
-          <RouteIcon className="w-7 h-7 text-slate-300 mx-auto" />
+          <RouteIcon className="w-7 h-7 text-slate-500 mx-auto" aria-hidden="true" />
           <p className="text-xs font-semibold text-slate-600">
             {so ? 'Maanta shaqo laguu qoondeynin.' : 'Nothing assigned to you right now.'}
           </p>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-slate-500">
             {so
               ? 'Marka kormeeruhu shaqo kuu qaybiyo, halkan ayay ka soo muuqan doontaa.'
               : 'As soon as the supervisor dispatches work to you or your crew, it appears here.'}
@@ -242,9 +247,9 @@ export function RouteView() {
               {section.label}
             </span>
             {section.sublabel && (
-              <span className="text-[11px] text-slate-400">· {section.sublabel}</span>
+              <span className="text-[11px] text-slate-500">· {section.sublabel}</span>
             )}
-            <span className="ml-auto text-[10px] font-bold text-slate-400">
+            <span className="ml-auto text-[10px] font-bold text-slate-500">
               {section.tasks.length} {so ? 'shaqo' : section.tasks.length === 1 ? 'job' : 'jobs'}
             </span>
           </div>
@@ -270,7 +275,7 @@ export function RouteView() {
           <button
             type="button"
             onClick={() => setShowDone((v) => !v)}
-            className="w-full flex items-center gap-1.5 px-1 py-2 text-[11px] font-extrabold uppercase tracking-wide text-slate-400 cursor-pointer"
+            className="w-full flex items-center gap-1.5 px-1 py-2 text-[11px] font-extrabold uppercase tracking-wide text-slate-500 cursor-pointer"
           >
             {showDone ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             {so ? 'Maanta la dhammeeyay' : 'Completed today'} · {completedToday.length}
@@ -396,7 +401,7 @@ export function RouteView() {
       )}
 
       {activeGroup && (
-        <div className="text-center text-[10px] text-slate-400 pt-1">
+        <div className="text-center text-[10px] text-slate-500 pt-1">
           Group {activeGroup.code} · {session.user.full_name}
         </div>
       )}

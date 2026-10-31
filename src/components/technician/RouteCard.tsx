@@ -109,7 +109,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
                 {so ? 'Cilada' : 'Fault'}
               </span>
             )}
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300 ml-auto" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-500 ml-auto" aria-hidden="true" />
           </div>
 
           <div className="mt-1 text-[15px] font-extrabold text-slate-900 leading-tight">
@@ -121,7 +121,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
               <MapPin className="w-3 h-3" />
               {task.cablebox_code_raw || task.xaafada || '—'}
               {task.port_number !== null && task.port_number !== undefined && (
-                <span className="font-mono text-slate-400">· port {task.port_number}</span>
+                <span className="font-mono text-slate-500">· port {task.port_number}</span>
               )}
             </span>
             {task.speed_plan && (

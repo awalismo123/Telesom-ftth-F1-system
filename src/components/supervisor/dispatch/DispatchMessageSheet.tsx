@@ -168,8 +168,14 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
               {taskIds.length} {so ? 'shaqo' : 'jobs'}
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 cursor-pointer">
-            <X className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close / Xir"
+            title="Close / Xir"
+            className="p-2 rounded-xl hover:bg-slate-100 cursor-pointer"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -302,7 +308,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
 
               {/* per-team messages */}
               <div className="space-y-2 pt-1">
-                <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
+                <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
                   {so ? 'Fariin gooni ah koox kasta' : 'One message per team'}
                 </div>
 
@@ -372,7 +378,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
         </div>
 
         <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[10px] text-slate-400">
+          <span className="text-[10px] text-slate-500">
             {taskIds.length} {so ? 'shaqo' : 'jobs'} · {activeLanes.length} {so ? 'kooxood' : 'teams'}
           </span>
           <button

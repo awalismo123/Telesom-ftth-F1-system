@@ -96,7 +96,7 @@ export function TaskCard({
               <MapPin className="w-3 h-3 shrink-0" />
               <span className="truncate">{place}</span>
               {task.port_number !== null && task.port_number !== undefined && (
-                <span className="font-mono text-slate-400">·{task.port_number}</span>
+                <span className="font-mono text-slate-500">·{task.port_number}</span>
               )}
             </span>
 
@@ -111,7 +111,7 @@ export function TaskCard({
             )}
 
             {task.task_type === 'installation' && (
-              <span className="inline-flex items-center gap-1 text-slate-400">
+              <span className="inline-flex items-center gap-1 text-slate-500">
                 <User className="w-3 h-3" />
                 {task.service_type || 'Fiber'}
               </span>
@@ -124,7 +124,7 @@ export function TaskCard({
             type="button"
             onClick={onUnassign}
             title={unassignLabel}
-            className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+            className="shrink-0 p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>

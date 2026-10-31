@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { describeError } from '../../../lib/useErrorMessage';
 import { useToast } from '../../ui/Toast';
+import { Alert } from '../../ui/Alert';
 import {
   ArrowLeft,
   ArrowRight,
@@ -337,13 +338,13 @@ export function IngestWizard() {
                       ? 'bg-emerald-950 text-white'
                       : done
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-slate-50 text-slate-400 border border-slate-200'
+                        : 'bg-slate-50 text-slate-500 border border-slate-200'
                   }`}
                 >
                   {done ? (
                     <CheckCircle2 className="w-3 h-3" />
                   ) : (
-                    <span className="w-3.5 h-3.5 rounded-full bg-current/20 grid place-items-center text-[9px]">
+                    <span className="w-3.5 h-3.5 rounded-full bg-current/20 grid place-items-center text-[10px]">
                       {idx + 1}
                     </span>
                   )}
@@ -357,10 +358,9 @@ export function IngestWizard() {
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 flex items-start gap-2.5">
-          <X className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-          <div className="text-xs font-semibold text-rose-800">{error}</div>
-        </div>
+        <Alert tone="danger" onDismiss={() => setError(null)} dismissLabel={so ? 'Xir' : 'Dismiss'}>
+          {error}
+        </Alert>
       )}
 
       {/* ---------------------------------------------------------------- */}
@@ -511,7 +511,7 @@ export function IngestWizard() {
             </div>
 
             {history.length === 0 && (
-              <p className="text-xs text-slate-400 italic py-4">
+              <p className="text-xs text-slate-500 italic py-4">
                 {so ? 'Weli wax soo-gelin ah ma jiraan.' : 'No imports yet.'}
               </p>
             )}
@@ -536,7 +536,7 @@ export function IngestWizard() {
                     >
                       {batch.sheet_category === 'installation' ? 'GALINTA' : 'CILADA'}
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500">
                       {new Date(batch.created_at).toLocaleString([], {
                         month: 'short',
                         day: 'numeric',
@@ -554,7 +554,7 @@ export function IngestWizard() {
                   </div>
 
                   {batch.status === 'undone' ? (
-                    <div className="text-[10px] font-bold text-slate-400 mt-1.5">
+                    <div className="text-[10px] font-bold text-slate-500 mt-1.5">
                       {so ? 'LA BEDDELAY (Undone)' : 'UNDONE'}
                     </div>
                   ) : (
@@ -596,7 +596,7 @@ export function IngestWizard() {
               style={{ width: `${Math.round((progress?.progress ?? 0.02) * 100)}%` }}
             />
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">
+          <p className="text-[11px] text-slate-500 mt-2">
             {so
               ? 'Markii ugu horeysay waxa ay qaadan kartaa 20-ilbiriq si moodelka OCR u soo dego.'
               : 'The first run may take up to 20 seconds while the OCR model loads. It is cached afterwards.'}
@@ -678,14 +678,14 @@ export function IngestWizard() {
       {/* ---------------------------------------------------------------- */}
       {phase === 'conflicts' && plan && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
-            <div className="text-xs text-sky-900 font-medium">
-              {so
-                ? 'Nidaamka si otomaatig ah wax ma beddelin. Shaqo kasta oo hore u jirtay waxaad halkan ka dooranaysaa waxa lagu sameeyo.'
-                : 'Nothing has been changed yet. Every row that already exists in the system is listed below — choose what happens to each one.'}
-            </div>
-          </div>
+          <Alert
+            tone="info"
+            title={so ? 'Waxba weli lama beddelin' : 'Nothing has changed yet'}
+          >
+            {so
+              ? 'Shaqo kasta oo hore u jirtay waxaad halkan ka dooranaysaa waxa lagu sameeyo.'
+              : 'Every row that already exists in the system is listed below — choose what happens to each one.'}
+          </Alert>
 
           <ConflictPanel plan={plan} onChange={setPlan} />
 
@@ -792,7 +792,7 @@ export function IngestWizard() {
               <button
                 type="button"
                 onClick={() => setPasteOpen(false)}
-                className="p-1 rounded text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

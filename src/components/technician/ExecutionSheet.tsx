@@ -323,7 +323,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                 <MapPin className="w-3 h-3" />
                 {task.cablebox_code_raw || task.xaafada || '—'}
                 {task.port_number !== null && task.port_number !== undefined && (
-                  <span className="font-mono text-slate-400">· port {task.port_number}</span>
+                  <span className="font-mono text-slate-500">· port {task.port_number}</span>
                 )}
               </span>
               {task.service_type && (
@@ -337,9 +337,11 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           <button
             type="button"
             onClick={onClose}
-            className="p-2 -mr-1 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer"
+            aria-label="Close / Xir"
+            title="Close / Xir"
+            className="p-2 -mr-1 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -394,9 +396,9 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-700" />
                 {so ? 'Taariikhda sanduuqa' : 'Box history'}
-                <span className="font-mono text-slate-400">{task.cablebox_code_raw}</span>
+                <span className="font-mono text-slate-500">{task.cablebox_code_raw}</span>
               </span>
-              <span className="text-slate-400">›</span>
+              <span className="text-slate-500">›</span>
             </button>
           )}
 
@@ -408,7 +410,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           >
             <div
               className={`text-[10px] font-bold uppercase tracking-widest ${
-                running ? 'text-emerald-300' : 'text-slate-400'
+                running ? 'text-emerald-300' : 'text-slate-500'
               }`}
             >
               {completed
@@ -542,7 +544,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           {/* ---------------------------------------------------------- */}
           {mode === 'blocker' && (
             <div className="rounded-2xl bg-white border border-slate-200 p-3 space-y-2">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
                 {so ? 'Maxaa ku hor istaagay?' : 'What is blocking you?'}
               </div>
 
@@ -617,7 +619,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                   {so ? 'Xaqiiji caqabadda' : 'Save blocker'}
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 text-center">
+              <p className="text-[10px] text-slate-500 text-center">
                 {so
                   ? 'Saacaddu way joogsanaysaa; shaqadu waxay ku sii jirtaa liiska.'
                   : 'The clock stops; the job stays on your list as Blocked.'}
@@ -631,7 +633,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           {mode === 'complete' && (
             <div className="rounded-2xl bg-white border border-slate-200 p-3 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
+                <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
                   {so ? 'Dhamaystirka shaqada' : 'Complete the job'}
                 </div>
                 {draftNotice && (
@@ -787,13 +789,13 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               <button
                 type="button"
                 onClick={() => setShowHistory((v) => !v)}
-                className="w-full px-3 py-2.5 flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wide text-slate-400 cursor-pointer"
+                className="w-full px-3 py-2.5 flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wide text-slate-500 cursor-pointer"
               >
                 <span className="inline-flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
                   {so ? 'Taariikhda shaqada' : 'Job history'}
                 </span>
-                <span className="text-slate-300">{showHistory ? '−' : '+'}</span>
+                <span className="text-slate-500">{showHistory ? '−' : '+'}</span>
               </button>
 
               {showHistory && (
@@ -827,7 +829,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                             <div className="text-[10px] text-slate-500 italic">“{row.notes}”</div>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-400 shrink-0">
+                        <span className="text-[10px] text-slate-500 shrink-0">
                           {timeAgo(row.created_at, lang)}
                         </span>
                       </li>

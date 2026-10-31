@@ -74,11 +74,11 @@ export function PortGrid({ ports, totalPorts, lang, canEdit, onSave }: Props) {
                 <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
                 <span className="font-mono text-[11px] font-extrabold">P{n}</span>
               </div>
-              <div className="text-[9px] font-bold uppercase tracking-wide opacity-80 truncate">
+              <div className="text-[10px] font-bold uppercase tracking-wide opacity-80 truncate">
                 {so ? meta.so : meta.en}
               </div>
               {port?.line_number && (
-                <div className="font-mono text-[9px] opacity-70 truncate">{port.line_number}</div>
+                <div className="font-mono text-[10px] opacity-70 truncate">{port.line_number}</div>
               )}
             </button>
           );
@@ -106,7 +106,7 @@ export function PortGrid({ ports, totalPorts, lang, canEdit, onSave }: Props) {
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+              className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -159,7 +159,7 @@ export function PortGrid({ ports, totalPorts, lang, canEdit, onSave }: Props) {
       )}
 
       {!canEdit && (
-        <p className="text-[10px] text-slate-400 text-center">
+        <p className="text-[10px] text-slate-500 text-center">
           {so ? 'Port-yada waxaa beddeli kara farsamayaqaanada iyo kormeeraha.' : 'Ports can be updated by technicians and the supervisor.'}
         </p>
       )}
