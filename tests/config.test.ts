@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  classifyProbeResponse,
   keyShape,
   maskSecret,
   projectRef,
@@ -96,4 +97,22 @@ test('diagnostics never print the whole key', () => {
 test('the project ref is readable from a Supabase URL', () => {
   assert.equal(projectRef('https://pjrzncnhhlfaxuvlcdse.supabase.co'), 'pjrzncnhhlfaxuvlcdse');
   assert.equal(projectRef('https://example.com'), '');
+});
+
+test('a probe answer is only a bad key when the gateway says so', () => {
+  // The incident: a valid anon key on the service_role-only root document.
+  assert.equal(
+    classifyProbeResponse(401, '{"message":"Invalid API key","hint":"Only the `service_role` API key can be used for this endpoint."}'),
+    'bad-key',
+  );
+  assert.equal(classifyProbeResponse(401, '{"message":"Invalid API key"}'), 'bad-key');
+  assert.equal(classifyProbeResponse(401, '{"message":"No API key found in request"}'), 'bad-key');
+  assert.equal(classifyProbeResponse(401, '{"message":"JWT signature verification failed"}'), 'bad-key');
+
+  // Everything else is an authenticated answer, not a configuration failure.
+  assert.equal(classifyProbeResponse(200, '[{"code":"F1"}]'), 'ok');
+  assert.equal(classifyProbeResponse(401, '{"message":"permission denied for table groups"}'), 'ok');
+  assert.equal(classifyProbeResponse(403, '{"message":"new row violates row-level security policy"}'), 'ok');
+  assert.equal(classifyProbeResponse(400, '{"code":"P0001","message":"session token required"}'), 'ok');
+  assert.equal(classifyProbeResponse(502, 'bad gateway'), 'ok');
 });
