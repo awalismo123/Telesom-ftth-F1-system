@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 
@@ -169,4 +171,26 @@ test('Input renders its leading icon outside the control', async () => {
   );
   assert.match(html, /aria-hidden="true"/);
   assert.match(html, /pl-10/);
+});
+
+test('a crashed screen is replaced in place, with its name and a retry', async () => {
+  const { ErrorBoundary } = await import('../src/components/ui/ErrorBoundary');
+
+  const boundary = new ErrorBoundary({ label: 'Dispatch board', compact: true, children: null });
+  // What React does when a render/effect throws: hand the error to the boundary.
+  boundary.state = { ...boundary.state, ...ErrorBoundary.getDerivedStateFromError(new Error('cannot add callbacks')) };
+
+  const html = renderToString(boundary.render() as React.ReactElement);
+  assert.match(html, /Dispatch board/);
+  assert.match(html, /Try again/);
+  assert.match(html, /Xogtaadu waa badbaado/, 'the message stays bilingual');
+});
+
+test('each on-demand panel has its own error boundary', () => {
+  const source = readFileSync(fileURLToPath(new URL('../src/components/ui/LazyPanel.tsx', import.meta.url)), 'utf8');
+  // A screen that throws must be contained by its panel. Without this the whole
+  // supervisor shell is replaced — which is exactly what a realtime subscription
+  // error did to the dispatch tab in production.
+  assert.match(source, /<ErrorBoundary[^>]*compact/);
+  assert.match(source, /<Suspense/);
 });

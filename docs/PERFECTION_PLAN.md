@@ -430,3 +430,89 @@ key. That is the *same data* the REST API already exposes under `USING (true)`,
 but it is a second delivery path and should be part of the Batch B hardening
 decision — ideally the policy becomes group-scoped and the realtime filter
 follows it.
+
+---
+
+## §8.1 Batch D hotfix — the dispatch tab crashed on open
+
+**Reported:** opening *Dispatch & clustering* in production showed the crash
+card instead of the board, with:
+
+```
+cannot add `postgres_changes` callbacks for
+realtime:changes:tasks:group_id=eq.218e78f7-4d18-4839-a061-5a03e6d3946e
+after `subscribe()`.
+```
+
+### Root cause
+
+`supabase.channel(topic)` **de-duplicates by topic** — in
+`@supabase/realtime-js` it looks the topic up in `getChannels()` and returns the
+existing channel object:
+
+```js
+channel(topic, params = { config: {} }) {
+  const realtimeTopic = `realtime:${topic}`;
+  const exists = this.getChannels().find((c) => c.topic === realtimeTopic);
+  if (!exists) { /* create */ } else { return exists; }
+}
+```
+
+Batch D named channels after their table and filter,
+`changes:tasks:group_id=eq.<uuid>`. `DispatchBoard` and `LiveStrip` sit on the
+same screen and watch the same table with the same group filter, so the second
+hook received the **already-subscribed** channel and its `.on('postgres_changes')`
+threw (`RealtimeChannel.on` refuses to add callbacks after `subscribe()`). The
+throw happened inside `useEffect`, so React replaced the screen with the error
+boundary. The technician shell had the identical collision in `RouteView` and
+`RunningPill`.
+
+It was also worse than a visible crash: `supabase.removeChannel()` on the shared
+channel would have let whichever hook unmounted first **silently kill the
+other's stream**.
+
+Reproduced with the real library, no network required (channel de-duplication
+happens before any socket opens):
+
+```
+same object for same topic: true
+first subscribe: ok
+second .on() threw: cannot add `postgres_changes` callbacks for
+  realtime:changes:tasks:group_id=eq.218e78f7 after `subscribe()`.
+unique-topic subscribe: ok
+```
+
+### Fix
+
+* **A unique topic per subscription** — `tableChannelTopic(table, filter)` appends
+  a module counter (`f1:tasks:group_id=218e78f7…:3`). Channels multiplex over one
+  socket, so the extra topic costs nothing, and an isolated channel cannot be
+  torn down by a neighbour.
+* **`subscribeTableChanges()` never throws.** If the client rejects the
+  subscription, the helper logs once and returns `null`; the screen keeps its
+  3-minute visible-tab fallback poll. A live feed is an optimisation, never a
+  single point of failure for a technician standing in front of a screen.
+* **Containment.** `LazyPanel` now wraps every on-demand screen in its own
+  compact `ErrorBoundary`, so a failure replaces *that panel* (with retry) instead
+  of the whole supervisor shell and its navigation.
+
+### Proof
+
+`tests/realtime.test.ts` (7 tests) drives a fake client that is a **verbatim copy
+of the library's contract** — same-topic de-duplication and the `on()`-after-
+`subscribe()` throw — and first asserts that the fake *does* reproduce the crash,
+so the regression test cannot pass vacuously. It then pins: unique topics, both
+dispatch hooks subscribing, callback-before-subscribe ordering, one unsubscribe
+leaving its neighbour streaming, and a throwing client returning `null`.
+
+`tests/ui.test.tsx` adds the containment guard (a crashed panel renders the
+labelled bilingual fallback; `LazyPanel` keeps its own boundary).
+
+**Gate:** `tsc` clean · **99 / 99** tests · build 4.0 s · **172.5 kB / 200 kB**.
+
+### Lesson recorded
+
+Anything that subscribes must be named **per subscriber**, not per logical
+stream, because the library treats the topic as the identity of the channel.
+Any future realtime work (Batch E notifications, live technician presence) uses
+`useTableChanges` / `subscribeTableChanges` — never `supabase.channel()` directly.

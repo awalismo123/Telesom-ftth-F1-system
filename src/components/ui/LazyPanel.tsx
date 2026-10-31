@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { Skeleton, SkeletonCard } from './Skeleton';
+import { ErrorBoundary } from './ErrorBoundary';
 
 /**
  * Suspense boundary for a screen that is downloaded on demand.
@@ -75,5 +76,9 @@ export function LazyPanel({
   shape?: PanelShape;
   label?: string;
 }) {
-  return <Suspense fallback={<PanelSkeleton shape={shape} label={label} />}>{children}</Suspense>;
+  return (
+    <ErrorBoundary label={label} compact>
+      <Suspense fallback={<PanelSkeleton shape={shape} label={label} />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
 }
