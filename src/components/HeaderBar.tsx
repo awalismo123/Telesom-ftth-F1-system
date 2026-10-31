@@ -9,6 +9,7 @@ import {
   ChevronDown,
   X,
   CheckCircle2,
+  Search,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
@@ -16,6 +17,9 @@ import { supabase } from '../lib/supabase';
 import { initials } from '../lib/session';
 import { useToast } from './ui/Toast';
 import { describeError } from '../lib/useErrorMessage';
+import { SearchPalette } from './ui/SearchPalette';
+import { NotificationsBell } from './ui/NotificationsBell';
+import { useNavigation } from '../lib/navigation';
 
 /**
  * Who is signed in, in one chip.
@@ -69,11 +73,41 @@ export function HeaderBar() {
   const toast = useToast();
 
   const [showPinModal, setShowPinModal] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { navigate } = useNavigation();
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [pinSuccess, setPinSuccess] = useState(false);
   const [savingPin, setSavingPin] = useState(false);
+
+  /**
+   * Command-K / Ctrl-K opens search from anywhere, and Escape is handled by the
+   * palette itself. A supervisor asked "what about line 6344…" should never have
+   * to leave the screen they are on to answer.
+   */
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen((current) => !current);
+        return;
+      }
+
+      // "/" is the other habit, but only when the person is not already typing.
+      if (event.key === '/' && !typing && !showPinModal) {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showPinModal]);
 
   if (!session) return null;
 
@@ -200,6 +234,24 @@ export function HeaderBar() {
               <span>{lang === 'so' ? 'SO' : 'EN'}</span>
             </button>
 
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100 hover:bg-emerald-800 transition cursor-pointer"
+              title={lang === 'so' ? 'Raadi (⌘K)' : 'Search (⌘K)'}
+              aria-label={lang === 'so' ? 'Raadi' : 'Search'}
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden lg:inline text-[11px] font-semibold">
+                {lang === 'so' ? 'Raadi' : 'Search'}
+              </span>
+              <kbd className="hidden lg:inline text-[10px] font-bold text-emerald-300/70 border border-emerald-700 rounded px-1">
+                ⌘K
+              </kbd>
+            </button>
+
+            <NotificationsBell onNavigate={navigate} />
+
             <div className="hidden md:flex items-center gap-2">
               <IdentityChip />
               {pinButton}
@@ -216,12 +268,34 @@ export function HeaderBar() {
           <div className="px-3 h-12 flex items-center justify-between gap-2">
             <IdentityChip compact />
             <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100"
+                aria-label={lang === 'so' ? 'Raadi' : 'Search'}
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              <NotificationsBell onNavigate={navigate} />
               {pinButton}
               {signOutButton(true)}
             </div>
           </div>
         </div>
       </header>
+
+      <SearchPalette
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onPickTask={(taskId) =>
+          navigate(
+            session.user.role === 'technician'
+              ? { to: 'route', taskId }
+              : { to: 'dispatch', taskId },
+          )
+        }
+        onPickBox={(boxId) => navigate({ to: 'boxes', boxId })}
+      />
 
       {/* Change PIN Modal */}
       {showPinModal && (

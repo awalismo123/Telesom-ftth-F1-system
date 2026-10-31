@@ -18,6 +18,7 @@ import { Card } from '../ui/Card';
 import { LazyPanel } from '../ui/LazyPanel';
 import { cx } from '../ui/cx';
 import { preload } from '../../lib/preload';
+import { useNavigation } from '../../lib/navigation';
 
 /**
  * Route and registry are separate chunks: a technician who opens the app to
@@ -38,6 +39,24 @@ export function TechnicianShell() {
   const { t } = useLanguage();
 
   const [tab, setTab] = useState<TechTab>('route');
+  const [focusTask, setFocusTask] = useState<{ id: string; nonce: number } | null>(null);
+  const [focusBox, setFocusBox] = useState<{ id: string; nonce: number } | null>(null);
+  const { intent, consume } = useNavigation();
+
+  // A search result or a notification moves the technician to the job itself.
+  useEffect(() => {
+    if (!intent) return;
+
+    if (intent.to === 'route') {
+      setTab('route');
+      if (intent.taskId) setFocusTask({ id: intent.taskId, nonce: intent.nonce });
+      consume();
+    } else if (intent.to === 'boxes') {
+      setTab('boxes');
+      if (intent.boxId) setFocusBox({ id: intent.boxId, nonce: intent.nonce });
+      consume();
+    }
+  }, [intent, consume]);
   const [teammates, setTeammates] = useState<UserProfile[]>([]);
 
   useEffect(() => {
@@ -176,13 +195,13 @@ export function TechnicianShell() {
         <div className="space-y-4 min-w-0">
           {tab === 'route' && (
             <LazyPanel shape="rows" label={t('techMyRoute')}>
-              <RouteView />
+              <RouteView focusTaskId={focusTask?.id ?? null} focusNonce={focusTask?.nonce ?? 0} />
             </LazyPanel>
           )}
 
           {tab === 'boxes' && (
             <LazyPanel shape="cards" label={t('techBoxes')}>
-              <BoxRegistry />
+              <BoxRegistry focusBoxId={focusBox?.id ?? null} focusNonce={focusBox?.nonce ?? 0} />
             </LazyPanel>
           )}
 

@@ -227,14 +227,21 @@ export function dbmTone(value: number | null): 'good' | 'warn' | 'bad' | 'none' 
 /* Ordering                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/** Completed is done. Cancelled is also done — it must never come back as work. */
 export function isOpen(task: Task): boolean {
-  return task.status !== 'completed';
+  return task.status !== 'completed' && task.status !== 'cancelled';
 }
 
 /** Running first, then blocked, then urgent, then oldest. */
 export function sortRoute(tasks: RouteTask[]): RouteTask[] {
   const rank = (t: Task) =>
-    t.status === 'in_progress' ? 0 : t.status === 'blocked' ? 1 : t.status === 'completed' ? 3 : 2;
+    t.status === 'in_progress'
+      ? 0
+      : t.status === 'blocked'
+        ? 1
+        : t.status === 'completed' || t.status === 'cancelled'
+          ? 3
+          : 2;
 
   return [...tasks].sort((a, b) => {
     const r = rank(a) - rank(b);

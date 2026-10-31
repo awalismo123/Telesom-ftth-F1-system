@@ -37,7 +37,13 @@ interface ConfirmState {
   others: { id: string; line_number: string; customer_name: string }[];
 }
 
-export function RouteView() {
+export function RouteView({
+  focusTaskId = null,
+  focusNonce = 0,
+}: {
+  focusTaskId?: string | null;
+  focusNonce?: number;
+}) {
   const { session, activeGroup } = useAuth();
   const { lang } = useLanguage();
   const so = lang === 'so';
@@ -53,6 +59,11 @@ export function RouteView() {
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [showDone, setShowDone] = useState(false);
   const toast = useToast();
+
+  // A search result or a notification asked for one specific job.
+  useEffect(() => {
+    if (focusTaskId) setOpenTaskId(focusTaskId);
+  }, [focusTaskId, focusNonce]);
 
   const mounted = useRef(true);
   useEffect(() => {
@@ -121,6 +132,27 @@ export function RouteView() {
   );
 
   const openTask = tasks.find((task) => task.id === openTaskId) ?? null;
+
+  /**
+   * A search result can be any job in the group — including one that is not
+   * this technician's. Opening nothing would look like a broken button, so say
+   * what happened, once.
+   */
+  const missingFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusTaskId || loading) return;
+    if (tasks.some((task) => task.id === focusTaskId)) return;
+    if (missingFocus.current === focusTaskId) return;
+    missingFocus.current = focusTaskId;
+    toast.info(
+      so ? 'Shaqadan kama jirto safarkaaga' : 'That job is not on your route',
+      {
+        description: so
+          ? 'Waxaa laga yaabaa in loo qoondeeyay farsamayaqaan kale.'
+          : 'It may be assigned to another technician.',
+      },
+    );
+  }, [focusTaskId, loading, tasks, so, toast]);
 
   const quickStart = async (task: RouteTask) => {
     setBusyId(task.id);

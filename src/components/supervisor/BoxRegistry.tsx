@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeError } from '../../lib/useErrorMessage';
-import { Cable, ChevronRight, MapPin, RefreshCw, Search, Server, Signal } from 'lucide-react';
+import { Cable, ChevronRight, MapPin, Plus, RefreshCw, Search, Server, Signal } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import {
@@ -14,6 +14,7 @@ import {
 import { fetchDirectory } from '../../lib/registryService';
 import { cacheKeys, readCache, writeCache } from '../../lib/cache';
 import { BoxSheet } from '../registry/BoxSheet';
+import { BoxEditorSheet } from '../registry/BoxEditorSheet';
 import { Alert } from '../ui/Alert';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -33,7 +34,13 @@ const HEALTH_TONE: Record<string, BadgeTone> = {
   healthy: 'emerald',
 };
 
-export function BoxRegistry() {
+export function BoxRegistry({
+  focusBoxId = null,
+  focusNonce = 0,
+}: {
+  focusBoxId?: string | null;
+  focusNonce?: number;
+}) {
   const { session, activeGroup } = useAuth();
   const { lang } = useLanguage();
   const so = lang === 'so';
@@ -54,6 +61,18 @@ export function BoxRegistry() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [openBoxId, setOpenBoxId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editBox, setEditBox] = useState<BoxSummary | null>(null);
+
+  // Arriving from search or from a duplicate warning.
+  useEffect(() => {
+    if (focusBoxId) setOpenBoxId(focusBoxId);
+  }, [focusBoxId, focusNonce]);
+
+  const openEditor = (box: BoxSummary | null) => {
+    setEditBox(box);
+    setEditorOpen(true);
+  };
 
   const load = useCallback(async () => {
     if (!token || !groupId) return;
@@ -119,6 +138,10 @@ export function BoxRegistry() {
               : 'Every port, fault and dBm reading per box — the next technician inherits the history.'}
           </p>
         </div>
+        <Button size="sm" variant="secondary" onClick={() => openEditor(null)}>
+          <Plus className="w-4 h-4" aria-hidden="true" />
+          {so ? 'Sanduuq cusub' : 'Register box'}
+        </Button>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -240,8 +263,32 @@ export function BoxRegistry() {
           canEdit
           onClose={() => setOpenBoxId(null)}
           onChanged={() => void load()}
+          onEdit={() => {
+            const box = boxes.find((item) => item.id === openBoxId) ?? null;
+            setOpenBoxId(null);
+            if (box) openEditor(box);
+          }}
         />
       )}
+
+      <BoxEditorSheet
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        token={token}
+        groupId={groupId}
+        editBox={editBox}
+        existingBoxes={boxes.map((box) => ({
+          id: box.id,
+          box_code: box.box_code,
+          xaafada: box.xaafada,
+          health_status: box.health_status,
+        }))}
+        onSaved={() => void load()}
+        onOpenExisting={(boxId) => {
+          setEditorOpen(false);
+          setOpenBoxId(boxId);
+        }}
+      />
     </div>
   );
 }

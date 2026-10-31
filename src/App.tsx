@@ -10,6 +10,7 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { OfflineBanner } from './components/ui/OfflineBanner';
 import { Splash } from './components/ui/Splash';
 import { ConfigGate } from './components/ui/ConfigGate';
+import { NavigationProvider } from './lib/navigation';
 
 function AppRouter() {
   const { session, loading, portal } = useAuth();
@@ -48,7 +49,9 @@ export default function App() {
         <LanguageProvider>
           <ConfigGate>
             <AuthProvider>
-              <AppRouter />
+              <NavigationProvider>
+                <AppRouter />
+              </NavigationProvider>
             </AuthProvider>
           </ConfigGate>
         </LanguageProvider>

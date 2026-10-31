@@ -147,7 +147,9 @@ export async function buildImportPlan(params: {
     f1++;
 
     const candidates = (byLine.get(lineNumber) ?? []).filter((t) => t.task_type === taskType);
-    const open = candidates.find((t) => t.status !== 'completed') ?? null;
+    // A cancelled job is finished: the line appearing on today's sheet must be
+    // able to import as a fresh job, not be swallowed as "already open".
+    const open = candidates.find((t) => t.status !== 'completed' && t.status !== 'cancelled') ?? null;
     const completed = candidates
       .filter((t) => t.status === 'completed')
       .sort((a, b) => (b.completed_at ?? '').localeCompare(a.completed_at ?? ''))[0];

@@ -34,6 +34,25 @@ It replaces the daily *"picture of the table"* workflow sent in the group chat w
 
 ---
 
+## Corrections, phone-in jobs and search (Batch E)
+
+Everything that used to be a call to the office now happens in the app:
+
+* **Register or edit a cablebox** — code, area, OLT path, ports, notes. Typing a
+  code that already exists shows you the existing box instead of creating a
+  twin; shrinking a box is refused while a port above the new count is in use.
+* **Phone-in job** — line, customer, phone, area, box, port, urgency and what the
+  caller said, with an optional immediate assignment. If the line already has an
+  open job you are told, and a second one is only created when you confirm.
+* **Correct a job** — reassign, return to the pool, cancel with a reason (time
+  already spent on site is kept), or reopen a completed/cancelled job.
+  `cancelled` is final in the database: no stale screen can restart it.
+* **Search** — line, customer, phone, box or area, from the header button,
+  `⌘K`/`Ctrl-K` or `/`. Picking a result opens the job or the box.
+* **Notifications** — the bell: for a technician, new work and cleared blockers;
+  for a supervisor, blocked jobs and jobs running over two hours. Derived from
+  the job data, never stored, so it cannot go stale.
+
 ## Working the day (Phase 4)
 
 Open the app on a phone and sign in with the technician PIN — the route is already there.
@@ -254,7 +273,12 @@ Core tables: `groups`, `users`, `user_credentials`, `user_sessions`, `crews`, `c
 * Credentials (`user_credentials`) and sessions (`user_sessions`) have **zero** public policies — they are never readable with the anon key.
 * All writes go through `SECURITY DEFINER` Postgres RPCs:
   `authenticate_pin`, `verify_session`, `logout_session`, `set_preferred_language`, `change_own_pin`,
-  `upsert_team_member`, `upsert_crew`, `upsert_group`.
+  `upsert_team_member`, `upsert_crew`, `upsert_group`,
+  `upsert_cablebox`, `create_manual_task`, `cancel_task`, `reopen_task`, `set_port_status`.
+* **A cancelled job cannot come back to life.** A `BEFORE UPDATE` trigger on
+  `tasks` refuses any move out of `cancelled` unless the caller is `reopen_task`;
+  reassigning, starting or completing a cancelled job fails in the database, not
+  just in the UI.
 
 **Sessions are bound to a person, not to a device.** The saved login stores the
 user id, role and username alongside the token; a restore is accepted only when
