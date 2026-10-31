@@ -12,6 +12,8 @@ import {
 import { useAuth, type SessionNotice } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
 import { describeError } from '../lib/useErrorMessage';
+import { Button } from './ui/Button';
+import { Input } from './ui/Field';
 
 const NOTICE_TEXT: Record<SessionNotice, { en: string; so: string }> = {
   expired: {
@@ -171,24 +173,21 @@ export function LoginScreen() {
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t('identifierLabel')}
-              </label>
-              <input
-                type="text"
-                autoComplete="username"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                enterKeyHint="next"
-                required
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={t('identifierPlaceholder')}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 transition"
-              />
-            </div>
+            <Input
+              label={t('identifierLabel')}
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
+              required
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder={t('identifierPlaceholder')}
+              inputSize="lg"
+              className="bg-slate-50 font-semibold focus:bg-white"
+            />
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -243,14 +242,17 @@ export function LoginScreen() {
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
-              disabled={submitting || !identifier.trim() || pin.length < 4}
-              className="w-full py-3.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-emerald-900/15 flex items-center justify-center gap-2 transition cursor-pointer"
+              size="lg"
+              fullWidth
+              loading={submitting}
+              disabled={!identifier.trim() || pin.length < 4}
+              className="shadow-md shadow-emerald-900/15"
             >
               <span>{submitting ? t('signingIn') : t('signInBtn')}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+              {!submitting && <ArrowRight className="w-4 h-4" aria-hidden="true" />}
+            </Button>
           </form>
 
           {/* Quick demo fill — development builds only. Production users get
