@@ -152,3 +152,86 @@ Neither is exploitable by a casual user of the app, but both matter the moment t
 - Nobody can read customer data without a valid PIN, and nobody can guess one.
 - Every screen works at 360 px and at 1440 px, in both languages, with a keyboard and with a thumb.
 - The build is small, split, and guarded by CI.
+
+---
+
+## 5. Interlude — production defect fix (31/10/2026, before Batch C)
+
+Two defects were reported against the live Batch A build. Both were reproduced,
+traced to their cause, and fixed in one PR; Batch C continues afterwards.
+
+### 5.1 "Invalid API key" on the login screen
+
+**Root cause.** The app preferred `import.meta.env.VITE_SUPABASE_ANON_KEY` over
+its built-in key. A deployment-time value that had been pasted with a trailing
+newline or surrounding quotes is a *valid* string but not a valid key, so
+PostgREST answered `{"message":"Invalid API key"}` — in English, on the screen a
+technician was using to sign in. The built-in key itself was verified byte-for-
+byte against the project's live `anon` key.
+
+**Fix.**
+
+| Piece | Behaviour now |
+| :--- | :--- |
+| `src/lib/config.ts` (new, pure) | Trims, unquotes and de-`Bearer`s every pasted value, drops zero-width characters, validates URL shape, and accepts either a legacy `eyJ…` JWT or an `sb_publishable_…` key. A blank or malformed value is ignored rather than used. |
+| `src/lib/supabase.ts` | Reads the environment through Vite's static replacement (the previous dynamic access could miss it), builds the client through a proxy so it can be rebuilt, and exposes `probeSupabase()`. |
+| Boot probe | Asks `GET /rest/v1/` — the one endpoint that checks the key without touching a table or an RLS policy. If an *environment* key is rejected by 401/403, the app rebuilds on the built-in key and carries on; if that also fails it shows the configuration card. An unreachable server is treated as a network problem, never as a broken build. |
+| `src/components/ui/ConfigErrorScreen.tsx` | Bilingual, states "this is not a PIN error", shows the project, the masked key, its source and the probe status, gives the Vercel fix steps, a retry button and copyable diagnostics. The key itself is never rendered. |
+| `src/lib/errors.ts` | New `config` error kind with a rule for `Invalid API key`, `No API key found`, `JWT signature verification failed`, etc. Raw gateway text can no longer reach a screen, and it is never mistaken for an expired session (which would have caused a sign-out loop). |
+
+### 5.2 A technician login opened the supervisor screens
+
+**Root cause.** Sessions were never partitioned. One `localStorage` key held a
+bare token, `verify_session` was trusted blindly, and `refreshSession()` had no
+guard against a stale restore landing after a fresh sign-in. On a shared field
+phone — or with two tabs open — the last login won, and the previous person's
+role decided which shell opened. The header identity chip was `hidden md:flex`,
+so on a phone there was no visible sign of *who* was signed in.
+
+**Fix.**
+
+* `src/lib/session.ts` (new, pure): the saved record now carries `token`,
+  `userId`, `role`, `username` and `savedAt`. A record without an owner can
+  never be restored, and the pre-v2 key is deleted on boot rather than migrated.
+* The restored session is accepted only when `verify_session` confirms the same
+  user **and** the same role (`diffSession`). A mismatch revokes the token
+  server-side, clears the record and returns to the login screen with a notice.
+* Every sign-in / sign-out / expiry bumps a generation counter. An in-flight
+  restore compares it before touching state, so it can no longer overwrite a
+  newer login.
+* A login always revokes the previous token first and clears local state first;
+  a sign-out clears locally before the network call.
+* A `storage` event from another tab that belongs to a different person signs
+  this tab out instead of silently switching who the app thinks it is.
+* The header now has a phone row that always shows initials, full name and role,
+  next to Change PIN and Sign out (`md` and up keeps the single-row layout).
+* `App.tsx` opens the shell from `portal`, derived from the session's own role.
+
+### 5.3 Two server defects found while investigating
+
+Migration `007_session_and_health_fixes.sql` (applied and verified live):
+
+1. `complete_task` wrote the wrong box health: its `CASE` compared
+   `last_optical_dbm` — the field the same statement was about to overwrite — so
+   the reading from the job that had just finished was ignored. A brand-new box
+   measured at `-31 dBm` stayed `healthy`. The function now calls
+   `recompute_box_state`, the single definition used by the registry.
+2. `authenticate_pin` selected the user with `LIMIT 1` and **no `ORDER BY`**, so
+   an identifier that matched more than one row returned whichever row Postgres
+   read first. It now prefers an exact username, then exact phone digits, then
+   the last-7-digit fallback, with a deterministic tie-break.
+
+### 5.4 Verification
+
+| Check | Result |
+| :--- | :--- |
+| `tsc -b` | clean |
+| `npm test` | **56 / 56** (was 29; +27 for config, session ownership and the probe table) |
+| `npm run build` | passes; bundle contains the sanitised env path and the built-in fallback |
+| Live `authenticate_pin` | `cabdi` → technician, `634100101` → cabdi, `supervisor` → supervisor |
+| Live `complete_task` (+007) | brand-new box, first reading `-31.0 dBm` → `warning` (previously stayed `healthy`); FAT48 logged `-31.50` |
+| Cleanup | probe task/box/logs/sessions removed; **8 real + 36 demo tasks**, 2 boxes, 0 leftovers |
+
+**Still for the owner:** if `VITE_SUPABASE_ANON_KEY` is set in Vercel, correct or
+delete it and redeploy. `src/lib/config.ts` now recovers from a bad value, but
+the deployment should not carry one.

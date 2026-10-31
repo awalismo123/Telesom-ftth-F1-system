@@ -13,6 +13,8 @@ export type ErrorKind =
   | 'conflict'
   | 'validation'
   | 'network'
+  /** the deployment cannot talk to its database at all — not the user's fault */
+  | 'config'
   | 'unknown';
 
 export interface AppErrorInfo {
@@ -34,6 +36,16 @@ interface Rule {
 
 /** Ordered: first match wins. Keep in sync with the RAISE messages in SQL. */
 const RULES: Rule[] = [
+  {
+    // PostgREST / GoTrue rejections that mean "this deployment is misconfigured",
+    // not "your PIN is wrong". Checked first so "Invalid API key" can never be
+    // shown to a technician in English, and never looks like an auth failure.
+    match:
+      /invalid api key|no api key found|missing api key|api key is invalid|invalid apikey|apikey.*(?:invalid|missing|required)|invalid jwt|jwt signature|signature verification failed|invalid url|failed to parse (?:url|project ref)/i,
+    kind: 'config',
+    en: 'This app is not set up correctly and cannot reach its database. Please tell your supervisor.',
+    so: 'App-kan si sax ah looma habayn oo ma gaari karo xogta. Fadlan u sheeg kormeerahaaga.',
+  },
   {
     match: /invalid username\/phone or pin/i,
     kind: 'auth',
@@ -75,6 +87,18 @@ const RULES: Rule[] = [
     kind: 'conflict',
     en: 'Another job is already running.',
     so: 'Shaqo kale ayaa horey u socota.',
+  },
+  {
+    match: /pin must be 4 to 6 digits/i,
+    kind: 'validation',
+    en: 'A PIN must be 4 to 6 digits.',
+    so: 'PIN-ku waa in uu noqdaa 4 ilaa 6 lambar.',
+  },
+  {
+    match: /current pin is incorrect/i,
+    kind: 'auth',
+    en: 'Your current PIN is incorrect.',
+    so: 'PIN-kaagii hore waa khalad.',
   },
   {
     match: /optical dbm reading is required/i,

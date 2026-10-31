@@ -51,3 +51,33 @@ test('auth and offline detection', () => {
   assert.equal(isOfflineFailure(new Error('Failed to fetch')), true);
   assert.equal(isOfflineFailure(new Error('Port 9 is outside 1…8')), false);
 });
+
+test('a rejected project key is a configuration problem, not a bad PIN', () => {
+  // The exact body PostgREST returns when the anon key is wrong.
+  const raw = '{"message":"Invalid API key"}';
+  assert.equal(classifyError(raw), 'config');
+  assert.equal(classifyError('Invalid API key'), 'config');
+  assert.equal(classifyError('No API key found in request'), 'config');
+  assert.equal(classifyError('JWT signature verification failed'), 'config');
+
+  // It must never be mistaken for an expired session: that would sign the
+  // person out in a loop instead of telling them the app is misconfigured.
+  assert.equal(isAuthFailure(new Error('Invalid API key')), false);
+  assert.equal(isOfflineFailure(new Error('Invalid API key')), false);
+
+  const message = toErrorMessage(raw, 'en');
+  assert.ok(!/invalid api key/i.test(message), 'raw gateway text must not reach the screen');
+  assert.match(message, /set up correctly/i);
+  assert.match(toErrorMessage(raw, 'so'), /looma habayn/i);
+});
+
+test('a rejected key never leaks into a technician-facing sentence', () => {
+  const message = toErrorMessage('ERROR: P0001: Invalid API key', 'so');
+  assert.ok(!message.includes('ERROR'));
+  assert.ok(!/api key/i.test(message));
+});
+
+test('PIN changes speak both languages', () => {
+  assert.equal(toErrorMessage('Current PIN is incorrect', 'en'), 'Your current PIN is incorrect.');
+  assert.equal(toErrorMessage('PIN must be 4 to 6 digits', 'so'), 'PIN-ku waa in uu noqdaa 4 ilaa 6 lambar.');
+});
