@@ -15,14 +15,42 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import type { Cablebox } from '../../types/database';
-import { TeamAndCrewManager } from './TeamAndCrewManager';
-import { IngestWizard } from './ingest/IngestWizard';
-import { DispatchBoard } from './dispatch/DispatchBoard';
-import { BoxRegistry } from './BoxRegistry';
-import { Analytics } from './Analytics';
 import { Tabs, type TabItem } from '../ui/Tabs';
 import { Stat } from '../ui/Stat';
 import { cx } from '../ui/cx';
+import { LazyPanel } from '../ui/LazyPanel';
+import { preload, type PreloadKey } from '../../lib/preload';
+
+/**
+ * Every module is its own chunk. A supervisor who opens the app to dispatch one
+ * job does not download the OCR wizard, the analytics charts or the team
+ * manager; they arrive when their tab is chosen (or hovered, which is why the
+ * preload map exists).
+ */
+const TeamAndCrewManager = React.lazy(() =>
+  import('./TeamAndCrewManager').then((m) => ({ default: m.TeamAndCrewManager })),
+);
+const IngestWizard = React.lazy(() =>
+  import('./ingest/IngestWizard').then((m) => ({ default: m.IngestWizard })),
+);
+const DispatchBoard = React.lazy(() =>
+  import('./dispatch/DispatchBoard').then((m) => ({ default: m.DispatchBoard })),
+);
+const BoxRegistry = React.lazy(() =>
+  import('./BoxRegistry').then((m) => ({ default: m.BoxRegistry })),
+);
+const Analytics = React.lazy(() =>
+  import('./Analytics').then((m) => ({ default: m.Analytics })),
+);
+
+/** Which chunk a module lives in, so a hover can fetch it before the click. */
+const PRELOAD: Partial<Record<SupervisorTab, PreloadKey>> = {
+  team: 'supervisor-team',
+  ingest: 'supervisor-ingest',
+  dispatch: 'supervisor-dispatch',
+  insights: 'supervisor-analytics',
+  cableboxes: 'supervisor-boxes',
+};
 
 type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'insights' | 'cableboxes' | 'team';
 
@@ -118,6 +146,8 @@ export function SupervisorShell() {
                     key={item.id}
                     type="button"
                     onClick={() => setActiveTab(item.id)}
+                    onPointerEnter={() => PRELOAD[item.id] && preload(PRELOAD[item.id] as PreloadKey)}
+                    onFocus={() => PRELOAD[item.id] && preload(PRELOAD[item.id] as PreloadKey)}
                     aria-current={active ? 'page' : undefined}
                     className={cx(
                       'w-full min-h-11 flex items-center gap-2.5 px-2.5 rounded-xl text-xs font-bold text-left transition cursor-pointer',
@@ -156,6 +186,7 @@ export function SupervisorShell() {
             onChange={setActiveTab}
             label={t('appName')}
             className="lg:hidden"
+            onIntent={(id) => PRELOAD[id] && preload(PRELOAD[id] as PreloadKey)}
           />
 
           <div
@@ -232,11 +263,31 @@ export function SupervisorShell() {
               </div>
             )}
 
-            {activeTab === 'team' && <TeamAndCrewManager />}
-            {activeTab === 'ingest' && <IngestWizard />}
-            {activeTab === 'dispatch' && <DispatchBoard />}
-            {activeTab === 'cableboxes' && <BoxRegistry />}
-            {activeTab === 'insights' && <Analytics />}
+            {activeTab === 'team' && (
+              <LazyPanel shape="rows" label={t('navTeam')}>
+                <TeamAndCrewManager />
+              </LazyPanel>
+            )}
+            {activeTab === 'ingest' && (
+              <LazyPanel shape="wizard" label={t('navIngest')}>
+                <IngestWizard />
+              </LazyPanel>
+            )}
+            {activeTab === 'dispatch' && (
+              <LazyPanel shape="board" label={t('navDispatch')}>
+                <DispatchBoard />
+              </LazyPanel>
+            )}
+            {activeTab === 'cableboxes' && (
+              <LazyPanel shape="cards" label={t('navCablebox')}>
+                <BoxRegistry />
+              </LazyPanel>
+            )}
+            {activeTab === 'insights' && (
+              <LazyPanel shape="cards" label={t('navInsights')}>
+                <Analytics />
+              </LazyPanel>
+            )}
           </div>
         </div>
       </div>

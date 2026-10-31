@@ -12,7 +12,8 @@
     "ocr:lab": "tsx scripts/ocr-lab.mts",
     "test": "node --import tsx --test tests/*.test.ts tests/*.test.tsx",
     "typecheck": "tsc -b",
-    "verify": "npm run typecheck && npm run test && npm run build"
+    "verify": "npm run typecheck && npm run test && npm run build && npm run bundle:check",
+    "bundle:check": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

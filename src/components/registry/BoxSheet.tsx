@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { describeError } from '../../lib/useErrorMessage';
+import { invalidateCache } from '../../lib/cache';
 import {
   AlertTriangle,
   Cable,
@@ -94,6 +95,8 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
       { description: so ? PORT_LABEL_SO[status] : PORT_LABEL_EN[status] },
     );
     await load();
+    invalidateCache('directory:');
+    invalidateCache('analytics:');
     onChanged?.();
   };
 

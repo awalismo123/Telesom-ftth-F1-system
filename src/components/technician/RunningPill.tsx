@@ -6,6 +6,7 @@ import type { RouteTask } from '../../lib/execution';
 import { elapsedSeconds, formatClock, serverOffsetMs } from '../../lib/execution';
 import { fetchRoute } from '../../lib/executionService';
 import { useNow } from '../../lib/useNow';
+import { useTableChanges, useVisibleInterval } from '../../lib/realtime';
 
 /**
  * Floating "you have work running" pill, shown above the tab bar so the timer
@@ -34,9 +35,18 @@ export function RunningPill({ onGoToRoute }: { onGoToRoute: () => void }) {
 
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => void load(), 45_000);
-    return () => window.clearInterval(id);
   }, [load]);
+
+  // The pill must appear the instant a job starts, not 45 s later.
+  useTableChanges({
+    table: 'tasks',
+    filter: session?.group?.id ? `group_id=eq.${session.group.id}` : undefined,
+    enabled: Boolean(token),
+    onChange: () => void load(),
+    debounceMs: 500,
+  });
+
+  useVisibleInterval(() => void load(), 180_000, Boolean(token));
 
   const now = useNow(tasks.length > 0);
   const nowMs = now + offset;

@@ -25,6 +25,7 @@ import {
 } from '../../lib/execution';
 import { fetchRoute, resumeTask, startTask } from '../../lib/executionService';
 import { useNow } from '../../lib/useNow';
+import { useTableChanges, useVisibleInterval } from '../../lib/realtime';
 import { RouteCard } from './RouteCard';
 import { ExecutionSheet } from './ExecutionSheet';
 import { useToast } from '../ui/Toast';
@@ -86,20 +87,22 @@ export function RouteView() {
     void load();
   }, [load]);
 
-  // Keep the board fresh when the technician comes back to the app.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void load(true);
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void load(true);
-    }, 60_000);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      window.clearInterval(interval);
-    };
-  }, [load]);
+  /**
+   * Freshness without polling.
+   *
+   * A new assignment, a supervisor's reassignment or another crew member
+   * finishing a shared job all arrive as a Postgres change. The fallback poll
+   * is deliberately slow (3 min) and only runs while the tab is visible — the
+   * old code polled every 60 s and kept a hidden tab awake.
+   */
+  useTableChanges({
+    table: 'tasks',
+    filter: activeGroup?.id ? `group_id=eq.${activeGroup.id}` : undefined,
+    enabled: Boolean(token),
+    onChange: () => void load(true),
+  });
+
+  useVisibleInterval(() => void load(true), 180_000, Boolean(token));
 
   const hasRunning = tasks.some((task) => task.status === 'in_progress');
   const now = useNow(hasRunning);

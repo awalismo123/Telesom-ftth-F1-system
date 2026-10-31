@@ -26,6 +26,8 @@ export interface TabsProps<T extends string> {
   variant?: 'pills' | 'bar';
   label: string;
   className?: string;
+  /** fired on hover / focus of a tab — used to prefetch its chunk */
+  onIntent?: (id: T) => void;
 }
 
 export function Tabs<T extends string>({
@@ -35,6 +37,7 @@ export function Tabs<T extends string>({
   variant = 'pills',
   label,
   className,
+  onIntent,
 }: TabsProps<T>) {
   const listRef = React.useRef<HTMLDivElement>(null);
 
@@ -88,6 +91,8 @@ export function Tabs<T extends string>({
             aria-controls={`panel-${item.id}`}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(item.id)}
+            onPointerEnter={() => onIntent?.(item.id)}
+            onFocus={() => onIntent?.(item.id)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cx(
               'inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold transition cursor-pointer',
