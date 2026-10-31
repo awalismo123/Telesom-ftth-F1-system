@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { toErrorMessage } from '../lib/errors';
 import { useLanguage } from '../lib/i18n';
 
 const QUICK_ACCOUNTS = [
@@ -44,7 +45,7 @@ const QUICK_ACCOUNTS = [
 ];
 
 export function LoginScreen() {
-  const { signInWithPin } = useAuth();
+  const { signInWithPin, sessionNotice, clearSessionNotice } = useAuth();
   const { lang, setLang, t } = useLanguage();
 
   const [identifier, setIdentifier] = useState('');
@@ -59,15 +60,12 @@ export function LoginScreen() {
     if (!idToUse.trim() || pinToUse.length < 4) return;
 
     setError(null);
+    clearSessionNotice();
     setSubmitting(true);
     try {
       await signInWithPin(idToUse, pinToUse);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message.replace(/^.*RAISE EXCEPTION:\s*/i, '')
-          : 'Invalid credentials'
-      );
+      setError(toErrorMessage(err instanceof Error ? err.message : String(err), lang));
       setPin('');
     } finally {
       setSubmitting(false);
@@ -128,6 +126,17 @@ export function LoginScreen() {
           </div>
 
           <form onSubmit={(e) => void handleSubmit(e)} className="p-6 space-y-5">
+            {sessionNotice && !error && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-amber-900 text-xs font-semibold">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  {lang === 'so'
+                    ? 'Fadhigaagu wuu dhacay ama waqti ku dhammaaday. Mar kale gal.'
+                    : 'Your session ended or expired. Please sign in again.'}
+                </span>
+              </div>
+            )}
+
             {error && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-rose-700 text-xs font-semibold">
                 <AlertCircle className="w-4 h-4 shrink-0" />

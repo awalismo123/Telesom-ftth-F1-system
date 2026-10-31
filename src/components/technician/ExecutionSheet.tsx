@@ -36,6 +36,13 @@ import {
 } from '../../lib/executionService';
 import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
 import { BoxSheet } from '../registry/BoxSheet';
+import { useToast } from '../ui/Toast';
+import {
+  clearCompletionDraft,
+  draftAge,
+  readCompletionDraft,
+  saveCompletionDraft,
+} from '../../lib/drafts';
 
 type Mode = 'idle' | 'blocker' | 'complete' | 'confirm-start';
 
@@ -93,6 +100,8 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
   const [history, setHistory] = useState<WorkLogRow[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showBox, setShowBox] = useState(false);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  const toast = useToast();
 
   // blocker form
   const [reason, setReason] = useState<BlockerReason>('customer_unreachable');
@@ -117,6 +126,28 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
 
   const dbmCheck = useMemo(() => parseDbm(dbmInput), [dbmInput]);
   const blocker = blockerById(task.blocker_reason);
+
+  // Bring back anything typed last time on this job (battery, dead session, wrong tap).
+  useEffect(() => {
+    const draft = readCompletionDraft(task.id);
+    if (!draft) return;
+    setDbmInput(draft.dbm);
+    setCompletionNotes(draft.notes);
+    setPortInput(draft.port);
+    setDraftNotice(draftAge(draft.savedAt, lang));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id]);
+
+  // Keep the draft current while typing.
+  useEffect(() => {
+    if (completed) return;
+    saveCompletionDraft(task.id, {
+      dbm: dbmInput,
+      notes: completionNotes,
+      port: portInput,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbmInput, completionNotes, portInput, task.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,9 +182,15 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
         return;
       }
       setMode('idle');
+      toast.success(
+        so ? 'Waqtiga waa bilaabmay' : 'Timer started',
+        { description: `${task.line_number} · ${task.customer_name}` },
+      );
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start the job');
+      const message = err instanceof Error ? err.message : 'Could not start the job';
+      setError(message);
+      toast.error(so ? 'Ma bilaaban karin' : 'Could not start', { description: message });
     } finally {
       setBusy(false);
     }
@@ -164,9 +201,12 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
     setError(null);
     try {
       await resumeTask(token, task.id);
+      toast.success(so ? 'Waqtiga wuu sii socday' : 'Timer resumed');
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not resume the job');
+      const message = err instanceof Error ? err.message : 'Could not resume the job';
+      setError(message);
+      toast.error(so ? 'Ma sii socon karin' : 'Could not resume', { description: message });
     } finally {
       setBusy(false);
     }
@@ -188,9 +228,14 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
       });
       setMode('idle');
       setBlockerNotes('');
+      toast.success(so ? 'Caqabadda waa la diiwaangeliyay' : 'Blocker saved', {
+        description: so ? 'Saacaddu way joogsatay.' : 'The clock has stopped.',
+      });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the blocker');
+      const message = err instanceof Error ? err.message : 'Could not save the blocker';
+      setError(message);
+      toast.error(so ? 'Caqabadda lama kaydin' : 'Blocker not saved', { description: message });
     } finally {
       setBusy(false);
     }
@@ -220,9 +265,16 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
       });
       setDone(result);
       setMode('idle');
+      clearCompletionDraft(task.id);
+      setDraftNotice(null);
+      toast.success(so ? 'Shaqadu waa dhammaatay' : 'Job completed', {
+        description: `${formatClock(result.duration_seconds)} · ${result.optical_dbm.toFixed(2)} dBm`,
+      });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not complete the job');
+      const message = err instanceof Error ? err.message : 'Could not complete the job';
+      setError(message);
+      toast.error(so ? 'Lama dhammeeyn karin' : 'Could not complete', { description: message });
     } finally {
       setBusy(false);
     }
@@ -578,8 +630,15 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           {/* ---------------------------------------------------------- */}
           {mode === 'complete' && (
             <div className="rounded-2xl bg-white border border-slate-200 p-3 space-y-3">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
-                {so ? 'Dhamaystirka shaqada' : 'Complete the job'}
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
+                  {so ? 'Dhamaystirka shaqada' : 'Complete the job'}
+                </div>
+                {draftNotice && (
+                  <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded px-1.5 py-0.5">
+                    {so ? `Qoraalkii hore · ${draftNotice}` : `Restored draft · ${draftNotice}`}
+                  </span>
+                )}
               </div>
 
               <div>

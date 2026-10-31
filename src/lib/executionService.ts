@@ -3,9 +3,12 @@
  *
  * Every write goes through the SECURITY DEFINER RPCs from migration 005, which
  * check that the caller really works the job and stamp the server clock.
+ * All calls go through `rpc()` so failures arrive as readable sentences.
  */
 
 import { supabase } from './supabase';
+import { rpc, rpcRead } from './rpc';
+import { toAppError } from './errors';
 import type { BlockerReason, Task } from '../types/database';
 import type { RouteResponse, RouteTask } from './execution';
 
@@ -40,9 +43,7 @@ export interface CompleteResult {
 }
 
 export async function fetchRoute(token: string): Promise<RouteResponse> {
-  const { data, error } = await supabase.rpc('technician_route', { p_token: token });
-  if (error) throw new Error(error.message);
-  const payload = data as RouteResponse;
+  const payload = await rpcRead<RouteResponse>('technician_route', { p_token: token });
   return { ...payload, tasks: (payload.tasks ?? []) as RouteTask[] };
 }
 
@@ -51,13 +52,11 @@ export async function fetchRoute(token: string): Promise<RouteResponse> {
  * running, so the app can warn before the technician has two clocks going.
  */
 export async function startTask(token: string, taskId: string, confirm = true): Promise<StartResult> {
-  const { data, error } = await supabase.rpc('start_task', {
+  return rpc<StartResult>('start_task', {
     p_token: token,
     p_task_id: taskId,
     p_force: confirm,
   });
-  if (error) throw new Error(error.message);
-  return data as StartResult;
 }
 
 export async function blockTask(params: {
@@ -66,23 +65,19 @@ export async function blockTask(params: {
   reason: BlockerReason;
   notes?: string;
 }): Promise<BlockResult> {
-  const { data, error } = await supabase.rpc('block_task', {
+  return rpc<BlockResult>('block_task', {
     p_token: params.token,
     p_task_id: params.taskId,
     p_reason: params.reason,
     p_notes: params.notes ?? null,
   });
-  if (error) throw new Error(error.message);
-  return data as BlockResult;
 }
 
 export async function resumeTask(token: string, taskId: string): Promise<StartResult> {
-  const { data, error } = await supabase.rpc('resume_task', {
+  return rpc<StartResult>('resume_task', {
     p_token: token,
     p_task_id: taskId,
   });
-  if (error) throw new Error(error.message);
-  return data as StartResult;
 }
 
 export async function completeTask(params: {
@@ -92,15 +87,13 @@ export async function completeTask(params: {
   notes?: string;
   portNumber?: number | null;
 }): Promise<CompleteResult> {
-  const { data, error } = await supabase.rpc('complete_task', {
+  return rpc<CompleteResult>('complete_task', {
     p_token: params.token,
     p_task_id: params.taskId,
     p_dbm: params.dbm,
     p_notes: params.notes ?? null,
     p_port_number: params.portNumber ?? null,
   });
-  if (error) throw new Error(error.message);
-  return data as CompleteResult;
 }
 
 export interface WorkLogRow {
@@ -122,7 +115,7 @@ export async function fetchWorkLog(taskId: string): Promise<WorkLogRow[]> {
     .order('created_at', { ascending: true })
     .limit(50);
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(toAppError(error).message);
   return (data ?? []) as WorkLogRow[];
 }
 
@@ -149,10 +142,8 @@ export async function fetchLiveStatus(params: {
   token: string;
   groupId: string;
 }): Promise<{ rows: LiveRow[]; server_now: string }> {
-  const { data, error } = await supabase.rpc('live_status', {
+  return rpcRead<{ rows: LiveRow[]; server_now: string }>('live_status', {
     p_token: params.token,
     p_group_id: params.groupId,
   });
-  if (error) throw new Error(error.message);
-  return data as { rows: LiveRow[]; server_now: string };
 }

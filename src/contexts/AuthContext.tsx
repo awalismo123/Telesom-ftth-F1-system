@@ -2,10 +2,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { supabase } from '../lib/supabase';
 import type { AuthSession, Group, Language } from '../types/database';
 import { useLanguage } from '../lib/i18n';
+import { SESSION_EXPIRED_EVENT } from '../lib/rpc';
 
 interface AuthContextValue {
   session: AuthSession | null;
   loading: boolean;
+  /** set when the server rejected the token mid-use */
+  sessionNotice: string | null;
+  clearSessionNotice: () => void;
   activeGroup: { id: string; code: string; name: string } | null;
   availableGroups: Group[];
   setActiveGroupById: (groupId: string) => void;
@@ -24,6 +28,7 @@ const ACTIVE_GROUP_KEY = 'telesom_f1_active_group_id';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() =>
     localStorage.getItem(ACTIVE_GROUP_KEY)
@@ -70,6 +75,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refreshSession();
   }, [refreshGroups, refreshSession]);
 
+  /**
+   * Any RPC can discover that the token died. Instead of each screen showing a
+   * raw Postgres error, the shell drops to the login screen with a reason.
+   */
+  useEffect(() => {
+    const onExpired = () => {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      setSession(null);
+      setSessionNotice('expired');
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
+
+  const clearSessionNotice = useCallback(() => setSessionNotice(null), []);
+
   const signInWithPin = async (identifier: string, pin: string) => {
     const { data, error } = await supabase.rpc('authenticate_pin', {
       p_identifier: identifier.trim(),
@@ -82,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const parsed = data as AuthSession;
     localStorage.setItem(SESSION_TOKEN_KEY, parsed.token);
+    setSessionNotice(null);
     setSession(parsed);
     if (parsed.user?.preferred_lang) {
       setLang(parsed.user.preferred_lang);
@@ -127,6 +150,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         session,
         loading,
+        sessionNotice,
+        clearSessionNotice,
         activeGroup,
         availableGroups,
         setActiveGroupById,

@@ -9,7 +9,10 @@
     "prebuild": "node scripts/vendor-tesseract.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "ocr:lab": "tsx scripts/ocr-lab.mts"
+    "ocr:lab": "tsx scripts/ocr-lab.mts",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc -b",
+    "verify": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

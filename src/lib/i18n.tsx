@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Language } from '../types/database';
 
 const translations = {
@@ -287,6 +287,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLangState(next);
     localStorage.setItem(LANG_STORAGE_KEY, next);
   };
+
+  // Screen readers and browser translation follow the real document language.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const t = (key: TranslationKey): string => {
     return translations[lang][key] ?? translations.en[key] ?? key;

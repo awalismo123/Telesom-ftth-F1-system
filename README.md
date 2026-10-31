@@ -76,6 +76,27 @@ Supervisors see the same clocks read-only: the **Live in the field** strip on th
 
 ---
 
+## Quality gates
+
+Every change is checked the same way, locally and in CI (`.github/workflows/ci.yml`):
+
+```bash
+npm run typecheck   # tsc -b, zero errors
+npm test            # pure-function tests (money maths, timers, dBm, CSV, reports)
+npm run build       # production build
+npm run verify      # all three, in order
+```
+
+The interface is defensive by design:
+
+* **Crash containment** — the header, the page and the whole app each sit inside an error boundary, so one broken panel never blanks a technician's route.
+* **Every action speaks** — a toast confirms a job started, a port changed or a report left the app; failures arrive as a sentence ("This job is not assigned to you") rather than a Postgres stack trace, in Somali or English.
+* **Sessions fail gracefully** — when a token dies mid-shift the app returns to the login screen with a clear reason instead of showing a raw database error inside a form.
+* **Typed work is never lost** — the completion form (dBm, port, notes) is drafted to the device on every keystroke and offered back when the job is reopened.
+* **Connectivity is honest** — an offline strip appears immediately and disappears when the signal returns.
+
+---
+
 ## Sign-in Accounts (seeded)
 
 | Role | Username | Phone | PIN |
