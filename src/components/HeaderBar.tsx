@@ -13,8 +13,54 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
+import { initials } from '../lib/session';
 import { useToast } from './ui/Toast';
 import { describeError } from '../lib/useErrorMessage';
+
+/**
+ * Who is signed in, in one chip.
+ *
+ * This used to be `hidden md:flex` — invisible on every phone, which is exactly
+ * where the wrong account is hardest to notice. It is now the first thing in the
+ * mobile header, and the role is spelled out rather than implied by an icon.
+ */
+function IdentityChip({ compact = false }: { compact?: boolean }) {
+  const { session } = useAuth();
+  const { t } = useLanguage();
+  if (!session) return null;
+
+  const supervisor = session.user.role === 'supervisor';
+  const roleLabel = supervisor ? t('supervisorRole') : session.crews[0]?.name || t('technicianRole');
+
+  return (
+    <div
+      className={`flex items-center gap-2 px-2 py-1 rounded-lg bg-emerald-900/60 border border-emerald-800/80 min-w-0 ${
+        compact ? '' : 'md:px-3 md:py-1.5'
+      }`}
+      title={`${session.user.full_name} — ${roleLabel}`}
+    >
+      <span
+        className="w-6 h-6 md:w-7 md:h-7 rounded-md bg-emerald-400/15 border border-emerald-400/30 text-emerald-200 text-[10px] font-extrabold flex items-center justify-center shrink-0"
+        aria-hidden="true"
+      >
+        {initials(session.user.full_name)}
+      </span>
+      <div className="text-left leading-tight min-w-0">
+        <div className="text-[11px] md:text-xs font-semibold text-white truncate max-w-[104px] md:max-w-[150px]">
+          {session.user.full_name}
+        </div>
+        <div className="text-[9px] md:text-[10px] text-emerald-300/90 truncate max-w-[104px] md:max-w-[150px] flex items-center gap-1">
+          {supervisor ? (
+            <ShieldCheck className="w-3 h-3 text-amber-300 shrink-0" />
+          ) : (
+            <Wrench className="w-3 h-3 text-emerald-300 shrink-0" />
+          )}
+          <span className="truncate">{roleLabel}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function HeaderBar() {
   const { session, activeGroup, availableGroups, setActiveGroupById, signOut, changeOwnPin } =
@@ -68,6 +114,37 @@ export function HeaderBar() {
     }
   };
 
+  const pinButton = (
+    <button
+      type="button"
+      onClick={() => {
+        setPinError(null);
+        setPinSuccess(false);
+        setShowPinModal(true);
+      }}
+      className="p-2 rounded-lg bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white border border-emerald-800 transition cursor-pointer"
+      title={t('changePin')}
+      aria-label={t('changePin')}
+    >
+      <KeyRound className="w-4 h-4" />
+    </button>
+  );
+
+  const signOutButton = (compact = false) => (
+    <button
+      type="button"
+      onClick={() => void signOut()}
+      className={`inline-flex items-center gap-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 border border-rose-500/30 font-semibold transition cursor-pointer ${
+        compact ? 'px-2 py-1.5 text-[11px]' : 'px-2.5 py-2 text-xs'
+      }`}
+      title={`${t('logout')} — ${session.user.full_name}`}
+      aria-label={`${t('logout')} — ${session.user.full_name}`}
+    >
+      <LogOut className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+      <span>{t('logout')}</span>
+    </button>
+  );
+
   return (
     <>
       <header className="sticky top-0 z-30 bg-emerald-950 text-white border-b border-emerald-800/80 shadow-sm">
@@ -110,58 +187,38 @@ export function HeaderBar() {
             </div>
           </div>
 
-          {/* Right Controls: Language, Role/User, Change PIN, Logout */}
+          {/* Right Controls (tablet and up). Phones get the identity row below. */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <button
               type="button"
               onClick={handleToggleLanguage}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-900/90 hover:bg-emerald-800 border border-emerald-700/80 text-xs font-semibold text-emerald-100 transition cursor-pointer"
               title="Switch Language (Somali / English)"
+              aria-label="Switch Language (Somali / English)"
             >
               <Globe className="w-3.5 h-3.5 text-emerald-300" />
               <span>{lang === 'so' ? 'SO' : 'EN'}</span>
             </button>
 
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-900/60 border border-emerald-800/80">
-              {isSupervisor ? (
-                <ShieldCheck className="w-4 h-4 text-amber-300 shrink-0" />
-              ) : (
-                <Wrench className="w-4 h-4 text-emerald-300 shrink-0" />
-              )}
-              <div className="text-left leading-tight">
-                <div className="text-xs font-semibold text-white truncate max-w-[150px]">
-                  {session.user.full_name}
-                </div>
-                <div className="text-[10px] text-emerald-300/90">
-                  {isSupervisor
-                    ? t('supervisorRole')
-                    : session.crews[0]?.name || t('technicianRole')}
-                </div>
-              </div>
+            <div className="hidden md:flex items-center gap-2">
+              <IdentityChip />
+              {pinButton}
+              {signOutButton()}
             </div>
+          </div>
+        </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setPinError(null);
-                setPinSuccess(false);
-                setShowPinModal(true);
-              }}
-              className="p-2 rounded-lg bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white border border-emerald-800 transition cursor-pointer"
-              title={t('changePin')}
-            >
-              <KeyRound className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 border border-rose-500/30 text-xs font-semibold transition cursor-pointer"
-              title={t('logout')}
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('logout')}</span>
-            </button>
+        {/*
+          Phone row. A technician on a 360 px screen must still be able to see
+          whose session this is before touching a customer's job.
+        */}
+        <div className="md:hidden border-t border-emerald-800/70 bg-emerald-900/30">
+          <div className="px-3 h-12 flex items-center justify-between gap-2">
+            <IdentityChip compact />
+            <div className="flex items-center gap-1.5 shrink-0">
+              {pinButton}
+              {signOutButton(true)}
+            </div>
           </div>
         </div>
       </header>

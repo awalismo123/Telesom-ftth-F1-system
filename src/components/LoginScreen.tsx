@@ -9,9 +9,24 @@ import {
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { toErrorMessage } from '../lib/errors';
+import { useAuth, type SessionNotice } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
+import { describeError } from '../lib/useErrorMessage';
+
+const NOTICE_TEXT: Record<SessionNotice, { en: string; so: string }> = {
+  expired: {
+    en: 'Your session ended or expired. Please sign in again.',
+    so: 'Fadhigaagu wuu dhacay ama waqti ku dhammaaday. Mar kale gal.',
+  },
+  switched: {
+    en: 'This device was signed out or switched to another user. Sign in to continue.',
+    so: 'Qalabkan waa laga baxay ama qof kale ayaa isticmaalay. Mar kale gal si aad u sii waddo.',
+  },
+  unavailable: {
+    en: 'We could not confirm your session — the network did not answer. Sign in again.',
+    so: 'Ma xaqiijin karin fadhigaaga — shabakaddu ma jawaabin. Mar kale gal.',
+  },
+};
 
 /**
  * Demo shortcuts are for local development only. `import.meta.env.DEV` is
@@ -78,7 +93,7 @@ export function LoginScreen() {
     try {
       await signInWithPin(idToUse, pinToUse);
     } catch (err) {
-      setError(toErrorMessage(err instanceof Error ? err.message : String(err), lang));
+      setError(describeError(err, lang));
       setPin('');
     } finally {
       setSubmitting(false);
@@ -140,13 +155,12 @@ export function LoginScreen() {
 
           <form onSubmit={(e) => void handleSubmit(e)} className="p-6 space-y-5">
             {sessionNotice && !error && (
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-amber-900 text-xs font-semibold">
+              <div
+                role="status"
+                className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-amber-900 text-xs font-semibold"
+              >
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
-                  {lang === 'so'
-                    ? 'Fadhigaagu wuu dhacay ama waqti ku dhammaaday. Mar kale gal.'
-                    : 'Your session ended or expired. Please sign in again.'}
-                </span>
+                <span>{NOTICE_TEXT[sessionNotice][lang]}</span>
               </div>
             )}
 
@@ -164,6 +178,10 @@ export function LoginScreen() {
               <input
                 type="text"
                 autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}

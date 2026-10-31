@@ -9,9 +9,10 @@ import { ToastProvider } from './components/ui/Toast';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { OfflineBanner } from './components/ui/OfflineBanner';
 import { Splash } from './components/ui/Splash';
+import { ConfigGate } from './components/ui/ConfigGate';
 
 function AppRouter() {
-  const { session, loading } = useAuth();
+  const { session, loading, portal } = useAuth();
 
   if (loading) {
     return <Splash />;
@@ -21,7 +22,9 @@ function AppRouter() {
     return <LoginScreen />;
   }
 
-  const supervisor = session.user.role === 'supervisor';
+  // Which shell opens is decided by the saved session's own role — never by
+  // what a previous person on this device last looked at.
+  const supervisor = portal === 'supervisor';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -43,9 +46,11 @@ export default function App() {
     <ErrorBoundary label="Telesom FTTH">
       <ToastProvider>
         <LanguageProvider>
-          <AuthProvider>
-            <AppRouter />
-          </AuthProvider>
+          <ConfigGate>
+            <AuthProvider>
+              <AppRouter />
+            </AuthProvider>
+          </ConfigGate>
         </LanguageProvider>
       </ToastProvider>
     </ErrorBoundary>

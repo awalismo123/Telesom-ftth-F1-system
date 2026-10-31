@@ -196,13 +196,18 @@ npm run dev      # http://localhost:5173
 npm run build    # production build
 ```
 
-Environment variables (optional — sensible defaults are already baked in):
+Environment variables are **optional** — the working project is baked in, so a
+fresh clone needs no `.env` at all.
 
 ```bash
-cp .env.example .env
-# VITE_SUPABASE_URL=...
-# VITE_SUPABASE_ANON_KEY=...
+cp .env.example .env   # only to point a build at another Supabase project
 ```
+
+The values are cleaned before use (quotes, whitespace and a `Bearer ` prefix are
+stripped) and shape-checked; a blank or malformed value is ignored. If the
+gateway still rejects the configured key, the app falls back to the built-in one
+and — if that fails too — shows a bilingual *configuration problem* card instead
+of a raw `Invalid API key`.
 
 ---
 
@@ -210,9 +215,14 @@ cp .env.example .env
 
 1. Go to [vercel.com/new](https://vercel.com/new) and import **`awalismo123/Telesom-ftth-F1-system`**.
 2. Framework preset: **Vite** (auto-detected) — Build command `npm run build`, Output directory `dist`.
-3. Add Environment Variables (optional but recommended):
-   * `VITE_SUPABASE_URL` = `https://pjrzncnhhlfaxuvlcdse.supabase.co`
-   * `VITE_SUPABASE_ANON_KEY` = *(publishable / anon key from Supabase settings)*
+3. Environment variables are **optional** — the built-in project is used when
+   they are absent. Add them only for a different project:
+   * `VITE_SUPABASE_URL` = `https://<project-ref>.supabase.co`
+   * `VITE_SUPABASE_ANON_KEY` = *(the project's anon JWT or `sb_publishable_…` key)*
+
+   Paste the value exactly: a trailing newline or surrounding quotes from the
+   Vercel editor is the classic cause of `Invalid API key`. Changing an env var
+   requires a **redeploy** — Vite bakes it into the bundle.
 4. Click **Deploy**. From then on, every push to `main` redeploys automatically.
 
 `vercel.json` already contains the SPA rewrite so deep links work.
@@ -239,6 +249,20 @@ Core tables: `groups`, `users`, `user_credentials`, `user_sessions`, `crews`, `c
   `authenticate_pin`, `verify_session`, `logout_session`, `set_preferred_language`, `change_own_pin`,
   `upsert_team_member`, `upsert_crew`, `upsert_group`.
 
+**Sessions are bound to a person, not to a device.** The saved login stores the
+user id, role and username alongside the token; a restore is accepted only when
+`verify_session` confirms the same user *and* the same role. A mismatch revokes
+the token and returns to the login screen. Logins and sign-outs bump a
+generation counter so a slow restore can never overwrite a newer sign-in, and a
+different person signing in on another tab signs this tab out.
+
+**Errors are translated at the edge.** `src/lib/errors.ts` maps Postgres,
+network and configuration failures to one sentence per language; a rejected
+API key is a `config` failure (never an "expired session" loop) and never shows
+the gateway's English text.
+
 Import RPCs: `find_existing_tasks`, `commit_import_batch`, `undo_import_batch`, `ensure_cablebox`.
 
-Migration files: `supabase/migrations/001_initial_schema.sql`, `supabase/migrations/002_ingestion.sql`.
+Migration files run in order: `001_initial_schema` → `002_ingestion` →
+`003_import_hardening` → `004_dispatch` → `005_execution` → `006_registry` →
+`007_session_and_health_fixes` (all applied to the live project).
