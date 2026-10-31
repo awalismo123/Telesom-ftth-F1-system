@@ -33,7 +33,7 @@ export function EmptyState({
           aria-hidden="true"
           className={cx(
             'w-11 h-11 rounded-2xl flex items-center justify-center mb-3',
-            tone === 'default' ? 'bg-white text-slate-400 border border-slate-200' : 'bg-emerald-400/15 text-emerald-300',
+            tone === 'default' ? 'bg-white text-slate-500 border border-slate-200' : 'bg-emerald-400/15 text-emerald-300',
           )}
         >
           {icon}

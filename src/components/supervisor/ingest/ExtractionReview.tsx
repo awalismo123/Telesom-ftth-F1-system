@@ -15,6 +15,7 @@ import type { ExtractedRow } from '../../../lib/ocr/extract';
 import { updateRowCell } from '../../../lib/ocr/extract';
 import type { SheetTemplate } from '../../../lib/ocr/templates';
 import { useLanguage } from '../../../lib/i18n';
+import { Alert } from '../../ui/Alert';
 
 export interface ColumnFill {
   key: string;
@@ -117,7 +118,7 @@ export function ExtractionReview({
       {/* Summary strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
             {so ? 'Safka La Akhriyay' : 'Rows read'}
           </div>
           <div className="text-xl font-extrabold text-slate-900">{rows.length}</div>
@@ -129,7 +130,7 @@ export function ExtractionReview({
           <div className="text-xl font-extrabold text-emerald-800">{f1Rows.length}</div>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
             {so ? 'Kooxaha Kale' : 'Other groups'}
           </div>
           <div className="text-xl font-extrabold text-slate-500">{otherRows.length}</div>
@@ -160,7 +161,7 @@ export function ExtractionReview({
               <ScanLine className="w-3.5 h-3.5" />
               {so ? 'Akhriska unug kasta' : 'Column read quality'}
             </div>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-500">
               {so ? 'Guji unug si aad u saxdo' : 'Tap a cell to correct it'}
             </span>
           </div>
@@ -200,14 +201,11 @@ export function ExtractionReview({
       )}
 
       {urgentCount > 0 && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 flex items-center gap-2 text-xs font-semibold text-rose-800">
-          <Zap className="w-4 h-4 text-rose-600" />
-          <span>
-            {so
-              ? `${urgentCount} ciladood ayaa DEGDEG ah (la aqoonsaday automaatig)`
-              : `${urgentCount} ticket(s) auto-flagged URGENT (degdeg / dd / dadaji)`}
-          </span>
-        </div>
+        <Alert tone="danger" live="status">
+          {so
+            ? `${urgentCount} ciladood ayaa DEGDEG ah (la aqoonsaday automaatig)`
+            : `${urgentCount} ticket(s) auto-flagged URGENT (degdeg / dd / dadaji)`}
+        </Alert>
       )}
 
       {/* Preview + table */}
@@ -222,7 +220,7 @@ export function ExtractionReview({
               <button
                 type="button"
                 onClick={() => setShowPreview(false)}
-                className="p-1 rounded text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -361,7 +359,7 @@ export function ExtractionReview({
                           isOther ? 'bg-slate-50/70 opacity-60' : 'hover:bg-emerald-50/30'
                         }`}
                       >
-                        <td className="px-2 py-1.5 text-slate-400 font-mono">{idx + 1}</td>
+                        <td className="px-2 py-1.5 text-slate-500 font-mono">{idx + 1}</td>
                         {template.columns.map((col) => {
                           const value = row.raw[col.key] ?? '';
                           const issue = issueFor(row, col.key);
@@ -404,7 +402,7 @@ export function ExtractionReview({
                           <button
                             type="button"
                             onClick={() => removeRow(row.id)}
-                            className="p-1 rounded text-slate-300 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            className="p-1 rounded text-slate-500 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                             title={so ? 'Tirtir safka' : 'Remove row'}
                           >
                             <Trash2 className="w-3.5 h-3.5" />

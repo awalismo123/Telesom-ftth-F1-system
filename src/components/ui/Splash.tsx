@@ -29,7 +29,7 @@ export function Splash({ message }: { message?: string }) {
         ))}
       </div>
 
-      <p className="text-emerald-500/70 text-[10px] font-medium" role="status">
+      <p className="text-emerald-300/80 text-[11px] font-medium" role="status">
         {message ?? 'Soo dejinaya… / Loading…'}
       </p>
     </div>

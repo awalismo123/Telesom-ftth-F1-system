@@ -49,7 +49,7 @@ function IdentityChip({ compact = false }: { compact?: boolean }) {
         <div className="text-[11px] md:text-xs font-semibold text-white truncate max-w-[104px] md:max-w-[150px]">
           {session.user.full_name}
         </div>
-        <div className="text-[9px] md:text-[10px] text-emerald-300/90 truncate max-w-[104px] md:max-w-[150px] flex items-center gap-1">
+        <div className="text-[10px] md:text-[10px] text-emerald-300/90 truncate max-w-[104px] md:max-w-[150px] flex items-center gap-1">
           {supervisor ? (
             <ShieldCheck className="w-3 h-3 text-amber-300 shrink-0" />
           ) : (
@@ -235,7 +235,7 @@ export function HeaderBar() {
               <button
                 type="button"
                 onClick={() => setShowPinModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

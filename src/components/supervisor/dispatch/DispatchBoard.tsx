@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeError } from '../../../lib/useErrorMessage';
 import {
-  AlertTriangle,
   ChevronRight,
-  Loader2,
   MessageSquareText,
   RefreshCw,
   Route,
@@ -13,7 +11,6 @@ import {
   Truck,
   User,
   Users,
-  X,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -41,6 +38,13 @@ import { ClusterPlanSheet } from './ClusterPlanSheet';
 import { DispatchMessageSheet } from './DispatchMessageSheet';
 import { LiveStrip } from './LiveStrip';
 import { useToast } from '../../ui/Toast';
+import { Alert } from '../../ui/Alert';
+import { Button } from '../../ui/Button';
+import { EmptyState } from '../../ui/EmptyState';
+import { Input } from '../../ui/Field';
+import { Sheet } from '../../ui/Sheet';
+import { Skeleton } from '../../ui/Skeleton';
+import { Tabs } from '../../ui/Tabs';
 
 type Filter = 'all' | 'urgent';
 
@@ -205,10 +209,25 @@ export function DispatchBoard() {
   );
 
   if (loading) {
+    // Match the shape of the board so the page does not jump when data lands.
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
-        <Loader2 className="w-7 h-7 text-emerald-700 animate-spin mx-auto mb-3" />
-        <p className="text-xs text-slate-500">{so ? 'Xogta waa la soo dejinayaa…' : 'Loading the board…'}</p>
+      <div className="space-y-4 pb-24" role="status" aria-live="polite" aria-busy="true">
+        <span className="sr-only">{so ? 'Xogta waa la soo dejinayaa…' : 'Loading the board…'}</span>
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+          <div className="xl:col-span-2 space-y-2">
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          </div>
+          <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Skeleton className="h-32 w-full rounded-2xl" />
+            <Skeleton className="h-32 w-full rounded-2xl" />
+            <Skeleton className="h-32 w-full rounded-2xl" />
+            <Skeleton className="h-32 w-full rounded-2xl" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -262,42 +281,35 @@ export function DispatchBoard() {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
+          <Button
+            variant="success"
+            size="sm"
             onClick={() => setPlanOpen(true)}
             disabled={pool.length === 0 || targets.length === 0}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-400 text-emerald-950 text-xs font-extrabold hover:bg-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
             {t('dispatchAutoCluster')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMessageOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-emerald-950 text-xs font-extrabold hover:bg-emerald-50 cursor-pointer"
-          >
-            <MessageSquareText className="w-4 h-4" />
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setMessageOpen(true)}>
+            <MessageSquareText className="w-4 h-4" aria-hidden="true" />
             {t('dispatchMessage')}
-          </button>
+          </Button>
         </div>
       </div>
 
       <LiveStrip />
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="flex-1">{error}</span>
-          <button type="button" onClick={() => setError(null)} className="cursor-pointer">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <Alert tone="danger" onDismiss={() => setError(null)} dismissLabel={t('cancel')}>
+          {error}
+        </Alert>
       )}
 
       {targets.length === 0 && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
-          {t('dispatchNoTargets')}
-        </div>
+        <Alert tone="warning">
+          {t('dispatchNoTargets')}{' '}
+          {so ? 'Ku dar farsamayaqaan ama crew Team-ga.' : 'Add a technician or crew in Team.'}
+        </Alert>
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
@@ -321,32 +333,25 @@ export function DispatchBoard() {
               )}
             </div>
 
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('dispatchSearch')}
-                className="w-full pl-8 pr-2 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              />
-            </div>
+            <Input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('dispatchSearch')}
+              aria-label={t('dispatchSearch')}
+              leadingIcon={<Search className="w-4 h-4" />}
+            />
 
-            <div className="flex gap-1.5">
-              {(['all', 'urgent'] as Filter[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setFilter(option)}
-                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
-                    filter === option
-                      ? 'bg-emerald-950 text-white border-emerald-950'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  {option === 'all' ? t('dispatchFilterAll') : t('dispatchFilterUrgent')}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              variant="bar"
+              items={[
+                { id: 'all' as Filter, label: t('dispatchFilterAll') },
+                { id: 'urgent' as Filter, label: t('dispatchFilterUrgent') },
+              ]}
+              value={filter}
+              onChange={setFilter}
+              label={t('dispatchPool')}
+            />
           </div>
 
           <div className="space-y-2">
@@ -361,9 +366,33 @@ export function DispatchBoard() {
             ))}
 
             {visiblePool.length === 0 && (
-              <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-500">
-                {pool.length === 0 ? t('dispatchPoolEmpty') : so ? 'Wax ka mid ah shuruudaha?' : 'Nothing matches that search.'}
-              </div>
+              <EmptyState
+                icon={<Route className="w-5 h-5" />}
+                title={pool.length === 0 ? t('dispatchPoolEmpty') : so ? 'Raadinta waxba ma heysato' : 'Nothing matches that search'}
+                description={
+                  pool.length === 0
+                    ? so
+                      ? 'Marka shaqooyin cusub la soo geliyo, halkan ayay ku soo baxaan.'
+                      : 'New jobs land here as soon as a sheet is imported.'
+                    : so
+                      ? 'Beddel shaandhaynta ama tirtir raadinta.'
+                      : 'Change the filter or clear the search.'
+                }
+                action={
+                  (filter !== 'all' || query) && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setFilter('all');
+                        setQuery('');
+                      }}
+                    >
+                      {so ? 'Tirtir shaandhaynta' : 'Clear filters'}
+                    </Button>
+                  )
+                }
+              />
             )}
           </div>
         </section>
@@ -400,14 +429,14 @@ export function DispatchBoard() {
                         </span>
                       </div>
                       {target.subtitle && (
-                        <div className="text-[10px] text-slate-400 truncate mt-0.5">{target.subtitle}</div>
+                        <div className="text-[10px] text-slate-500 truncate mt-0.5">{target.subtitle}</div>
                       )}
                     </div>
 
                     <span
                       className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-extrabold ${
                         laneTasks.length === 0
-                          ? 'bg-slate-100 text-slate-400'
+                          ? 'bg-slate-100 text-slate-500'
                           : laneTasks.length > 5
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-emerald-100 text-emerald-800'
@@ -462,7 +491,7 @@ export function DispatchBoard() {
                     ))}
 
                     {laneTasks.length === 0 && (
-                      <div className="text-[11px] text-slate-400 text-center py-3 border border-dashed border-slate-200 rounded-xl">
+                      <div className="text-[11px] text-slate-500 text-center py-3 border border-dashed border-slate-300 rounded-xl">
                         {t('dispatchLaneEmpty')}
                       </div>
                     )}
@@ -473,10 +502,15 @@ export function DispatchBoard() {
           </div>
 
           {targets.length === 0 && (
-            <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center space-y-2">
-              <Users className="w-6 h-6 text-slate-300 mx-auto" />
-              <p className="text-xs text-slate-500">{t('dispatchNoTargets')}</p>
-            </div>
+            <EmptyState
+              icon={<Users className="w-5 h-5" />}
+              title={t('dispatchNoTargets')}
+              description={
+                so
+                  ? 'Lanes-ka waxaa buuxiya farsamayaqaannada iyo crew-yada Team-ga.'
+                  : 'Lanes are filled by the technicians and crews in Team.'
+              }
+            />
           )}
         </section>
       </div>
@@ -493,20 +527,21 @@ export function DispatchBoard() {
             <button
               type="button"
               onClick={() => setSelected([])}
-              className="text-[11px] text-slate-300 hover:text-white underline cursor-pointer"
+              className="text-[11px] font-semibold text-slate-200 hover:text-white underline cursor-pointer"
             >
               {t('dispatchClear')}
             </button>
             <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
+              <Button
+                variant="success"
+                size="sm"
+                loading={busy}
                 onClick={() => setPickerFor('selection')}
-                disabled={busy || targets.length === 0}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-400 text-emerald-950 text-xs font-extrabold disabled:opacity-40 cursor-pointer"
+                disabled={targets.length === 0}
               >
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {!busy && <Send className="w-4 h-4" aria-hidden="true" />}
                 {t('dispatchAssignTo')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -515,26 +550,14 @@ export function DispatchBoard() {
       {/* ---------------------------------------------------------------- */}
       {/* Modal: pick a technician / crew                                   */}
       {/* ---------------------------------------------------------------- */}
-      {pickerFor && (
-        <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6">
-          <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-              <div>
-                <div className="text-sm font-extrabold text-slate-900">{t('dispatchAssignTo')}</div>
-                <div className="text-[11px] text-slate-500">
-                  {selected.length} {t('dispatchSelected')}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPickerFor(null)}
-                className="p-2 rounded-xl hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-3 space-y-2">
+      <Sheet
+        open={pickerFor !== null}
+        onClose={() => setPickerFor(null)}
+        title={t('dispatchAssignTo')}
+        description={`${selected.length} ${t('dispatchSelected')}`}
+        size="md"
+      >
+        <div className="space-y-2">
               {targets.map((target) => (
                 <button
                   key={targetKey(target)}
@@ -563,13 +586,19 @@ export function DispatchBoard() {
                   <span className="text-[11px] font-bold text-slate-500 shrink-0">
                     {target.openJobs} {t('dispatchOpenJobs')}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" aria-hidden="true" />
                 </button>
               ))}
-            </div>
-          </div>
+
+              {targets.length === 0 && (
+                <EmptyState
+                  icon={<Users className="w-5 h-5" />}
+                  title={t('dispatchNoTargets')}
+                  description={so ? 'Marka hore ku dar team-ka.' : 'Add a technician or crew first.'}
+                />
+              )}
         </div>
-      )}
+      </Sheet>
 
       <ClusterPlanSheet
         open={planOpen}

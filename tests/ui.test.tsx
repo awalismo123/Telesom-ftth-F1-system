@@ -127,3 +127,46 @@ test('Sheet renders nothing on the server or when closed', async () => {
   );
   assert.equal(html, '');
 });
+
+test('Alert announces failures loudly and confirmations politely', async () => {
+  const { Alert } = await import('../src/components/ui/Alert');
+
+  const failure = render(React.createElement(Alert, { tone: 'danger' }, 'Import failed'));
+  assert.match(failure, /role="alert"/);
+  assert.match(failure, /Import failed/);
+
+  const warning = render(React.createElement(Alert, { tone: 'warning' }, 'No team yet'));
+  assert.match(warning, /role="alert"/);
+
+  const ok = render(React.createElement(Alert, { tone: 'success' }, 'Saved'));
+  assert.match(ok, /role="status"/);
+
+  const quiet = render(React.createElement(Alert, { tone: 'note', live: 'off' }, 'Demo data'));
+  assert.doesNotMatch(quiet, /role=/);
+});
+
+test('Alert can be dismissed by name', async () => {
+  const { Alert } = await import('../src/components/ui/Alert');
+  const html = render(
+    React.createElement(
+      Alert,
+      { tone: 'danger', onDismiss: () => undefined, dismissLabel: 'Xir' },
+      'Something broke',
+    ),
+  );
+  assert.match(html, /aria-label="Xir"/);
+});
+
+test('Input renders its leading icon outside the control', async () => {
+  const { Input } = await import('../src/components/ui/Field');
+  const html = render(
+    React.createElement(Input, {
+      value: '',
+      onChange: () => undefined,
+      'aria-label': 'Search',
+      leadingIcon: React.createElement('svg', { 'data-testid': 'icon' }),
+    }),
+  );
+  assert.match(html, /aria-hidden="true"/);
+  assert.match(html, /pl-10/);
+});

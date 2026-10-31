@@ -8,7 +8,6 @@ import {
   Clock,
   Copy,
   Download,
-  Loader2,
   MessageCircle,
   RefreshCw,
   ShieldAlert,
@@ -44,6 +43,9 @@ import {
 } from '../../lib/registryService';
 import { BoxSheet } from '../registry/BoxSheet';
 import { useToast } from '../ui/Toast';
+import { Alert } from '../ui/Alert';
+import { Button } from '../ui/Button';
+import { Skeleton, SkeletonCard } from '../ui/Skeleton';
 
 const WINDOWS = [7, 30, 90];
 
@@ -197,25 +199,23 @@ export function Analytics() {
               {so ? 'm' : 'd'}
             </button>
           ))}
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => void load()}
-            className="p-2 rounded-xl text-slate-400 hover:bg-white hover:text-slate-600 cursor-pointer"
+            aria-label={so ? 'Cusbooneysii' : 'Refresh'}
             title={so ? 'Cusbooneysii' : 'Refresh'}
+            className="text-slate-500"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+          </Button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-[11px] font-semibold text-rose-800 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="flex-1">{error}</span>
-          <button type="button" onClick={() => setError(null)} className="underline cursor-pointer">
-            {so ? 'Xir' : 'Dismiss'}
-          </button>
-        </div>
+        <Alert tone="danger" onDismiss={() => setError(null)} dismissLabel={so ? 'Xir' : 'Dismiss'}>
+          {error}
+        </Alert>
       )}
 
       {data && (
@@ -231,33 +231,35 @@ export function Analytics() {
                 : 'Only real data is included.'}
           </span>
           {data.demo.tasks > 0 ? (
-            <button
-              type="button"
-              onClick={() => void removeDemo()}
-              disabled={busy}
-              className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold disabled:opacity-50 cursor-pointer"
-            >
-              {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            <Button variant="danger" size="sm" loading={busy} onClick={() => void removeDemo()}>
+              {!busy && <Trash2 className="w-3 h-3" aria-hidden="true" />}
               {so ? 'Tirtir tijaabada' : 'Remove demo data'}
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={busy}
               onClick={() => void loadDemo()}
-              disabled={busy}
-              className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg bg-violet-50 text-violet-700 border border-violet-200 text-[11px] font-bold disabled:opacity-50 cursor-pointer"
+              className="border-violet-200 text-violet-800 hover:bg-violet-50"
             >
-              {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              {!busy && <Sparkles className="w-3 h-3" aria-hidden="true" />}
               {so ? 'Soo geli tijaabo' : 'Load demo history'}
-            </button>
+            </Button>
           )}
         </div>
       )}
 
       {loading && !data && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
-          <Loader2 className="w-6 h-6 text-emerald-700 animate-spin mx-auto mb-2" />
-          <p className="text-xs text-slate-500">{so ? 'Falanqaynta waa la xisaabinayaa…' : 'Crunching the numbers…'}</p>
+        <div className="space-y-3" role="status" aria-live="polite" aria-busy="true">
+          <span className="sr-only">{so ? 'Falanqaynta waa la xisaabinayaa…' : 'Crunching the numbers…'}</span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {[0, 1, 2, 3].map((index) => (
+              <SkeletonCard key={index} lines={2} />
+            ))}
+          </div>
+          <Skeleton className="h-64 w-full rounded-2xl" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
         </div>
       )}
 
@@ -304,7 +306,7 @@ export function Analytics() {
               <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
                 {so ? 'Shaqooyin maalin kasta' : 'Jobs completed per day'}
               </span>
-              <span className="ml-auto text-[10px] font-bold text-slate-400">
+              <span className="ml-auto text-[10px] font-bold text-slate-500">
                 {data.window_days} {so ? 'maalmood' : 'days'}
               </span>
             </div>
@@ -321,7 +323,7 @@ export function Analytics() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between text-[9px] text-slate-400 mt-1">
+            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
               <span>{data.daily[0]?.date ?? ''}</span>
               <span>{data.daily[data.daily.length - 1]?.date ?? ''}</span>
             </div>
@@ -337,7 +339,7 @@ export function Analytics() {
                 </span>
               </div>
               {data.techs.length === 0 ? (
-                <p className="py-4 text-center text-[11px] text-slate-400">
+                <p className="py-4 text-center text-[11px] text-slate-500">
                   {so ? 'Weli shaqo lama dhammeeyin.' : 'No completed jobs in this window yet.'}
                 </p>
               ) : (
@@ -351,12 +353,12 @@ export function Analytics() {
                             {tech.name}
                           </span>
                           {tech.running_now > 0 && (
-                            <span className="px-1 rounded bg-emerald-100 text-emerald-800 text-[9px] font-extrabold">
+                            <span className="px-1 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
                               {tech.running_now} {so ? 'socda' : 'live'}
                             </span>
                           )}
                           {tech.blocked_now > 0 && (
-                            <span className="px-1 rounded bg-rose-100 text-rose-700 text-[9px] font-extrabold">
+                            <span className="px-1 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold">
                               {tech.blocked_now} {so ? 'caqabad' : 'blocked'}
                             </span>
                           )}
@@ -400,7 +402,7 @@ export function Analytics() {
                 </span>
               </div>
               {data.boxes.length === 0 ? (
-                <p className="py-4 text-center text-[11px] text-slate-400">
+                <p className="py-4 text-center text-[11px] text-slate-500">
                   {so ? 'Weli sanduuq lama diiwaangelin.' : 'No cableboxes registered yet.'}
                 </p>
               ) : (
@@ -418,11 +420,11 @@ export function Analytics() {
                           <span className="text-[11px] font-extrabold text-slate-800 truncate flex-1">
                             {box.box_code}
                             {box.xaafada && (
-                              <span className="ml-1 font-normal text-slate-400">· {box.xaafada}</span>
+                              <span className="ml-1 font-normal text-slate-500">· {box.xaafada}</span>
                             )}
                           </span>
                           {box.chronic && (
-                            <span className="px-1 rounded bg-rose-100 text-rose-700 text-[9px] font-extrabold">
+                            <span className="px-1 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold">
                               {so ? 'SOO NOQNOQDA' : 'CHRONIC'}
                             </span>
                           )}
@@ -461,7 +463,7 @@ export function Analytics() {
                 </span>
               </div>
               {data.blockers.length === 0 ? (
-                <p className="py-4 text-center text-[11px] text-slate-400">
+                <p className="py-4 text-center text-[11px] text-slate-500">
                   {so ? 'Weli caqabad lama diiwaangelin.' : 'No blockers recorded in this window.'}
                 </p>
               ) : (
@@ -497,24 +499,24 @@ export function Analytics() {
               <div className="grid grid-cols-3 gap-1.5 text-center">
                 <div className="rounded-xl bg-emerald-50 border border-emerald-100 py-2">
                   <div className="text-lg font-extrabold text-emerald-800">{totals.bands.healthy}</div>
-                  <div className="text-[9px] font-bold uppercase text-emerald-700">
+                  <div className="text-[10px] font-bold uppercase text-emerald-700">
                     {so ? 'Caafimaad' : 'Healthy'}
                   </div>
-                  <div className="text-[9px] text-emerald-600/70">−27…−8</div>
+                  <div className="text-[10px] text-emerald-600/70">−27…−8</div>
                 </div>
                 <div className="rounded-xl bg-amber-50 border border-amber-100 py-2">
                   <div className="text-lg font-extrabold text-amber-800">{totals.bands.weak}</div>
-                  <div className="text-[9px] font-bold uppercase text-amber-700">
+                  <div className="text-[10px] font-bold uppercase text-amber-700">
                     {so ? 'Daciif' : 'Weak'}
                   </div>
-                  <div className="text-[9px] text-amber-600/70">&lt; −27</div>
+                  <div className="text-[10px] text-amber-600/70">&lt; −27</div>
                 </div>
                 <div className="rounded-xl bg-sky-50 border border-sky-100 py-2">
                   <div className="text-lg font-extrabold text-sky-800">{totals.bands.strong}</div>
-                  <div className="text-[9px] font-bold uppercase text-sky-700">
+                  <div className="text-[10px] font-bold uppercase text-sky-700">
                     {so ? 'Xoog' : 'Strong'}
                   </div>
-                  <div className="text-[9px] text-sky-600/70">&gt; −8</div>
+                  <div className="text-[10px] text-sky-600/70">&gt; −8</div>
                 </div>
               </div>
               <div className="mt-2 text-[10px] text-slate-500 text-center">
@@ -526,25 +528,20 @@ export function Analytics() {
 
           {/* exports */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => void exportCsv()}
-              disabled={busy}
-              className="inline-flex items-center justify-center gap-2 h-11 rounded-2xl bg-emerald-700 text-white text-xs font-extrabold disabled:opacity-60 cursor-pointer"
-            >
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <Button fullWidth loading={busy} onClick={() => void exportCsv()}>
+              {!busy && <Download className="w-4 h-4" aria-hidden="true" />}
               {so ? 'Soo deji CSV' : 'Download CSV'}
-            </button>
-            <button
-              type="button"
-              onClick={() => void copyReport()}
-              className="inline-flex items-center justify-center gap-2 h-11 rounded-2xl bg-slate-900 text-white text-xs font-extrabold cursor-pointer"
-            >
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            </Button>
+            <Button fullWidth variant="dark" onClick={() => void copyReport()}>
+              {copied ? (
+                <Check className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Copy className="w-4 h-4" aria-hidden="true" />
+              )}
               {copied ? (so ? 'La nuqulay!' : 'Copied!') : so ? 'Nuqul warbixinta WhatsApp' : 'Copy WhatsApp report'}
-            </button>
+            </Button>
           </div>
-          <p className="text-[10px] text-slate-400 text-center inline-flex items-center justify-center gap-1 w-full">
+          <p className="text-[10px] text-slate-500 text-center inline-flex items-center justify-center gap-1 w-full">
             <MessageCircle className="w-3 h-3" />
             {so
               ? 'Warbixinta waxay ku habboon tahay WhatsApp ama Telegram kooxda.'
@@ -581,7 +578,7 @@ function Kpi({
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-3">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</span>
         {icon}
       </div>
       <div className="text-xl font-extrabold text-slate-900">{value}</div>

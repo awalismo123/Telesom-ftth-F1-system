@@ -102,7 +102,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <button
             type="button"
             onClick={() => this.setState({ showDetail: !showDetail })}
-            className="mt-3 text-[10px] font-semibold text-slate-400 underline cursor-pointer"
+            className="mt-3 text-[10px] font-semibold text-slate-500 underline cursor-pointer"
           >
             {showDetail ? 'Hide technical detail' : 'Show technical detail'}
           </button>

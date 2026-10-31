@@ -396,7 +396,7 @@ export function TeamAndCrewManager() {
                   <button
                     type="button"
                     onClick={() => openEditMember(m)}
-                    className="p-2 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                    className="p-2 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
                     title={t('editMember')}
                   >
                     <Edit3 className="w-4 h-4" />
@@ -428,7 +428,7 @@ export function TeamAndCrewManager() {
                         <span>{m.phone}</span>
                       </a>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-500">—</span>
                     )}
                   </div>
 
@@ -447,7 +447,7 @@ export function TeamAndCrewManager() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-400 text-[11px]">{t('noCrewAssigned')}</span>
+                        <span className="text-slate-500 text-[11px]">{t('noCrewAssigned')}</span>
                       )}
                     </div>
                   )}
@@ -490,18 +490,18 @@ export function TeamAndCrewManager() {
                   <button
                     type="button"
                     onClick={() => openEditCrew(c)}
-                    className="p-2 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                    className="p-2 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                     Assigned Technicians ({cMembers.length})
                   </div>
                   {cMembers.length === 0 ? (
-                    <div className="text-xs text-slate-400 italic">No technicians assigned yet</div>
+                    <div className="text-xs text-slate-500 italic">No technicians assigned yet</div>
                   ) : (
                     <div className="space-y-2">
                       {cMembers.map((tech) => (
@@ -549,7 +549,7 @@ export function TeamAndCrewManager() {
                   </span>
                   <span
                     className={`inline-flex items-center gap-1 text-xs font-bold ${
-                      g.is_active ? 'text-emerald-700' : 'text-slate-400'
+                      g.is_active ? 'text-emerald-700' : 'text-slate-500'
                     }`}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -561,7 +561,7 @@ export function TeamAndCrewManager() {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">Department Scaling</span>
+                <span className="text-[11px] text-slate-500">Department Scaling</span>
                 {g.code !== 'F1' ? (
                   <button
                     type="button"
@@ -594,7 +594,7 @@ export function TeamAndCrewManager() {
               <button
                 type="button"
                 onClick={() => setMemberModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -723,7 +723,7 @@ export function TeamAndCrewManager() {
               <button
                 type="button"
                 onClick={() => setCrewModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -802,7 +802,7 @@ export function TeamAndCrewManager() {
                           />
                           <span>{tech.full_name}</span>
                         </div>
-                        <span className="text-[11px] text-slate-400">{tech.phone || ''}</span>
+                        <span className="text-[11px] text-slate-500">{tech.phone || ''}</span>
                       </label>
                     );
                   })}
@@ -839,7 +839,7 @@ export function TeamAndCrewManager() {
               <button
                 type="button"
                 onClick={() => setGroupModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

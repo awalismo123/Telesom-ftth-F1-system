@@ -308,3 +308,57 @@ authority on whether the app works.
 Recorded once, applies to every later batch: **derived UI is a bug**. Anything a
 screen renders twice (a status colour, a button size, a dialog shell) belongs in
 the kit, not in the screen.
+
+---
+
+## 7. Batch C — second half: feature screens on the kit + contrast sweep (31/10/2026)
+
+### New in the kit
+
+| Component | Why |
+| :--- | :--- |
+| `Alert` | Five tones (info / success / warning / note / danger) replacing **22 hand-rolled banners** across six files; `danger`/`warning` are `role="alert"`, the rest `role="status"`, and it carries an optional action and a named dismiss button. |
+| `Input.leadingIcon` | Search fields stop hand-positioning an icon behind an `<input>`. |
+
+### Screens migrated
+
+* **`BoxRegistry`** — header, refresh, search, filters (now `Tabs`, with counts), alerts, a six-card skeleton instead of a spinner, an empty state that explains *why* it is empty and offers **Clear filters**, and health/chronic/live chips as `Badge`.
+* **`DispatchBoard`** — hero actions and the sticky assign bar are `Button`s (busy spinner handled by the component), the pool search is `Input`, the urgent/all filter is `Tabs`, both empty states are `EmptyState` with a next step, the error banner is an `Alert`, the loading state is a skeleton that matches the board's shape, and **the assign-to modal is now `Sheet`** (focus trap, Escape, scroll lock, swipe-to-dismiss).
+* **`ClusterPlanSheet`** — rebuilt on `Sheet` with a sticky footer; the empty plan is an `EmptyState`.
+* **`Analytics`** — alerts, demo-data actions and the two export buttons on the kit; a KPI + chart skeleton replaces the centred spinner.
+* **`IngestWizard`, `ExtractionReview`, `RouteView`** — banners are `Alert`s (the ingest conflict screen now has a titled info alert).
+
+### Contrast and legibility sweep
+
+| Before | After | Why |
+| :--- | :--- | :--- |
+| `text-slate-400` ×87 | `text-slate-500` | 2.8:1 → **4.76:1** on white (AA for normal text) |
+| `text-slate-300` (controls, glyphs) | `text-slate-500` / `text-slate-200` on dark | 1.9:1 was invisible for a control |
+| `text-[9px]` ×23 | `text-[10px]` | legibility floor on a 360 px screen |
+| `text-emerald-500/70`, `…-300/60` on the dark screen | `text-emerald-300/80`, `…-200` | small text on deep emerald |
+
+### Accessibility fixes found by the new lint
+
+Four icon-only close buttons (`BoxSheet`, `ClusterPlanSheet`, `DispatchMessageSheet`, `ExecutionSheet`) had no accessible name — a screen reader read them as "button". All now carry `aria-label`/`title` and `aria-hidden` icons.
+
+### The design lint
+
+`tests/design.test.ts` fails the build gate on:
+
+* any `text-slate-300` / `text-slate-400` in `src/components`;
+* any font size below 10 px;
+* an icon-only `<button>` without `aria-label`/`title`.
+
+It found the four unnamed close buttons the moment it was written, which is the argument for keeping it.
+
+### Verification
+
+`tsc -b` clean · **78 / 78 tests** (was 71) · production build OK · every migrated module serves 200.
+
+### Still outstanding in Batch C (recorded, not hidden)
+
+* `DispatchMessageSheet` (the WhatsApp/Telegram composer) and `BoxSheet` /
+  `ExecutionSheet` keep their own modal chrome. They are candidates for `Sheet`
+  next time the dispatch composer is touched — the composer has a bespoke
+  preview pane that deserves its own review rather than a mechanical swap.
+* Lighthouse ≥ 95 needs a browser run; this environment has no headless browser.

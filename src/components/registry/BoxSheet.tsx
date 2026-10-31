@@ -141,7 +141,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
             <button
               type="button"
               onClick={() => void load()}
-              className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer"
+              className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer"
               title={so ? 'Cusbooneysii' : 'Refresh'}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -149,9 +149,11 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
             <button
               type="button"
               onClick={onClose}
-              className="p-2 -mr-1 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer"
+              aria-label="Close / Xir"
+              title="Close / Xir"
+              className="p-2 -mr-1 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -179,7 +181,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
               {/* stats */}
               <div className="grid grid-cols-4 gap-1.5">
                 <div className="rounded-xl bg-white border border-slate-200 px-2 py-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
                     {so ? 'Port-yada' : 'Ports'}
                   </div>
                   <div className="text-sm font-extrabold text-slate-900">
@@ -187,19 +189,19 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
                   </div>
                 </div>
                 <div className="rounded-xl bg-white border border-slate-200 px-2 py-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
                     {so ? 'Cilado 30m' : 'Faults 30d'}
                   </div>
                   <div className="text-sm font-extrabold text-rose-700">{detail.stats.faults_30d}</div>
                 </div>
                 <div className="rounded-xl bg-white border border-slate-200 px-2 py-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">dBm</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">dBm</div>
                   <div className="text-sm font-extrabold text-slate-900">
                     {detail.stats.last_dbm !== null ? Number(detail.stats.last_dbm).toFixed(1) : '—'}
                   </div>
                 </div>
                 <div className="rounded-xl bg-white border border-slate-200 px-2 py-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
                     {so ? 'Celcelis' : 'Avg time'}
                   </div>
                   <div className="text-sm font-extrabold text-slate-900">
@@ -255,7 +257,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
               {tab === 'history' && (
                 <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden">
                   {detail.incidents.length === 0 && (
-                    <p className="px-3 py-6 text-center text-[11px] text-slate-400">
+                    <p className="px-3 py-6 text-center text-[11px] text-slate-500">
                       {so ? 'Weli wax dhacdo ah lama diiwaangelin.' : 'No incidents recorded for this box yet.'}
                     </p>
                   )}
@@ -285,7 +287,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
                               </span>
                             )}
                             {incident.is_demo && (
-                              <span className="ml-1 px-1 rounded bg-slate-100 text-slate-400 text-[9px] font-bold">
+                              <span className="ml-1 px-1 rounded bg-slate-100 text-slate-500 text-[10px] font-bold">
                                 DEMO
                               </span>
                             )}
@@ -293,12 +295,12 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
                           {incident.notes && (
                             <div className="text-[10px] text-slate-500 italic">“{incident.notes}”</div>
                           )}
-                          <div className="text-[10px] text-slate-400">
+                          <div className="text-[10px] text-slate-500">
                             {incident.logged_by ?? '—'}
                             {incident.line_number ? ` · line ${incident.line_number}` : ''}
                           </div>
                         </div>
-                        <span className="text-[10px] text-slate-400 shrink-0">
+                        <span className="text-[10px] text-slate-500 shrink-0">
                           {timeAgoShort(incident.created_at, lang)}
                         </span>
                       </li>
@@ -310,7 +312,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
               {tab === 'jobs' && (
                 <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden">
                   {detail.jobs.length === 0 && (
-                    <p className="px-3 py-6 text-center text-[11px] text-slate-400">
+                    <p className="px-3 py-6 text-center text-[11px] text-slate-500">
                       {so ? 'Weli shaqo lagama diiwaangelin sanduuqan.' : 'No jobs recorded on this box yet.'}
                     </p>
                   )}
@@ -325,7 +327,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
                             {job.customer_name}
                           </span>
                           <span
-                            className={`text-[9px] font-extrabold px-1 rounded ${
+                            className={`text-[10px] font-extrabold px-1 rounded ${
                               job.status === 'completed'
                                 ? 'bg-emerald-50 text-emerald-700'
                                 : 'bg-amber-50 text-amber-700'

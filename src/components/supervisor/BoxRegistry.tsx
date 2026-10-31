@@ -1,21 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeError } from '../../lib/useErrorMessage';
-import {
-  AlertTriangle,
-  Cable,
-  ChevronRight,
-  Loader2,
-  MapPin,
-  RefreshCw,
-  Search,
-  Server,
-  Signal,
-  Zap,
-} from 'lucide-react';
+import { Cable, ChevronRight, MapPin, RefreshCw, Search, Server, Signal } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import {
-  formatDbm,
   healthMeta,
   isChronic,
   portUsage,
@@ -25,8 +13,24 @@ import {
 } from '../../lib/registry';
 import { fetchDirectory } from '../../lib/registryService';
 import { BoxSheet } from '../registry/BoxSheet';
+import { Alert } from '../ui/Alert';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { EmptyState } from '../ui/EmptyState';
+import { Input } from '../ui/Field';
+import { SkeletonCard } from '../ui/Skeleton';
+import { Tabs } from '../ui/Tabs';
+import { cx } from '../ui/cx';
+import type { BadgeTone } from '../ui/Badge';
 
 type Filter = 'all' | 'critical' | 'warning' | 'chronic';
+
+/** The registry's status colours, expressed once so the card and the filter agree. */
+const HEALTH_TONE: Record<string, BadgeTone> = {
+  critical: 'rose',
+  warning: 'amber',
+  healthy: 'emerald',
+};
 
 export function BoxRegistry() {
   const { session, activeGroup } = useAuth();
@@ -54,7 +58,7 @@ export function BoxRegistry() {
     } finally {
       setLoading(false);
     }
-  }, [token, groupId]);
+  }, [token, groupId, lang]);
 
   useEffect(() => {
     void load();
@@ -85,13 +89,19 @@ export function BoxRegistry() {
     [boxes],
   );
 
+  const filters: { id: Filter; label: string }[] = [
+    { id: 'all', label: so ? 'Dhammaan' : 'All' },
+    { id: 'critical', label: so ? 'Halis' : 'Critical' },
+    { id: 'warning', label: so ? 'Digniin' : 'Warning' },
+    { id: 'chronic', label: so ? 'Soo noqnoqda' : 'Chronic' },
+  ];
+
   return (
     <div className="space-y-4">
-      {/* header */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-0">
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-0 flex-1">
           <h2 className="text-base font-extrabold text-slate-900 inline-flex items-center gap-2">
-            <Server className="w-4 h-4 text-emerald-700" />
+            <Server className="w-4 h-4 text-emerald-700" aria-hidden="true" />
             {so ? 'Diiwaanka Cablebox' : 'Cablebox registry'}
           </h2>
           <p className="text-[11px] text-slate-500 mt-0.5">
@@ -100,85 +110,111 @@ export function BoxRegistry() {
               : 'Every port, fault and dBm reading per box — the next technician inherits the history.'}
           </p>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => void load()}
-          className="ml-auto p-2 rounded-xl text-slate-400 hover:bg-white hover:text-slate-600 cursor-pointer"
+          aria-label={so ? 'Cusbooneysii' : 'Refresh'}
           title={so ? 'Cusbooneysii' : 'Refresh'}
+          className="text-slate-500"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+          <RefreshCw className={cx('w-4 h-4', loading && 'animate-spin')} aria-hidden="true" />
+        </Button>
       </div>
 
-      {/* search + filters */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <div className="flex-1 min-w-0">
+          <Input
+            type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={so ? 'Raadi sanduuq ama xaafad…' : 'Search box code or area…'}
-            className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            aria-label={so ? 'Raadi sanduuq' : 'Search boxes'}
+            leadingIcon={<Search className="w-4 h-4" />}
           />
         </div>
-        <div className="flex gap-1 overflow-x-auto">
-          {(
-            [
-              ['all', so ? 'Dhammaan' : 'All', counts.all],
-              ['critical', so ? 'Halis' : 'Critical', counts.critical],
-              ['warning', so ? 'Digniin' : 'Warning', counts.warning],
-              ['chronic', so ? 'Soo noqnoqda' : 'Chronic', counts.chronic],
-            ] as [Filter, string, number][]
-          ).map(([key, label, count]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className={`whitespace-nowrap px-3 h-10 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
-                filter === key
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-600 border-slate-200'
-              }`}
-            >
-              {label} <span className="opacity-60">{count}</span>
-            </button>
-          ))}
-        </div>
+        <Tabs
+          variant="bar"
+          items={filters.map((item) => ({
+            id: item.id,
+            label: item.label,
+            badge: counts[item.id],
+          }))}
+          value={filter}
+          onChange={setFilter}
+          label={so ? 'Shaandhaynta sanduuqa' : 'Box filter'}
+          className="shrink-0 overflow-x-auto"
+        />
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-[11px] font-semibold text-rose-800 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="flex-1">{error}</span>
-          <button type="button" onClick={() => void load()} className="underline cursor-pointer">
-            {so ? 'Isku day' : 'Retry'}
-          </button>
-        </div>
+        <Alert
+          tone="danger"
+          action={
+            <Button variant="ghost" size="sm" onClick={() => void load()} className="underline">
+              {so ? 'Isku day' : 'Retry'}
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       )}
 
       {data && data.demo.tasks > 0 && (
-        <div className="rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-[11px] font-semibold text-violet-800 flex items-center gap-2">
-          <Zap className="w-3.5 h-3.5 shrink-0" />
+        <Alert tone="note">
           {so
             ? `${data.demo.tasks} shaqo iyo ${data.demo.logs} dhacdo oo tijaabo ah ayaa ku jira.`
             : `${data.demo.tasks} demo jobs and ${data.demo.logs} demo incidents are included.`}
-        </div>
+        </Alert>
       )}
 
       {loading && boxes.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
-          <Loader2 className="w-6 h-6 text-emerald-700 animate-spin mx-auto mb-2" />
-          <p className="text-xs text-slate-500">{so ? 'Diiwaanka waa la soo dejinayaa…' : 'Loading the registry…'}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <SkeletonCard key={index} lines={4} />
+          ))}
+          <span className="sr-only" role="status">
+            {so ? 'Diiwaanka waa la soo dejinayaa…' : 'Loading the registry…'}
+          </span>
         </div>
       )}
 
       {!loading && visible.length === 0 && (
-        <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center space-y-1">
-          <Server className="w-7 h-7 text-slate-300 mx-auto" />
-          <p className="text-xs font-semibold text-slate-600">
-            {so ? 'Sanduuq lamana helin.' : 'No cablebox matches this filter.'}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Server className="w-5 h-5" />}
+          title={
+            boxes.length === 0
+              ? so
+                ? 'Weli sanduuq lama diiwaangelin'
+                : 'No cableboxes registered yet'
+              : so
+                ? 'Sanduuq lamana helin'
+                : 'No cablebox matches this filter'
+          }
+          description={
+            boxes.length === 0
+              ? so
+                ? 'Sanduuqyada waxay soo galaan marka shaqo la galo oo cablebox-keeda la aqoonsado.'
+                : 'Boxes appear as soon as a job is imported with a recognisable cablebox code.'
+              : so
+                ? 'Beddel shaandhaynta ama tirtir raadinta.'
+                : 'Change the filter or clear the search.'
+          }
+          action={
+            (filter !== 'all' || query) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setFilter('all');
+                  setQuery('');
+                }}
+              >
+                {so ? 'Tirtir shaandhaynta' : 'Clear filters'}
+              </Button>
+            )
+          }
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -217,47 +253,39 @@ function BoxCard({ box, lang, onOpen }: { box: BoxSummary; lang: 'so' | 'en'; on
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-sm font-extrabold text-slate-900">{box.box_code}</span>
-            <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${health.chip}`}>
-              {health.label}
-            </span>
-            {chronic && (
-              <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[9px] font-extrabold">
-                {so ? 'SOO NOQNOQDA' : 'CHRONIC'}
-              </span>
-            )}
+            <Badge tone={HEALTH_TONE[box.health_status] ?? 'slate'}>{health.label}</Badge>
+            {chronic && <Badge tone="rose">{so ? 'Soo noqnoqda' : 'Chronic'}</Badge>}
             {box.running_jobs > 0 && (
-              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-extrabold inline-flex items-center gap-0.5">
-                <span className="w-1 h-1 rounded-full bg-emerald-600 animate-pulse" />
+              <Badge tone="emerald" dot>
                 {box.running_jobs} {so ? 'socda' : 'live'}
-              </span>
+              </Badge>
             )}
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-slate-500">
             {box.xaafada && (
               <span className="inline-flex items-center gap-0.5">
-                <MapPin className="w-2.5 h-2.5" />
+                <MapPin className="w-2.5 h-2.5" aria-hidden="true" />
                 {box.xaafada}
               </span>
             )}
             {box.olt_path && (
               <span className="inline-flex items-center gap-0.5 font-mono truncate max-w-[14rem]">
-                <Cable className="w-2.5 h-2.5" />
+                <Cable className="w-2.5 h-2.5" aria-hidden="true" />
                 {box.olt_path}
               </span>
             )}
           </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-1" />
+        <ChevronRight className="w-4 h-4 text-slate-500 shrink-0 mt-1" aria-hidden="true" />
       </div>
 
-      {/* port usage bar */}
       <div className="mt-2.5">
         <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
           <span>
             {usage.used}/{box.total_ports} {so ? 'port la isticmaalo' : 'ports in use'}
           </span>
           {box.ports_damaged > 0 && (
-            <span className="text-rose-600">
+            <span className="text-rose-700">
               {box.ports_damaged} {so ? 'burbur' : 'damaged'}
             </span>
           )}
@@ -270,18 +298,18 @@ function BoxCard({ box, lang, onOpen }: { box: BoxSummary; lang: 'so' | 'en'; on
 
       <div className="mt-2.5 grid grid-cols-3 gap-1.5 text-center">
         <div className="rounded-lg bg-slate-50 py-1">
-          <div className="text-[9px] font-bold uppercase text-slate-400">{so ? 'Cilado' : 'Faults'}</div>
-          <div className={`text-xs font-extrabold ${box.faults_30d >= 3 ? 'text-rose-700' : 'text-slate-800'}`}>
+          <div className="text-[10px] font-bold uppercase text-slate-500">{so ? 'Cilado' : 'Faults'}</div>
+          <div className={cx('text-xs font-extrabold', box.faults_30d >= 3 ? 'text-rose-700' : 'text-slate-800')}>
             {box.faults_30d}
           </div>
         </div>
         <div className="rounded-lg bg-slate-50 py-1">
-          <div className="text-[9px] font-bold uppercase text-slate-400">{so ? 'Dhammaystiran' : 'Done'}</div>
+          <div className="text-[10px] font-bold uppercase text-slate-500">{so ? 'Dhammaystiran' : 'Done'}</div>
           <div className="text-xs font-extrabold text-slate-800">{box.completed_30d}</div>
         </div>
         <div className="rounded-lg bg-slate-50 py-1">
-          <div className="text-[9px] font-bold uppercase text-slate-400 inline-flex items-center gap-0.5">
-            <Signal className="w-2.5 h-2.5" /> dBm
+          <div className="text-[10px] font-bold uppercase text-slate-500 inline-flex items-center gap-0.5">
+            <Signal className="w-2.5 h-2.5" aria-hidden="true" /> dBm
           </div>
           <div className="text-xs font-extrabold text-slate-800">
             {box.avg_dbm_30d !== null ? Number(box.avg_dbm_30d).toFixed(1) : '—'}
@@ -289,7 +317,7 @@ function BoxCard({ box, lang, onOpen }: { box: BoxSummary; lang: 'so' | 'en'; on
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+      <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
         <span>
           {box.open_jobs > 0
             ? `${box.open_jobs} ${so ? 'shaqo furan' : 'open job(s)'}`

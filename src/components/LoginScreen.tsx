@@ -128,7 +128,7 @@ export function LoginScreen() {
           </div>
           <div>
             <div className="text-white font-bold text-sm leading-tight">TELESOM FBB</div>
-            <div className="text-emerald-300 text-[11px] font-medium">Group F1 Operations</div>
+            <div className="text-emerald-200 text-[11px] font-medium">Group F1 Operations</div>
           </div>
         </div>
 
@@ -192,7 +192,7 @@ export function LoginScreen() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-bold text-slate-700">{t('pinLabel')}</label>
-                <span className="text-[11px] font-medium text-slate-400">4–6 digits</span>
+                <span className="text-[11px] font-medium text-slate-500">4–6 digits</span>
               </div>
               <input
                 type="password"
@@ -285,7 +285,7 @@ export function LoginScreen() {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-[10px] text-slate-400 text-center">
+            <p className="mt-2 text-[10px] text-slate-500 text-center">
               Dev build only · not shipped to production
             </p>
           </div>
@@ -294,7 +294,7 @@ export function LoginScreen() {
       </div>
 
       {/* Footer */}
-      <div className="text-center text-[11px] text-emerald-300/60 pb-1">
+      <div className="text-center text-[11px] text-emerald-300/80 pb-1">
         Telesom Fixed Broadband Department • Group F1 Field System
       </div>
     </div>
