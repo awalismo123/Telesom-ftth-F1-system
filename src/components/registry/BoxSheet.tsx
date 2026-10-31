@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { describeError } from '../../lib/useErrorMessage';
 import {
   AlertTriangle,
   Cable,
@@ -25,6 +26,15 @@ import {
 import { fetchBoxDetail, setPortStatus } from '../../lib/registryService';
 import { formatClock } from '../../lib/execution';
 import { PortGrid } from './PortGrid';
+import { useToast } from '../ui/Toast';
+import { useLanguage } from '../../lib/i18n';
+
+const PORT_LABEL_EN: Record<PortStatus, string> = {
+  free: 'Free', occupied: 'In use', damaged: 'Damaged', reserved: 'Reserved', unknown: 'Not checked',
+};
+const PORT_LABEL_SO: Record<PortStatus, string> = {
+  free: 'Banaan', occupied: 'La isticmaalo', damaged: 'Burbur', reserved: 'Kaydsan', unknown: 'Aan la hubin',
+};
 
 interface Props {
   boxId: string;
@@ -41,6 +51,7 @@ interface Props {
  */
 export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Props) {
   const so = lang === 'so';
+  const toast = useToast();
   const [detail, setDetail] = useState<BoxDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +64,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
       setDetail(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load this cablebox');
+      setError(describeError(err, lang));
     } finally {
       setLoading(false);
     }
@@ -78,6 +89,10 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
 
   const savePort = async (port: number, status: PortStatus, notes?: string) => {
     await setPortStatus({ token, boxId, portNumber: port, status, notes });
+    toast.success(
+      so ? `Port ${port} waa la cusboonaysiiyay` : `Port ${port} updated`,
+      { description: so ? PORT_LABEL_SO[status] : PORT_LABEL_EN[status] },
+    );
     await load();
     onChanged?.();
   };

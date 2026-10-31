@@ -13,11 +13,14 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
+import { useToast } from './ui/Toast';
+import { describeError } from '../lib/useErrorMessage';
 
 export function HeaderBar() {
   const { session, activeGroup, availableGroups, setActiveGroupById, signOut, changeOwnPin } =
     useAuth();
   const { lang, setLang, t } = useLanguage();
+  const toast = useToast();
 
   const [showPinModal, setShowPinModal] = useState(false);
   const [currentPin, setCurrentPin] = useState('');
@@ -51,12 +54,15 @@ export function HeaderBar() {
       setPinSuccess(true);
       setCurrentPin('');
       setNewPin('');
+      toast.success(lang === 'so' ? 'PIN-ka waa la beddelay' : 'PIN updated', {
+        description: lang === 'so' ? 'Isticmaal PIN-ka cusub marka xigta.' : 'Use the new PIN next time.',
+      });
       setTimeout(() => {
         setPinSuccess(false);
         setShowPinModal(false);
       }, 1200);
     } catch (err) {
-      setPinError(err instanceof Error ? err.message : 'Failed to update PIN');
+      setPinError(describeError(err, lang));
     } finally {
       setSavingPin(false);
     }

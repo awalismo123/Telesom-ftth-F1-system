@@ -13,6 +13,19 @@ import { useAuth } from '../contexts/AuthContext';
 import { toErrorMessage } from '../lib/errors';
 import { useLanguage } from '../lib/i18n';
 
+/**
+ * Demo shortcuts are for local development only. `import.meta.env.DEV` is
+ * replaced with `false` at build time, so the block is dropped from the
+ * production bundle; the try/catch keeps the module importable in tests.
+ */
+const DEV_BUILD = ((): boolean => {
+  try {
+    return Boolean(import.meta.env.DEV);
+  } catch {
+    return false;
+  }
+})();
+
 const QUICK_ACCOUNTS = [
   {
     label: 'F1 Supervisor',
@@ -222,7 +235,9 @@ export function LoginScreen() {
             </button>
           </form>
 
-          {/* Quick Demo Fill Accounts */}
+          {/* Quick demo fill — development builds only. Production users get
+              their PIN from the supervisor, never from the login screen. */}
+          {DEV_BUILD && (
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-200/80">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
@@ -250,7 +265,11 @@ export function LoginScreen() {
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-[10px] text-slate-400 text-center">
+              Dev build only · not shipped to production
+            </p>
           </div>
+          )}
         </div>
       </div>
 

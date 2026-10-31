@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { describeError } from '../../../lib/useErrorMessage';
 import { Activity, AlertTriangle, Timer } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
@@ -32,7 +33,7 @@ export function LiveStrip() {
       setOffset(serverOffsetMs(data.server_now, receivedAt));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Live status unavailable');
+      setError(describeError(err, lang));
     }
   }, [token, groupId]);
 

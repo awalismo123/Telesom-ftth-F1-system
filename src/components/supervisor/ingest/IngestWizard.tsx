@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { describeError } from '../../../lib/useErrorMessage';
+import { useToast } from '../../ui/Toast';
 import {
   ArrowLeft,
   ArrowRight,
@@ -56,6 +58,7 @@ interface ImportBatchRow {
 export function IngestWizard() {
   const { session, activeGroup } = useAuth();
   const { lang } = useLanguage();
+  const toast = useToast();
   const so = lang === 'so';
 
   const [phase, setPhase] = useState<Phase>('source');
@@ -149,7 +152,7 @@ export function IngestWizard() {
       setSheetType(ocr.template.id === 'galinta' ? 'galinta' : 'cilada');
       setPhase('review');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to read the picture');
+      setError(describeError(err, lang));
       setPhase('source');
     }
   };
@@ -172,7 +175,7 @@ export function IngestWizard() {
       setPasteOpen(false);
       setPhase('review');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse the text');
+      setError(describeError(err, lang));
     }
   };
 
@@ -217,7 +220,7 @@ export function IngestWizard() {
       setPlan(built);
       setPhase('conflicts');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to check existing tasks');
+      setError(describeError(err, lang));
     } finally {
       setCommitting(false);
     }
@@ -245,9 +248,18 @@ export function IngestWizard() {
       });
       setResult(committed);
       setPhase('done');
+      toast.success(so ? 'Soo dejintu waa dhammaatay' : 'Import committed', {
+        description: [
+          `${committed.created} ${so ? 'cusub' : 'new'}`,
+          committed.refreshed ? `${committed.refreshed} ${so ? 'la cusboonaysiiyay' : 'refreshed'}` : null,
+          committed.skipped ? `${committed.skipped} ${so ? 'la booday' : 'skipped'}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      });
       await loadHistory();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      setError(describeError(err, lang));
     } finally {
       setCommitting(false);
     }
@@ -258,9 +270,12 @@ export function IngestWizard() {
     setHistoryBusy(batchId);
     try {
       await undoImport(session.token, batchId);
+      toast.info(so ? 'Soo dejinta waa la tirtiray' : 'Import undone', {
+        description: so ? 'Shaqooyinkii waa laga saaray liiska.' : 'Those jobs were removed.',
+      });
       await loadHistory();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Undo failed');
+      setError(describeError(err, lang));
     } finally {
       setHistoryBusy(null);
     }

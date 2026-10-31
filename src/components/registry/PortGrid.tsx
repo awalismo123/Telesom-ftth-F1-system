@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { describeError } from '../../lib/useErrorMessage';
 import { Check, Loader2, X } from 'lucide-react';
 import { PORT_STATUS_META, type BoxPort, type Lang, type PortStatus } from '../../lib/registry';
 
@@ -44,7 +45,7 @@ export function PortGrid({ ports, totalPorts, lang, canEdit, onSave }: Props) {
       await onSave(selected, status, notes.trim() || undefined);
       setSelected(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the port');
+      setError(describeError(err, lang));
     } finally {
       setSaving(false);
     }

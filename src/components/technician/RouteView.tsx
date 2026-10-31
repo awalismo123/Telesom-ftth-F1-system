@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { describeError } from '../../lib/useErrorMessage';
 import {
   AlertTriangle,
   ChevronDown,
@@ -26,6 +27,7 @@ import { fetchRoute, resumeTask, startTask } from '../../lib/executionService';
 import { useNow } from '../../lib/useNow';
 import { RouteCard } from './RouteCard';
 import { ExecutionSheet } from './ExecutionSheet';
+import { useToast } from '../ui/Toast';
 
 interface ConfirmState {
   task: RouteTask;
@@ -47,6 +49,7 @@ export function RouteView() {
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const toast = useToast();
 
   const mounted = useRef(true);
   useEffect(() => {
@@ -69,7 +72,7 @@ export function RouteView() {
         setError(null);
       } catch (err) {
         if (!mounted.current) return;
-        setError(err instanceof Error ? err.message : 'Could not load your route');
+        setError(describeError(err, lang));
       } finally {
         if (mounted.current && !silent) setLoading(false);
       }
@@ -123,9 +126,12 @@ export function RouteView() {
         setConfirm({ task, others: result.other_running ?? [] });
         return;
       }
+      toast.success(so ? 'Waqtiga waa bilaabmay' : 'Timer started', {
+        description: `${task.line_number} · ${task.customer_name}`,
+      });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start the job');
+      setError(describeError(err, lang));
     } finally {
       setBusyId(null);
     }
@@ -136,9 +142,12 @@ export function RouteView() {
     setError(null);
     try {
       await resumeTask(token, task.id);
+      toast.success(so ? 'Waqtiga wuu sii socday' : 'Timer resumed', {
+        description: `${task.line_number}`,
+      });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not resume the job');
+      setError(describeError(err, lang));
     } finally {
       setBusyId(null);
     }
@@ -349,7 +358,7 @@ export function RouteView() {
                   void startTask(token, pending.task.id, true)
                     .then(() => load(true))
                     .catch((err: unknown) =>
-                      setError(err instanceof Error ? err.message : 'Could not start the job'),
+                      setError(describeError(err, lang)),
                     )
                     .finally(() => setBusyId(null));
                 }}

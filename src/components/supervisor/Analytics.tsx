@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { describeError } from '../../lib/useErrorMessage';
 import {
   AlertTriangle,
   BarChart3,
@@ -42,6 +43,7 @@ import {
   type ReportJob,
 } from '../../lib/registryService';
 import { BoxSheet } from '../registry/BoxSheet';
+import { useToast } from '../ui/Toast';
 
 const WINDOWS = [7, 30, 90];
 
@@ -60,6 +62,7 @@ export function Analytics() {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [openBoxId, setOpenBoxId] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     if (!token || !groupId) return;
@@ -69,7 +72,7 @@ export function Analytics() {
       setData(payload);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load the analytics');
+      setError(describeError(err, lang));
     } finally {
       setLoading(false);
     }
@@ -101,8 +104,11 @@ export function Analytics() {
         downloadCsv(`telesom-${activeGroup?.code ?? 'F1'}-teams-${date}.csv`, buildTechCsv(data.techs));
         downloadCsv(`telesom-${activeGroup?.code ?? 'F1'}-boxes-${date}.csv`, buildBoxCsv(data.boxes));
       }
+      toast.success(so ? '3 fayl CSV waa la soo dejiyay' : '3 CSV files downloaded', {
+        description: `${jobs.length} ${so ? 'shaqo' : 'jobs'} · ${days} ${so ? 'maalmood' : 'days'}`,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed');
+      setError(describeError(err, lang));
     } finally {
       setBusy(false);
     }
@@ -118,6 +124,9 @@ export function Analytics() {
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
+      toast.success(so ? 'Warbixinta waa la nuqulay' : 'Report copied', {
+        description: so ? 'Ku dheji WhatsApp ama Telegram.' : 'Paste it into WhatsApp or Telegram.',
+      });
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setError(so ? 'Nuqul ma suurtogalin.' : 'Could not copy the report.');
@@ -128,10 +137,13 @@ export function Analytics() {
     if (!token || !groupId) return;
     setBusy(true);
     try {
-      await seedDemoData(token, groupId);
+      const result = await seedDemoData(token, groupId);
+      toast.success(so ? 'Xogta tijaabada waa lagu daray' : 'Demo history loaded', {
+        description: `${result.tasks_created} ${so ? 'shaqo' : 'jobs'} · ${result.logs_created} ${so ? 'dhacdo' : 'incidents'}`,
+      });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load demo data');
+      setError(describeError(err, lang));
     } finally {
       setBusy(false);
     }
@@ -141,10 +153,13 @@ export function Analytics() {
     if (!token) return;
     setBusy(true);
     try {
-      await clearDemoData(token);
+      const result = await clearDemoData(token);
+      toast.success(so ? 'Xogta tijaabada waa la tirtiray' : 'Demo data removed', {
+        description: `${result.removed_tasks} ${so ? 'shaqo' : 'jobs'} · ${result.removed_logs} ${so ? 'dhacdo' : 'incidents'}`,
+      });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not remove demo data');
+      setError(describeError(err, lang));
     } finally {
       setBusy(false);
     }
