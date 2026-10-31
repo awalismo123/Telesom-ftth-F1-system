@@ -23,6 +23,61 @@ import {
  * pass against the broken code.
  */
 
+/**
+ * Remove comments before scanning.
+ *
+ * The guard below is about *code*: a comment that quotes the old
+ * `supabase.channel('team-crews-realtime')` line is documentation, not a
+ * regression. Strings are honoured so a `//` inside a URL cannot swallow a
+ * line of real code.
+ */
+function stripComments(source: string): string {
+  let out = '';
+  let index = 0;
+  let quote: string | null = null;
+
+  while (index < source.length) {
+    const char = source[index];
+    const next = source[index + 1];
+
+    if (quote) {
+      out += char;
+      if (char === '\\') {
+        out += next ?? '';
+        index += 2;
+        continue;
+      }
+      if (char === quote) quote = null;
+      index += 1;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      out += char;
+      index += 1;
+      continue;
+    }
+
+    if (char === '/' && next === '/') {
+      while (index < source.length && source[index] !== '\n') index += 1;
+      continue;
+    }
+
+    if (char === '/' && next === '*') {
+      index += 2;
+      while (index < source.length && !(source[index] === '*' && source[index + 1] === '/')) index += 1;
+      index += 2;
+      continue;
+    }
+
+    out += char;
+    index += 1;
+  }
+
+  return out;
+}
+
 class FakeChannel implements RealtimeChannelLike {
   readonly topic: string;
   subscribed = false;
@@ -171,4 +226,49 @@ test('tightly spaced changes collapse into one (debounce survives the refactor)'
 
   assert.equal(calls, 0);
   assert.equal(client.channels[0].listeners.length, 1);
+});
+
+test('nothing outside the realtime module creates a channel by hand', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { join } = await import('node:path');
+
+  const root = fileURLToPath(new URL('../src', import.meta.url));
+  const offenders: string[] = [];
+
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.(ts|tsx)$/.test(entry.name)) continue;
+      const relative = full.slice(root.length + 1);
+      if (relative === 'lib/realtime.ts') continue;
+      if (/\.channel\(|\.removeChannel\(|removeAllChannels\(/.test(stripComments(readFileSync(full, 'utf8')))) {
+        offenders.push(relative);
+      }
+    }
+  };
+
+  walk(root);
+
+  // Direct channel use is how the dispatch tab crashed: two screens asked for
+  // the same topic and shared one channel. `useTableChanges` is the only door.
+  assert.deepEqual(offenders, [], 'create Realtime channels only in src/lib/realtime.ts');
+});
+
+test('the comment stripper tells code from documentation', () => {
+  const sample = [
+    'const a = supabase.channel("real"); // supabase.channel("commented")',
+    '/* supabase.channel("block") */',
+    'const url = "https://a//b";',
+  ].join('\n');
+
+  const stripped = stripComments(sample);
+
+  assert.match(stripped, /supabase\.channel\("real"\)/, 'real code survives');
+  assert.doesNotMatch(stripped, /commented|block/, 'comments are removed');
+  assert.match(stripped, /https:\/\/a\/\/b/, 'a // inside a string does not eat the line');
 });

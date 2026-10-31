@@ -16,6 +16,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
+import { useTableChanges } from '../../lib/realtime';
 import type { Crew, Group, UserProfile, UserRole } from '../../types/database';
 
 interface CrewMemberRow {
@@ -60,9 +61,11 @@ export function TeamAndCrewManager() {
   const [gName, setGName] = useState('');
   const [gDesc, setGDesc] = useState('');
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (silent = false) => {
     if (!activeGroup?.id) return;
-    setLoading(true);
+    // A background refresh (another supervisor added a technician) must not
+    // replace the table with a skeleton under the reader's finger.
+    if (!silent) setLoading(true);
     const [usersRes, crewsRes, linksRes] = await Promise.all([
       supabase
         .from('users')
@@ -86,24 +89,21 @@ export function TeamAndCrewManager() {
 
   useEffect(() => {
     void loadData();
-
-    const channel = supabase
-      .channel('team-crews-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        void loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'crews' }, () => {
-        void loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'crew_members' }, () => {
-        void loadData();
-      })
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
   }, [loadData]);
+
+  /**
+   * Staff, crews and crew membership land live — a technician added on another
+   * phone appears without a reload.
+   *
+   * This used to call `supabase.channel('team-crews-realtime')` by hand. The
+   * topic was fixed, and removing a channel is asynchronous: leave the tab and
+   * come back before the unsubscribe finishes and `channel()` hands back the
+   * still-subscribed channel, so the next `.on()` throws. `useTableChanges`
+   * names every subscription uniquely, so that race cannot exist.
+   */
+  useTableChanges({ table: 'users', onChange: () => void loadData(true) });
+  useTableChanges({ table: 'crews', onChange: () => void loadData(true) });
+  useTableChanges({ table: 'crew_members', onChange: () => void loadData(true) });
 
   const openAddMember = () => {
     setEditingMember(null);
