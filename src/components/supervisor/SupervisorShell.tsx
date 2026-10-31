@@ -14,12 +14,13 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
-import type { Cablebox } from '../../types/database';
+import { OPEN_TASK_STATUSES, type Cablebox } from '../../types/database';
 import { Tabs, type TabItem } from '../ui/Tabs';
 import { Stat } from '../ui/Stat';
 import { cx } from '../ui/cx';
 import { LazyPanel } from '../ui/LazyPanel';
 import { preload, type PreloadKey } from '../../lib/preload';
+import { useNavigation } from '../../lib/navigation';
 
 /**
  * Every module is its own chunk. A supervisor who opens the app to dispatch one
@@ -64,6 +65,31 @@ export function SupervisorShell() {
   const [taskCount, setTaskCount] = useState(0);
   const [unassignedCount, setUnassignedCount] = useState(0);
   const [cableboxes, setCableboxes] = useState<Cablebox[]>([]);
+  const [focusTask, setFocusTask] = useState<{ id: string; nonce: number } | null>(null);
+  const [focusBox, setFocusBox] = useState<{ id: string; nonce: number } | null>(null);
+  const { intent, consume } = useNavigation();
+
+  /**
+   * Search results and notifications land here: switch to the right tab and hand
+   * the job or box to the screen that owns it.
+   */
+  useEffect(() => {
+    if (!intent) return;
+
+    if (intent.to === 'dispatch') {
+      setActiveTab('dispatch');
+      if (intent.taskId) setFocusTask({ id: intent.taskId, nonce: intent.nonce });
+      consume();
+    } else if (intent.to === 'boxes') {
+      setActiveTab('cableboxes');
+      if (intent.boxId) setFocusBox({ id: intent.boxId, nonce: intent.nonce });
+      consume();
+    } else if (intent.to === 'insights' || intent.to === 'ingest' || intent.to === 'team' || intent.to === 'overview') {
+      setActiveTab(intent.to);
+      consume();
+    }
+    // 'route' is the technician's shell; the supervisor ignores it.
+  }, [intent, consume]);
 
   const loadSummary = useCallback(async () => {
     if (!activeGroup?.id) return;
@@ -83,7 +109,7 @@ export function SupervisorShell() {
         .from('tasks')
         .select('id', { count: 'exact', head: true })
         .eq('group_id', activeGroup.id)
-        .neq('status', 'completed'),
+        .in('status', OPEN_TASK_STATUSES),
       supabase.from('cableboxes').select('*').order('box_code', { ascending: true }),
       supabase
         .from('tasks')
@@ -275,12 +301,12 @@ export function SupervisorShell() {
             )}
             {activeTab === 'dispatch' && (
               <LazyPanel shape="board" label={t('navDispatch')}>
-                <DispatchBoard />
+                <DispatchBoard focusTaskId={focusTask?.id ?? null} focusNonce={focusTask?.nonce ?? 0} />
               </LazyPanel>
             )}
             {activeTab === 'cableboxes' && (
               <LazyPanel shape="cards" label={t('navCablebox')}>
-                <BoxRegistry />
+                <BoxRegistry focusBoxId={focusBox?.id ?? null} focusNonce={focusBox?.nonce ?? 0} />
               </LazyPanel>
             )}
             {activeTab === 'insights' && (

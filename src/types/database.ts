@@ -4,7 +4,16 @@ export type UserRole = 'supervisor' | 'technician';
 
 export type TaskType = 'installation' | 'cilada';
 
-export type TaskStatus = 'unassigned' | 'assigned' | 'in_progress' | 'blocked' | 'completed';
+export type TaskStatus =
+  | 'unassigned'
+  | 'assigned'
+  | 'in_progress'
+  | 'blocked'
+  | 'completed'
+  | 'cancelled';
+
+/** A job that still needs someone. Cancelled and completed are not open. */
+export const OPEN_TASK_STATUSES: TaskStatus[] = ['unassigned', 'assigned', 'in_progress', 'blocked'];
 
 export type BlockerReason =
   | 'customer_unreachable'
@@ -119,6 +128,15 @@ export interface Task {
   completion_notes: string | null;
   completed_at: string | null;
   completed_by: string | null;
+  /** where the job came from: the daily sheet, or a supervisor on the phone */
+  source: 'sheet' | 'manual';
+  created_by: string | null;
+  intake_notes: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  cancel_reason: string | null;
+  reopened_count: number;
+  last_reopened_at: string | null;
   scheduled_date: string;
   last_seen_on_sheet_date?: string | null;
   created_at: string;

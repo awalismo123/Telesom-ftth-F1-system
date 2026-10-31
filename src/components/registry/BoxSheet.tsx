@@ -8,6 +8,7 @@ import {
   History,
   Loader2,
   MapPin,
+  Pencil,
   RefreshCw,
   Signal,
   Wrench,
@@ -29,6 +30,7 @@ import { formatClock } from '../../lib/execution';
 import { PortGrid } from './PortGrid';
 import { useToast } from '../ui/Toast';
 import { useLanguage } from '../../lib/i18n';
+import { statusLabel } from '../../lib/ops';
 
 const PORT_LABEL_EN: Record<PortStatus, string> = {
   free: 'Free', occupied: 'In use', damaged: 'Damaged', reserved: 'Reserved', unknown: 'Not checked',
@@ -44,13 +46,15 @@ interface Props {
   canEdit: boolean;
   onClose: () => void;
   onChanged?: () => void;
+  /** present only where the person is allowed to correct the box details */
+  onEdit?: () => void;
 }
 
 /**
  * One cablebox, everything about it: port map, health, every incident and
  * every job done there. Used by the supervisor registry and by the technician.
  */
-export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Props) {
+export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged, onEdit }: Props) {
   const so = lang === 'so';
   const toast = useToast();
   const [detail, setDetail] = useState<BoxDetail | null>(null);
@@ -141,6 +145,17 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
                 )}
               </div>
             </div>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer"
+                title={so ? 'Wax ka beddel sanduuqa' : 'Edit this box'}
+                aria-label={so ? 'Wax ka beddel sanduuqa' : 'Edit this box'}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => void load()}
@@ -333,10 +348,12 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged }: Pr
                             className={`text-[10px] font-extrabold px-1 rounded ${
                               job.status === 'completed'
                                 ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-amber-50 text-amber-700'
+                                : job.status === 'cancelled'
+                                  ? 'bg-slate-100 text-slate-600'
+                                  : 'bg-amber-50 text-amber-700'
                             }`}
                           >
-                            {job.status.toUpperCase()}
+                            {statusLabel(job.status, lang)}
                           </span>
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-slate-500">

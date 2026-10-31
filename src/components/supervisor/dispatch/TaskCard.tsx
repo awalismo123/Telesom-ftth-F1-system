@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Clock, MapPin, Phone, Repeat, Undo2, User } from 'lucide-react';
+import { AlertTriangle, Clock, MapPin, MoreVertical, Phone, Repeat, Undo2, User } from 'lucide-react';
 import type { Task } from '../../../types/database';
 import { formatPhoneE164, formatPhoneLocal, taskPlace } from '../../../lib/dispatch';
 
@@ -13,6 +13,9 @@ interface Props {
   statusLabel?: string;
   onUnassign?: () => void;
   unassignLabel?: string;
+  /** opens the actions sheet: reassign, cancel, reopen … */
+  onActions?: () => void;
+  actionsLabel?: string;
 }
 
 const URGENT_LABEL = { en: 'URGENT', so: 'DEGDEG' } as const;
@@ -27,6 +30,8 @@ export function TaskCard({
   statusLabel,
   onUnassign,
   unassignLabel,
+  onActions,
+  actionsLabel,
 }: Props) {
   const phone = formatPhoneLocal(task.customer_phone);
   const tel = formatPhoneE164(task.customer_phone);
@@ -119,15 +124,31 @@ export function TaskCard({
           </div>
         </div>
 
-        {onUnassign && (
-          <button
-            type="button"
-            onClick={onUnassign}
-            title={unassignLabel}
-            className="shrink-0 p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-          </button>
+        {(onUnassign || onActions) && (
+          <div className="shrink-0 flex flex-col gap-0.5">
+            {onActions && (
+              <button
+                type="button"
+                onClick={onActions}
+                title={actionsLabel}
+                aria-label={actionsLabel}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              >
+                <MoreVertical className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onUnassign && (
+              <button
+                type="button"
+                onClick={onUnassign}
+                title={unassignLabel}
+                aria-label={unassignLabel}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

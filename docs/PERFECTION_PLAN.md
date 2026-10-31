@@ -516,3 +516,181 @@ Anything that subscribes must be named **per subscriber**, not per logical
 stream, because the library treats the topic as the identity of the channel.
 Any future realtime work (Batch E notifications, live technician presence) uses
 `useTableChanges` / `subscribeTableChanges` — never `supabase.channel()` directly.
+
+---
+
+## §9 Batch E — the work that used to happen on a phone call
+
+Batch E was scoped as "everything the department does by phone call is possible
+in the app". Five features, one data-model change, one migration pair.
+
+### 9.1 A cancelled job is a real state, not a deleted row
+
+`tasks.status` gained **`cancelled`**, with `cancelled_at`, `cancelled_by` and a
+required `cancel_reason`. A cancelled job also carries `source` (`sheet` |
+`manual`), `created_by`, `intake_notes`, `reopened_count` and `last_reopened_at`.
+
+Two deliberate decisions:
+
+* **Deleting was never an option.** A cancelled job must still explain itself
+  months later: who cancelled it, when, and why. Analytics exclude it by asking
+  for `status = 'completed'` explicitly, so the efficiency numbers do not move.
+* **`cancelled` is final in the database, not in the UI.** `assign_tasks`,
+  `start_task`, `complete_task` and `unassign_tasks` all guard against
+  `completed` but knew nothing about `cancelled` — a stale phone could have
+  restarted cancelled work. Rather than redefine four functions (and every
+  future one), a `BEFORE UPDATE` trigger refuses any move out of `cancelled`
+  unless the caller is `reopen_task`, which sets a transaction-local flag:
+
+  ```sql
+  IF OLD.status = 'cancelled' AND NEW.status <> 'cancelled'
+     AND current_setting('f1.allow_reopen', true) IS DISTINCT FROM 'on' THEN
+    RAISE EXCEPTION 'This job was cancelled. Reopen it before working on it again.';
+  ```
+
+**The consequence nobody would notice until it bit them:** the app used
+`.neq('status', 'completed')` to mean "open work" in two places. With a third
+terminal state that silently pulls cancelled jobs back into the dispatch pool and
+the overview KPI. Both now ask for `OPEN_TASK_STATUSES` explicitly, and the
+importer was fixed too — a line whose previous job was *cancelled* must be able
+to import as fresh work instead of being swallowed as "already open". All three
+are pinned by tests.
+
+### 9.2 Registering a box (`upsert_cablebox`)
+
+Register or edit a box — code, area, OLT path, port count, location notes — from
+the field. Duplicate detection is the point:
+
+* the code is normalised exactly like the importer (`fat 48` → `FAT 48`), so the
+  form and the sheet agree about identity;
+* creating a code that already exists returns `{ ok: false, reason: 'duplicate',
+  box }` instead of a unique-constraint error, and the screen offers *open the
+  existing box* rather than creating a twin;
+* **a code owned by another group is a different answer.** Box codes are
+  department-unique, so offering "open it" would land the person on a 403; the
+  sheet says so and asks for a different code;
+* **shrinking a box is refused while any port above the new count is occupied,
+  damaged or reserved** — otherwise a customer's line silently disappears.
+
+Every create and edit writes a `note` row into `cablebox_logs`, so a box's
+history includes who changed its details.
+
+### 9.3 The phone call (`create_manual_task`)
+
+Line, customer, phone, area, box, port, type, urgency, what the caller said, and
+an optional immediate assignment — one form, one transaction, one audit trail
+(`imported` + `assigned` work-log rows, `source = 'manual'`, `created_by`).
+
+The importer's duplicate rule carries over: if the line already has an open job,
+the RPC returns it and the supervisor must confirm before a second one is
+created. A port that does not exist on the box is rejected with the box's real
+port count rather than silently stored.
+
+### 9.4 Corrections (`cancel_task`, `reopen_task`)
+
+* **Cancel** requires a reason (≥3 characters). If the job was running, the
+  elapsed time is folded into `accumulated_seconds` before the clock stops, so
+  time already spent on site is not erased.
+* **Reopen** works from `completed` or `cancelled`, keeps the technician or crew,
+  resets the timer for the new visit, and writes the previous reading, previous
+  duration and reason into the work log. `reopened_count` makes a job that keeps
+  coming back visible.
+* Both are reachable from the dispatch board's per-job menu — including for jobs
+  that are no longer on the board, because the sheet fetches the job by id.
+
+### 9.5 Global search (`global_search`)
+
+One query across line numbers, customer names, phone numbers (digits are
+normalised, so `063 470` finds `063470…`), cablebox codes and areas — with the
+database ranking an exact line number first, then a prefix, then a phone match.
+A single character is refused: it matches half the group.
+
+Reachable from a visible **Search** button (phone and desktop), `⌘K`/`Ctrl-K`,
+and `/` when not already typing. **Deviation from the plan:** the plan said
+"⌘K / long-press". A long-press is invisible and undiscoverable in a tool that
+technicians learn in five minutes; a 44 px button in the header is not. The
+keyboard shortcuts are kept for the desk.
+
+Picking a result is a real navigation: `NavigationProvider` carries a named
+destination plus the object, the shells consume it, and the screen that owns the
+job or box opens it. If a technician searches a job that is not on their route,
+they are told so instead of tapping a button that does nothing.
+
+### 9.6 Notifications (derived, never stored)
+
+A bell in the header, with two different definitions of "needs you":
+
+* **Technician** — work assigned after they last looked, and blockers that
+  cleared (`task_work_logs.action = 'resumed'` after the same moment). A job
+  that was resumed and blocked again is **not** reported as cleared; that is a
+  test, because the first version got it wrong.
+* **Supervisor** — jobs currently blocked, and jobs running longer than two
+  hours.
+
+There is no notifications table. Everything is derived from the jobs the app
+already has, so it cannot drift out of sync with reality, and there is nothing
+to clean up. "Seen" is per device and per person in `localStorage`.
+
+One subtlety worth recording: the badge baseline and the list baseline are two
+different clocks. Opening the bell marks items seen (the badge clears) but
+freezes the list against the *previous* baseline, so the list does not empty
+itself in front of the person who just opened it.
+
+### 9.7 Verification
+
+The database was exercised live, inside a transaction that was rolled back:
+
+| Probe | Result |
+| :--- | :--- |
+| create box `zz test box` | `ok: true`, stored as `ZZ TEST BOX` |
+| create the same code again | `ok: false, reason: 'duplicate'` + the existing box |
+| edit 8 → 12 ports | `ok: true, reason: 'updated'` |
+| shrink to 8 with port 11 occupied | refused: "1 port(s) above that are in use" |
+| phone-in job with box + port 3 + technician | created, `status: assigned`, urgent |
+| same line again | `ok: false, reason: 'duplicate'` |
+| same line, confirmed | created |
+| port 24 on a 12-port box | refused: "has only 12 ports" |
+| cancel with a blank reason | refused |
+| cancel with a reason | `status: cancelled`, duration folded |
+| direct `UPDATE … status='assigned'` on it | refused by the trigger |
+| `assign_tasks` on it | refused by the trigger |
+| reopen | `status: assigned`, `reopened_count: 1` |
+| search `999001` / `634700000` / `zz test` | found, ranked 0 / 2 / box |
+| search `9` | empty (too short) |
+| technician route after cancelling | cancelled job absent |
+
+Then, in the repo:
+
+| Check | Result |
+| :--- | :--- |
+| `tsc -b` | clean |
+| `npm test` | **121 / 121** (was 101) |
+| `npm run build` | 6.3 s |
+| `npm run bundle:check` | **180.2 kB / 200 kB** |
+| Dev server | all 14 new/changed modules transform and serve 200 |
+
+New tests: `tests/ops.test.ts` (20) covers box validation and normalisation,
+phone-in validation and payload shape, cancel-reason wording, notification
+construction for both roles, search thresholds, and structural guards for the
+three "cancelled leaks back into open work" paths.
+`tests/design.test.ts` caught three 9 px labels in the new header UI, which were
+fixed rather than exempted.
+
+### 9.8 What this batch deliberately did not do
+
+* **Offline queue** — still declined by the user. The app remains online-only
+  with the offline banner and draft protection from Batch A.
+* **Bulk box import from a spreadsheet** — registering from the field is the
+  need; a CSV of boxes is a different feature with a different duplicate story.
+* **A notifications table / push** — derived notifications are enough for a group
+  of five to ten people, and cannot go stale.
+* **Windowing long lists** — still unnecessary; the pools are tens of rows.
+
+### 9.9 New risk recorded
+
+`global_search` returns any job in the group to any signed-in user of that group,
+because that is what the existing `tasks` SELECT policy already allows. A
+technician searching a line they do not own will see the customer name and
+phone. This is the same exposure Batch B was parked for, now with a more
+convenient door; the fix remains the same (group- and role-scoped RLS plus a
+search policy), and it is recorded here rather than silently shipped.

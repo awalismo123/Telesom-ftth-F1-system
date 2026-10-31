@@ -6,7 +6,7 @@
  */
 
 import { supabase } from './supabase';
-import type { Task } from '../types/database';
+import { OPEN_TASK_STATUSES, type Task } from '../types/database';
 import type { DispatchTarget } from './dispatch';
 
 export interface LoadUser {
@@ -54,7 +54,7 @@ export async function fetchDispatchTasks(groupId: string): Promise<Task[]> {
     .from('tasks')
     .select('*')
     .eq('group_id', groupId)
-    .neq('status', 'completed')
+    .in('status', OPEN_TASK_STATUSES)
     .order('reported_date', { ascending: true })
     .limit(600);
 

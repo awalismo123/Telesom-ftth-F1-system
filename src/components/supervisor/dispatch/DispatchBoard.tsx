@@ -3,6 +3,7 @@ import { describeError } from '../../../lib/useErrorMessage';
 import {
   ChevronRight,
   MessageSquareText,
+  PhoneCall,
   RefreshCw,
   Route,
   Search,
@@ -37,6 +38,11 @@ import { TaskCard } from './TaskCard';
 import { ClusterPlanSheet } from './ClusterPlanSheet';
 import { DispatchMessageSheet } from './DispatchMessageSheet';
 import { LiveStrip } from './LiveStrip';
+import { ManualTaskSheet } from './ManualTaskSheet';
+import { JobActionsSheet } from './JobActionsSheet';
+import { fetchDirectory } from '../../../lib/registryService';
+import { cacheKeys, readCache } from '../../../lib/cache';
+import type { DirectoryResponse } from '../../../lib/registry';
 import { useToast } from '../../ui/Toast';
 import { Alert } from '../../ui/Alert';
 import { Button } from '../../ui/Button';
@@ -50,7 +56,13 @@ import { useTableChanges } from '../../../lib/realtime';
 
 type Filter = 'all' | 'urgent';
 
-export function DispatchBoard() {
+export function DispatchBoard({
+  focusTaskId = null,
+  focusNonce = 0,
+}: {
+  focusTaskId?: string | null;
+  focusNonce?: number;
+}) {
   const { session, activeGroup } = useAuth();
   const { t, lang } = useLanguage();
   const so = lang === 'so';
@@ -68,6 +80,9 @@ export function DispatchBoard() {
   const [pickerFor, setPickerFor] = useState<'selection' | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [actionTaskId, setActionTaskId] = useState<string | null>(null);
+  const [boxCodes, setBoxCodes] = useState<{ box_code: string; total_ports: number }[]>([]);
 
   const token = session?.token ?? '';
   const groupId = activeGroup?.id ?? '';
@@ -108,6 +123,26 @@ export function DispatchBoard() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // The phone-in form offers the boxes we already know, so a supervisor does not
+  // mistype a code and create a twin box.
+  useEffect(() => {
+    if (!token || !groupId) return;
+
+    const toCodes = (directory: DirectoryResponse) =>
+      setBoxCodes(directory.boxes.map((box) => ({ box_code: box.box_code, total_ports: box.total_ports })));
+
+    // Reuse the registry's payload if the supervisor just looked at it.
+    const cached = readCache<DirectoryResponse>(cacheKeys.directory(groupId));
+    if (cached) toCodes(cached);
+
+    void fetchDirectory(token, groupId).then(toCodes).catch(() => !cached && setBoxCodes([]));
+  }, [token, groupId]);
+
+  // Arrived from search or a notification: open that job's actions.
+  useEffect(() => {
+    if (focusTaskId) setActionTaskId(focusTaskId);
+  }, [focusTaskId, focusNonce]);
 
   /**
    * The board is live: a technician starting or finishing a job moves it
@@ -330,6 +365,10 @@ export function DispatchBoard() {
             <MessageSquareText className="w-4 h-4" aria-hidden="true" />
             {t('dispatchMessage')}
           </Button>
+          <Button variant="secondary" size="sm" onClick={() => setManualOpen(true)}>
+            <PhoneCall className="w-4 h-4" aria-hidden="true" />
+            {so ? 'Shaqo telefoon' : 'Phone-in job'}
+          </Button>
         </div>
       </div>
 
@@ -398,6 +437,8 @@ export function DispatchBoard() {
                 lang={lang}
                 selected={selected.includes(task.id)}
                 onSelect={toggleSelect}
+                onActions={() => setActionTaskId(task.id)}
+                actionsLabel={so ? 'Talaabooyin' : 'Job actions'}
               />
             ))}
 
@@ -523,6 +564,8 @@ export function DispatchBoard() {
                         }
                         onUnassign={task.status === 'assigned' ? () => void runUnassign(task.id) : undefined}
                         unassignLabel={t('dispatchUnassign')}
+                        onActions={() => setActionTaskId(task.id)}
+                        actionsLabel={so ? 'Talaabooyin' : 'Job actions'}
                       />
                     ))}
 
@@ -635,6 +678,29 @@ export function DispatchBoard() {
               )}
         </div>
       </Sheet>
+
+      <ManualTaskSheet
+        open={manualOpen}
+        onClose={() => setManualOpen(false)}
+        token={token}
+        groupId={groupId}
+        targets={targets}
+        boxCodes={boxCodes}
+        onCreated={(taskId) => {
+          setActionTaskId(taskId);
+          void silentRefresh();
+        }}
+      />
+
+      <JobActionsSheet
+        open={Boolean(actionTaskId)}
+        taskId={actionTaskId}
+        onClose={() => setActionTaskId(null)}
+        onChanged={() => void silentRefresh()}
+        token={token}
+        groupId={groupId}
+        targets={targets}
+      />
 
       <ClusterPlanSheet
         open={planOpen}
