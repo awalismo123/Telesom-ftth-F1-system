@@ -8,16 +8,28 @@ import {
   MapPin,
   Wrench,
 } from 'lucide-react';
-import { RouteView } from './RouteView';
 import { RunningPill } from './RunningPill';
-import { BoxRegistry } from '../supervisor/BoxRegistry';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import type { UserProfile } from '../../types/database';
 import { Tabs, type TabItem } from '../ui/Tabs';
 import { Card } from '../ui/Card';
+import { LazyPanel } from '../ui/LazyPanel';
 import { cx } from '../ui/cx';
+import { preload } from '../../lib/preload';
+
+/**
+ * Route and registry are separate chunks: a technician who opens the app to
+ * read today's jobs never downloads the cablebox registry, and vice versa.
+ * `preload()` fires on tab intent so the switch still feels instant.
+ */
+const RouteView = React.lazy(() =>
+  import('./RouteView').then((m) => ({ default: m.RouteView })),
+);
+const BoxRegistry = React.lazy(() =>
+  import('../supervisor/BoxRegistry').then((m) => ({ default: m.BoxRegistry })),
+);
 
 type TechTab = 'route' | 'boxes' | 'profile';
 
@@ -150,14 +162,29 @@ export function TechnicianShell() {
 
       {/* Tablet and up: tabs along the top instead of a bottom bar under the thumb. */}
       <div className="hidden md:block mt-4">
-        <Tabs variant="bar" items={tabItems} value={tab} onChange={setTab} label={t('techMyRoute')} />
+        <Tabs
+          variant="bar"
+          items={tabItems}
+          value={tab}
+          onChange={setTab}
+          label={t('techMyRoute')}
+          onIntent={(id) => id === 'boxes' && preload('supervisor-boxes')}
+        />
       </div>
 
       <div className="mt-4 md:grid md:grid-cols-[minmax(0,1fr)_19rem] md:gap-5 md:items-start">
         <div className="space-y-4 min-w-0">
-          {tab === 'route' && <RouteView />}
+          {tab === 'route' && (
+            <LazyPanel shape="rows" label={t('techMyRoute')}>
+              <RouteView />
+            </LazyPanel>
+          )}
 
-          {tab === 'boxes' && <BoxRegistry />}
+          {tab === 'boxes' && (
+            <LazyPanel shape="cards" label={t('techBoxes')}>
+              <BoxRegistry />
+            </LazyPanel>
+          )}
 
           {tab === 'profile' && (
             <div className="space-y-4">
@@ -212,6 +239,7 @@ export function TechnicianShell() {
                 key={item.id}
                 type="button"
                 onClick={() => setTab(item.id)}
+                onPointerEnter={() => item.id === 'boxes' && preload('supervisor-boxes')}
                 aria-current={active ? 'page' : undefined}
                 className={cx(
                   'min-h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-bold cursor-pointer transition',

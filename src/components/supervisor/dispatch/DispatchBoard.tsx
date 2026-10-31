@@ -45,6 +45,8 @@ import { Input } from '../../ui/Field';
 import { Sheet } from '../../ui/Sheet';
 import { Skeleton } from '../../ui/Skeleton';
 import { Tabs } from '../../ui/Tabs';
+import { useDebouncedValue } from '../../../lib/useDebouncedValue';
+import { useTableChanges } from '../../../lib/realtime';
 
 type Filter = 'all' | 'urgent';
 
@@ -89,9 +91,36 @@ export function DispatchBoard() {
     }
   }, [token, groupId]);
 
+  const silentRefresh = useCallback(async () => {
+    if (!token || !groupId) return;
+    try {
+      const [taskRows, loadData] = await Promise.all([
+        fetchDispatchTasks(groupId),
+        fetchDispatchLoad(token, groupId),
+      ]);
+      setTasks(taskRows);
+      setLoad(loadData);
+    } catch {
+      // A background refresh must never replace the board with an error.
+    }
+  }, [token, groupId]);
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /**
+   * The board is live: a technician starting or finishing a job moves it
+   * between the pool and the lanes without a reload. Refreshed silently so the
+   * selection the supervisor is building is never thrown away.
+   */
+  useTableChanges({
+    table: 'tasks',
+    filter: groupId ? `group_id=eq.${groupId}` : undefined,
+    enabled: Boolean(groupId),
+    onChange: () => void silentRefresh(),
+    debounceMs: 1200,
+  });
 
   const targets = useMemo(() => toTargets(load), [load]);
   const targetByKey = useMemo(() => {
@@ -105,11 +134,18 @@ export function DispatchBoard() {
     [tasks],
   );
 
+  /**
+   * Typing on a phone keyboard is bursty: "FAT48" is five keystrokes and five
+   * full rescans of the pool. Debounce the filter (not the input) so the field
+   * still echoes every character, and only the list waits 200 ms.
+   */
+  const debouncedQuery = useDebouncedValue(query, 200);
+
   const visiblePool = useMemo(() => {
-    let rows = searchTasks(pool, query);
+    let rows = searchTasks(pool, debouncedQuery);
     if (filter === 'urgent') rows = rows.filter((task) => task.priority === 'urgent');
     return rows;
-  }, [pool, query, filter]);
+  }, [pool, debouncedQuery, filter]);
 
   const lanes: MessageLane[] = useMemo(
     () =>

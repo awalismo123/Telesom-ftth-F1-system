@@ -41,6 +41,7 @@ import {
   seedDemoData,
   type ReportJob,
 } from '../../lib/registryService';
+import { cacheKeys, invalidateCache, readCache, writeCache } from '../../lib/cache';
 import { BoxSheet } from '../registry/BoxSheet';
 import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
@@ -58,7 +59,9 @@ export function Analytics() {
   const groupId = activeGroup?.id ?? '';
 
   const [days, setDays] = useState(30);
-  const [data, setData] = useState<AnalyticsResponse | null>(null);
+  const [data, setData] = useState<AnalyticsResponse | null>(() =>
+    groupId ? readCache<AnalyticsResponse>(cacheKeys.analytics(groupId, 30)) : null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,10 +71,15 @@ export function Analytics() {
 
   const load = useCallback(async () => {
     if (!token || !groupId) return;
+    // Switching the window should also feel instant when it was opened before.
+    const cached = readCache<AnalyticsResponse>(cacheKeys.analytics(groupId, days));
+    if (cached) setData(cached);
+
     setLoading(true);
     try {
       const payload = await fetchAnalytics(token, groupId, days);
       setData(payload);
+      writeCache(cacheKeys.analytics(groupId, days), payload);
       setError(null);
     } catch (err) {
       setError(describeError(err, lang));
@@ -140,6 +148,7 @@ export function Analytics() {
     setBusy(true);
     try {
       const result = await seedDemoData(token, groupId);
+      invalidateCache('directory:');
       toast.success(so ? 'Xogta tijaabada waa lagu daray' : 'Demo history loaded', {
         description: `${result.tasks_created} ${so ? 'shaqo' : 'jobs'} · ${result.logs_created} ${so ? 'dhacdo' : 'incidents'}`,
       });
@@ -156,9 +165,11 @@ export function Analytics() {
     setBusy(true);
     try {
       const result = await clearDemoData(token);
+      invalidateCache('directory:');
       toast.success(so ? 'Xogta tijaabada waa la tirtiray' : 'Demo data removed', {
         description: `${result.removed_tasks} ${so ? 'shaqo' : 'jobs'} · ${result.removed_logs} ${so ? 'dhacdo' : 'incidents'}`,
       });
+      invalidateCache('analytics:');
       await load();
     } catch (err) {
       setError(describeError(err, lang));

@@ -12,6 +12,7 @@ import {
   type DirectoryResponse,
 } from '../../lib/registry';
 import { fetchDirectory } from '../../lib/registryService';
+import { cacheKeys, readCache, writeCache } from '../../lib/cache';
 import { BoxSheet } from '../registry/BoxSheet';
 import { Alert } from '../ui/Alert';
 import { Badge } from '../ui/Badge';
@@ -40,8 +41,15 @@ export function BoxRegistry() {
   const token = session?.token ?? '';
   const groupId = activeGroup?.id ?? '';
 
-  const [data, setData] = useState<DirectoryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  /**
+   * Paint from the last payload immediately, then revalidate. Coming back to
+   * this tab should not cost a second of skeleton for data that is a minute
+   * old and about to be refreshed anyway.
+   */
+  const [data, setData] = useState<DirectoryResponse | null>(() =>
+    groupId ? readCache<DirectoryResponse>(cacheKeys.directory(groupId)) : null,
+  );
+  const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -52,6 +60,7 @@ export function BoxRegistry() {
     try {
       const payload = await fetchDirectory(token, groupId);
       setData(payload);
+      writeCache(cacheKeys.directory(groupId), payload);
       setError(null);
     } catch (err) {
       setError(describeError(err, lang));

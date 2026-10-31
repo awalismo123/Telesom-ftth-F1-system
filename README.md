@@ -81,11 +81,18 @@ Supervisors see the same clocks read-only: the **Live in the field** strip on th
 Every change is checked the same way, locally and in CI (`.github/workflows/ci.yml`):
 
 ```bash
-npm run typecheck   # tsc -b, zero errors
-npm test            # pure-function tests (money maths, timers, dBm, CSV, reports)
-npm run build       # production build
-npm run verify      # all three, in order
+npm run typecheck    # tsc -b, zero errors
+npm test             # unit tests + design lint + bundle-shape guards
+npm run build        # production build
+npm run bundle:check # first load must stay under 200 kB gzip
+npm run verify       # all four, in order
 ```
+
+**Performance budget.** The first visit — entry chunk, React, Supabase, icons and
+CSS, gzipped — must stay under **200 kB** (currently ~172 kB). Every screen
+behind a tab is a separate chunk loaded on intent, so opening the app to read a
+route never downloads the OCR wizard or the analytics charts. `bundle:check`
+fails the build if the budget is exceeded; raise the code split, not the number.
 
 The interface is defensive by design:
 
@@ -255,6 +262,12 @@ user id, role and username alongside the token; a restore is accepted only when
 the token and returns to the login screen. Logins and sign-outs bump a
 generation counter so a slow restore can never overwrite a newer sign-in, and a
 different person signing in on another tab signs this tab out.
+
+**Live data is pushed, not polled.** `tasks` is in the `supabase_realtime`
+publication, so the dispatch board, the live strip and the technician's route
+subscribe to change events (debounced) instead of polling. A slow fallback
+refresh runs only while the tab is visible, and timers stop ticking when it is
+hidden.
 
 **Errors are translated at the edge.** `src/lib/errors.ts` maps Postgres,
 network and configuration failures to one sentence per language; a rejected

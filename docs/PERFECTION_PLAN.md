@@ -362,3 +362,71 @@ It found the four unnamed close buttons the moment it was written, which is the 
   next time the dispatch composer is touched — the composer has a bespoke
   preview pane that deserves its own review rather than a mechanical swap.
 * Lighthouse ≥ 95 needs a browser run; this environment has no headless browser.
+
+---
+
+## 8. Batch D — performance (31/10/2026)
+
+### The number that started it
+
+| Before | After | Budget |
+| :--- | :--- | :--- |
+| **208.6 kB gzip** in one chunk, downloaded before the login screen | **172.3 kB gzip** across six cached chunks | < 200 kB |
+
+The app chunk itself went from **208.6 kB to 27.4 kB gzip** — the other 145 kB is
+React, Supabase and the icon set, which now live in their own long-lived chunks
+that a deploy does not invalidate.
+
+### What changed
+
+| Area | Change |
+| :--- | :--- |
+| **Bundle shape** (`vite.config.ts`) | `manualChunks` separates `react`, `supabase`, `icons`, `vendor`; `chunkSizeWarningLimit` lowered to 400 kB so an unsplit screen warns instead of hiding. |
+| **Lazy screens** | Every supervisor module (`DispatchBoard`, `IngestWizard`, `Analytics`, `TeamAndCrewManager`, `BoxRegistry`) and both technician screens (`RouteView`, registry) are `React.lazy`. `LazyPanel` wraps them in `Suspense` with a fallback that repeats the shape of the coming screen (`board`, `wizard`, `rows`, `cards`), so nothing jumps. |
+| **Prefetch on intent** | `src/lib/preload.ts` maps each module to its loader. Hovering, focusing or touching a tab downloads its chunk before the tap lands, so the fallback is rarely seen. The technician's route is warmed as soon as they sign in. |
+| **Realtime instead of polling** | `src/lib/realtime.ts`: `useTableChanges()` subscribes to `postgres_changes` on `tasks` (already in the `supabase_realtime` publication), **debounced** so a 8-job dispatch is one refetch. Wired into the dispatch board, the live strip, the technician route and the running pill. |
+| **No hidden-tab work** | `useVisibleInterval()` replaces every bare `setInterval`: the fallback poll (now 3 minutes instead of 30–60 s) only runs while the tab is visible, and `useNow` stops ticking when the tab is hidden. |
+| **Instant tab switches** | `src/lib/cache.ts` — stale-while-revalidate keyed by group and window, seeded into `useState` so the registry and analytics paint from the last payload and revalidate behind it. Mutations (`set_port_status`, seed/clear demo) invalidate the affected families. |
+| **Debounced search** | The dispatch pool filters on a 200 ms-debounced query; the input itself still echoes every keystroke. |
+
+### The budget is now enforced
+
+`scripts/check-bundle.mjs` reads the built `dist/index.html`, sums the gzip size
+of every asset a first visit loads, and **fails the build over 200 kB**. It is
+part of `npm run verify`, so the acceptance criterion cannot silently regress.
+
+`tests/performance.test.ts` pins the structure that keeps it fast: the OCR
+engine only reached through dynamic import, shells using `React.lazy`, no bare
+`setInterval` in the live screens, and the vendor split present in the config.
+
+### Verification
+
+| Check | Result |
+| :--- | :--- |
+| `tsc -b` | clean |
+| `npm test` | **90 / 90** (was 78) |
+| `npm run build` | 4.5 s |
+| `npm run bundle:check` | **172.3 kB / 200 kB** ✓ |
+| Dev server | every lazy module transforms and serves 200 |
+
+### What this batch did *not* prove
+
+* **Live Realtime delivery was not observed.** The sandbox has no outbound HTTP
+  or WebSocket to Supabase (`ECONNRESET`), so the subscription is verified
+  structurally — `tasks` is in the publication, its SELECT policy is `true` for
+  the anon role, and the hook is wired — but a real technician's phone is the
+  first place an end-to-end push will be seen. The 3-minute visible-tab fallback
+  exists precisely so a broken socket degrades to slow-but-correct.
+* **TTI on 3G was not measured**; there is no headless browser here. The
+  payload that determines it is now inside budget and split.
+* **List windowing was not needed yet.** The pools and routes are tens of rows;
+  the debounce and memoised selectors are the cheap wins. Revisit when a group
+  carries hundreds of open jobs.
+
+### New risk recorded (Batch B is still parked)
+
+Realtime now streams `tasks` rows to any client subscribed with the public anon
+key. That is the *same data* the REST API already exposes under `USING (true)`,
+but it is a second delivery path and should be part of the Batch B hardening
+decision — ideally the policy becomes group-scoped and the realtime filter
+follows it.

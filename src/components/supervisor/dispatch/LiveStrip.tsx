@@ -6,6 +6,7 @@ import { useLanguage } from '../../../lib/i18n';
 import { blockerById, formatClock, serverOffsetMs } from '../../../lib/execution';
 import { fetchLiveStatus, type LiveRow } from '../../../lib/executionService';
 import { useNow } from '../../../lib/useNow';
+import { useTableChanges, useVisibleInterval } from '../../../lib/realtime';
 
 /**
  * "Who is on a job right now" — the supervisor's live view of the crews.
@@ -39,16 +40,19 @@ export function LiveStrip() {
 
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => void load(), 30_000);
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void load();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
   }, [load]);
+
+  // A job starting or blocking arrives as a Postgres change, not on a timer.
+  useTableChanges({
+    table: 'tasks',
+    filter: groupId ? `group_id=eq.${groupId}` : undefined,
+    enabled: Boolean(groupId),
+    onChange: () => void load(),
+  });
+
+  // Realtime can be blocked on a mobile network; one quiet check every 3
+  // minutes while the tab is visible covers that without a poll loop.
+  useVisibleInterval(() => void load(), 180_000, Boolean(groupId));
 
   const running = useMemo(() => rows.filter((row) => row.status === 'in_progress'), [rows]);
   const now = useNow(running.length > 0);
