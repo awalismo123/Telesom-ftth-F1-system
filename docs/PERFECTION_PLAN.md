@@ -1638,3 +1638,65 @@ refuses every published PIN now, so an old bundle exposes dead credentials — b
 "the PINs are dead in the database" and "the bundle does not contain them" are
 two different statements, and only the first is verified in production until the
 merge lands.
+
+---
+
+## 19. Batch I, phase 1 — the audit's grants advice would have deleted the app
+
+Of everything in the external review, the P2 grant finding is the one that
+sounds most alarming and was least true: "58 `SECURITY DEFINER` functions are
+executable by `anon`". The number is exactly right. The implication — that 58
+doors are open — is not, and acting on it would have taken the application down.
+
+### 19.1 Why `anon` is not a hole here
+
+There is no Supabase Auth in this project. The browser holds the public anon key
+and a session token, and calls `rpc('list_open_tasks', { p_token, p_group_id })`.
+PostgREST runs that as the `anon` role. Every function then does its own check:
+
+```sql
+v_caller := public.get_session_user(p_token);   -- raises unless the token is live
+```
+
+`get_session_user` joins `user_sessions` on `expires_at > now()` and
+`users.is_active`. That join *is* the permission model. The grant is just the
+door to the room where the check happens.
+
+So `REVOKE EXECUTE ... FROM anon` on those 54 functions would not close a hole.
+It would delete the application: every screen would answer
+`permission denied for function list_open_tasks`, immediately, and the security
+posture would be exactly what it is today.
+
+This is the difference between a linter finding and a finding. The linter rule
+(`0028_anon_security_definer_function_executable`) is advisory precisely because
+it cannot see inside the body.
+
+### 19.2 Checking all 58 instead of trusting the argument
+
+Arguing from architecture is not evidence, so every function was inspected:
+
+| Group | Count | Guard |
+| :--- | ---: | :--- |
+| `authenticate_pin` | 1 | Issues the token; lockout (Batch B) and the 018 rotation |
+| Trigger functions | 2 | `trigger` return type — not an RPC endpoint at all |
+| Token-first, direct | 51 | `get_session_user(p_token)` in the body |
+| Token-first, delegated | 2 | `list_task_photos`, `list_work_logs` → `get_task(p_token, …)` |
+| Token-first, self-guarding | 1 | `logout_session` — deletes the row for the token given |
+| `is_task_worker` | 1 | Internal helper — **revoked** in 020 |
+
+The first pass used a text scan for `get_session_user` and flagged three
+functions as unguarded. Two of them delegate to `get_task`, which validates. The
+lesson is the same one 018 taught from the other direction: a search of the body
+is not a proof about the body. Read the call graph.
+
+### 19.3 What was actually done
+
+`is_task_worker` lost its grant — the only function that is neither an RPC
+endpoint nor guarded. The two trigger functions deliberately kept theirs:
+revoking is cosmetic, and trigger execution interacts with `SECURITY DEFINER`
+and the session role in ways that are subtle enough that a blind revoke risks
+`broadcast_change`, which every screen's realtime feed depends on. A linter line
+is not worth that.
+
+A standing rule is now in 020: every new exposed function takes `p_token` first,
+calls `get_session_user`, and checks role or group before acting.

@@ -14,7 +14,8 @@
     "typecheck": "tsc -b",
     "verify": "npm run typecheck && npm run test && npm run build && npm run bundle:check",
     "bundle:check": "node scripts/check-bundle.mjs && node scripts/check-credentials.mjs",
-    "creds:check": "node scripts/check-credentials.mjs"
+    "creds:check": "node scripts/check-credentials.mjs",
+    "hooks:install": "git config core.hooksPath scripts/hooks && echo \"hooks installed: scripts/hooks (pre-push runs npm run verify)\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

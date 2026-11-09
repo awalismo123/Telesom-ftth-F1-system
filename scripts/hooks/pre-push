@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Local stand-in for CI.
+#
+# GitHub Actions has been dead on this repository since 2026-10-31 — every job
+# fails with zero steps because the account is locked for billing. Until that is
+# cleared, this hook is the only thing between a broken commit and `main`.
+#
+#   npm run hooks:install     # once per clone
+#   git push --no-verify      # bypass, when you know what you are doing
+#
+# It runs the same command CI runs, in the same order, so a green push here
+# means a green run there.
+#
+# Not a substitute for CI: it runs only on the machine that installed it, it can
+# be skipped with --no-verify, and it says nothing about what Vercel built.
+
+set -e
+
+echo "[pre-push] running npm run verify (CI is offline — see docs/AUDIT_VERDICT_AND_PLAN.md)"
+echo
+
+if ! npm run verify; then
+  echo
+  echo "[pre-push] verify failed — push blocked."
+  echo "[pre-push] fix the failure, or re-run with: git push --no-verify"
+  exit 1
+fi
+
+echo
+echo "[pre-push] verify passed."
