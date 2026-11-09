@@ -141,7 +141,7 @@ None of these change the priority order. They change the effort estimate downwar
 
 Ordered by risk removed per day of work. Phases 0–1 are days, not weeks. Phase 2 is the only one gated on a decision.
 
-### Phase 0 — Containment (≈1 day, do first, no dependencies)
+### Phase 0 — Containment (≈1 day, do first, no dependencies) — **DONE 09/11/2026**
 
 | Task | Files |
 |---|---|
@@ -154,6 +154,33 @@ Ordered by risk removed per day of work. Phases 0–1 are days, not weeks. Phase
 | Redeploy, then verify the **deployed** asset, not just local `dist/` | Vercel |
 
 **Acceptance:** no PIN or phone literal in `dist/`; `bundle:check` passes and fails when a literal is injected deliberately; all previously published credentials rejected by `authenticate_pin`; production serves a build whose placeholder is generic.
+
+**Outcome.** All seven tasks are done in the repository, and the database side is
+done on the live project: five accounts rotated off `1111`/`1234`, all six
+flagged `must_change_pin`, **12 live sessions deleted**, and `authenticate_pin`
+now refuses every published PIN on every account. Temporary PINs were issued
+per account and delivered separately — deliberately not written into this
+repository, which is the whole point.
+
+The guard was proven by planting `pin:"1234"` and `634100101` in `dist/`: three
+findings, exit 1; clean on removal. `npm run verify` is green at 209 tests,
+190.9 kB of a 200 kB budget.
+
+Two defects were found and fixed while doing it, both worth recording because
+both looked like success:
+
+* the first version of migration 018 rotated the hash and then flagged accounts
+  by **matching the hash against the published PIN** — which no longer matched
+  anything after the rotation, so the rotated accounts were never flagged. They
+  would have been locked out of a PIN nobody knew, with no forced-change screen;
+* a `npm run build 2>&1 | tail` reported exit 0 while the build had actually
+  failed because `node_modules` was missing — the pipe returned `tail`'s status.
+  Caught by looking at `dist/`, which was empty.
+
+**Still open in Phase 0:** production redeploy. The Vercel build is one commit
+behind `main` and predates this work; the published PINs it may still contain
+are dead in the database, so the risk is bounded, but the deployed asset should
+be re-checked after the merge.
 
 ### Phase 1 — Release trust (≈2 days)
 

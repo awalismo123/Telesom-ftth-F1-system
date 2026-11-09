@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import {
   Wifi,
   Globe,
-  ShieldCheck,
-  Wrench,
   Delete,
   ArrowRight,
   AlertCircle,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth, type SessionNotice } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
@@ -30,57 +27,6 @@ const NOTICE_TEXT: Record<SessionNotice, { en: string; so: string }> = {
     so: 'Ma xaqiijin karin fadhigaaga — shabakaddu ma jawaabin. Mar kale gal.',
   },
 };
-
-/**
- * Demo shortcuts are for local development only. `import.meta.env.DEV` is
- * replaced with `false` at build time, so the block is dropped from the
- * production bundle; the try/catch keeps the module importable in tests.
- */
-const DEV_BUILD = ((): boolean => {
-  try {
-    return Boolean(import.meta.env.DEV);
-  } catch {
-    return false;
-  }
-})();
-
-const QUICK_ACCOUNTS = [
-  {
-    label: 'F1 Supervisor',
-    sub: 'Kormeeraha F1',
-    identifier: 'supervisor',
-    pin: '1234',
-    role: 'supervisor' as const,
-  },
-  {
-    label: 'Maamule (Manager)',
-    sub: 'All groups · read only',
-    identifier: 'maamule',
-    pin: '1111',
-    role: 'manager' as const,
-  },
-  {
-    label: 'Cabdiraxmaan (Crew A)',
-    sub: '634100101',
-    identifier: 'cabdi',
-    pin: '1111',
-    role: 'technician' as const,
-  },
-  {
-    label: 'Xasan Cali (Crew A)',
-    sub: '634100102',
-    identifier: 'xasan',
-    pin: '1111',
-    role: 'technician' as const,
-  },
-  {
-    label: 'Maxamed (Crew B)',
-    sub: '634100103',
-    identifier: 'maxamed',
-    pin: '1111',
-    role: 'technician' as const,
-  },
-];
 
 export function LoginScreen() {
   const { signInWithPin, sessionNotice, clearSessionNotice } = useAuth();
@@ -118,12 +64,6 @@ export function LoginScreen() {
 
   const handleBackspace = () => {
     setPin((prev) => prev.slice(0, -1));
-  };
-
-  const handleQuickFillAndSignIn = (accIdentifier: string, accPin: string) => {
-    setIdentifier(accIdentifier);
-    setPin(accPin);
-    void handleSubmit(undefined, accIdentifier, accPin);
   };
 
   return (
@@ -263,41 +203,6 @@ export function LoginScreen() {
             </Button>
           </form>
 
-          {/* Quick demo fill — development builds only. Production users get
-              their PIN from the supervisor, never from the login screen. */}
-          {DEV_BUILD && (
-          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200/80">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{t('demoAccountsTitle')}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {QUICK_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.identifier}
-                  type="button"
-                  onClick={() => handleQuickFillAndSignIn(acc.identifier, acc.pin)}
-                  className="flex items-center gap-2 p-2 rounded-xl bg-white hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition cursor-pointer"
-                >
-                  {acc.role === 'technician' ? (
-                    <Wrench className="w-4 h-4 text-emerald-600 shrink-0" />
-                  ) : (
-                    <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-800 truncate">{acc.label}</div>
-                    <div className="text-[10px] text-slate-500 truncate">
-                      ID: {acc.identifier} • PIN: {acc.pin}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-[10px] text-slate-500 text-center">
-              {t('devBuildNote')}
-            </p>
-          </div>
-          )}
         </div>
       </div>
 

@@ -12,7 +12,7 @@
 **The system is functionally complete and it is live.** All five modules your
 managers asked for exist and work: sheet photos in, only F1 rows kept,
 dispatch by area and cablebox, a technician route with a live timer, dBm
-completion, box health and a daily report. It is bilingual, it has 204 tests,
+completion, box health and a daily report. It is bilingual, it has 209 tests,
 and it installs on a phone.
 
 **It is now safe to put real customer data into it.** The hole described in the
@@ -51,7 +51,7 @@ is genuinely in the state you would show people. Detail below.
 | Backups / disaster recovery | ❌ none on current plan | A bad delete is unrecoverable |
 | Error monitoring | ❌ none | You learn about crashes by phone call |
 | Uptime / alerting | ❌ none | Nobody is told when it goes down |
-| Test coverage | ⚠️ 204 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
+| Test coverage | ⚠️ 209 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
 | Mobile / PWA | ✅ installable, safe-area aware | Not yet held in a real technician's hand |
 | Docs (runbook, limits) | ✅ good | Technician card, manager page and runbook all written |
 | Cost / licensing | ⚠️ free tiers | Needs ~$25–65/month to be legitimate |
@@ -144,6 +144,30 @@ person chooses their own, and the change clears the flag.
 The lockout is **verified against the live database**, not just written: five
 wrong PINs, then the correct one, and the correct one is refused.
 
+**The part that was still missing (Batch I).** Locking an account does not help
+if the PIN is printed in the repository. `must_change_pin` only *asks* the person
+to change it at next sign-in; until they do, `1234` still opens the supervisor
+account. So the hash itself had to change. Migration 018 rotates every account
+still holding a published PIN to a random one, flags it, and deletes every
+session. On the live project it rotated five accounts off `1111`/`1234`,
+flagged all six, and revoked twelve live sessions — twelve tokens minted from a
+shared PIN is the proof the exposure was real, not theoretical.
+
+The supervisor is the one exception: their PIN is flagged but not rotated in the
+migration, because randomising the only account that can issue anybody a
+temporary PIN locks the install with no way back in. On the live project a
+temporary PIN was issued for them by hand as well, so no published PIN survives
+anywhere.
+
+**A defect in my own first attempt, worth recording.** The migration rotated the
+hash and *then* flagged accounts by matching the hash against the published PIN.
+After the rotation nothing matches any more, so the accounts it had just rotated
+were never flagged — locked out of a random PIN they could not know, and not
+sent to the screen that would fix it. It surfaced on the live project because I
+checked the flag state afterwards instead of trusting the statement's success.
+Fixed by collecting the rotated ids and flagging those; the migration now says
+so in the comment.
+
 **A defect found while verifying it, worth recording.** The first version raised
 an exception on a wrong PIN. That aborts the request's transaction — which
 rolled back the `failed_attempts` update it had just written. The counter never
@@ -180,6 +204,40 @@ first demo that is an asset, because the screens are not empty. But:
 Insights screen ("36 demo jobs are included in these numbers", one-tap removal)
 repeated on the Overview and the daily report, where the numbers are quoted.
 
+### 3.6 Credentials in the repository and in the bundle — **FIXED** (Batch I)
+
+The audit's most serious finding, and it was accurate. Six accounts signed in
+with `1234` / `1111`; the PINs were in a table in `README.md`; and
+`LoginScreen.tsx` defined a `QUICK_ACCOUNTS` array holding the same pairs.
+
+The subtlety that made it easy to miss: the array sat behind
+`import.meta.env.DEV`, so the quick-fill *panel* was compiled out of the
+production build. The data was not. `grep 'pin:"1111"' dist/assets/index-*.js`
+returned four hits. A flag removes the code that reads a value; it does not
+remove the value.
+
+**What was done**
+
+* the array and the panel are deleted outright — no flag, no dead data;
+* the real technician number is gone from the login placeholder in both
+  languages (`supervisor ama 634100101` → `Magacaaga isticmaalahi ama lambarka
+  Telesom`), and from the team-screen example (`63X XXX XXX`);
+* `README.md` no longer publishes an account table;
+* `scripts/check-credentials.mjs` fails the build if a PIN-shaped pair, a seeded
+  identifier or a real subscriber number appears in `dist/` — wired into
+  `npm run bundle:check`, which `npm run verify` runs, and which CI will run;
+* `tests/credentials.test.ts` fails in a second, without a build, and also
+  asserts the guard stays wired up.
+
+The guard was **tested by planting a credential**, not by watching it pass:
+a file containing `identifier:"supervisor", pin:"1234", phone:"634100101` in
+`dist/` produces three findings and exit code 1; removing it returns to exit 0.
+
+**What is not fixed.** The six accounts still exist, and the temporary PINs
+issued to replace them are the supervisor's to distribute. Until each person
+signs in once, the accounts are flagged but unused. Nothing sensitive is
+exposed by that — the published PINs no longer work on any account.
+
 ## 4. What managers will ask for that does not exist yet
 
 These are not defects — they are the questions that come after "it looks good".
@@ -212,7 +270,7 @@ on". The audit screen in particular is cheap: the data is already there.
 * **The work model is right.** A blocker pauses the timer and the job stays
   blocked and resumable; dBm is mandatory to complete; typed notes survive a
   failed submit; several timers are allowed with a confirmation.
-* **It is bilingual for real.** 204 tests fail the build if a string appears in
+* **It is bilingual for real.** 209 tests fail the build if a string appears in
   only one language, if a translation key dies, or if PIN copy contradicts the
   input. Somali takes the singular after a numeral (`4 shaqo`), dates are
   day-first, and "today" is the local day — not the UTC day.
@@ -277,7 +335,7 @@ pays for itself immediately — that comparison is worth putting on the slide.
 
 1. Five modules, all built — sheets, dispatch, technician, execution, analytics.
 2. 191 kB first load: it opens on a weak phone and a weak connection.
-3. 204 automated tests, so the app cannot quietly break between releases.
+3. 209 automated tests, so the app cannot quietly break between releases.
 
 **The pilot, not the rollout:**
 

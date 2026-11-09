@@ -1560,3 +1560,81 @@ caller does not belong to. It is still true that **a technician can search their
 own group's jobs**, including jobs assigned to someone else — that is the part
 worth keeping. The stronger claim, that it crosses groups, is not true and is now
 corrected in that file.
+
+---
+
+## 18. Batch I — the audit's P0, and the flag that hid it
+
+The external audit found six seeded accounts signing in with `1234` / `1111`.
+That part was true and is now fixed. This section records *how* the PINs got
+into a production bundle, because the mechanism is more interesting than the
+finding and will recur.
+
+### 18.1 A flag that removes the reader, not the value
+
+`LoginScreen.tsx` held the accounts in a module-level array:
+
+```ts
+const QUICK_ACCOUNTS = [{ identifier: 'maamule', pin: '1111', … }, …];
+```
+
+and rendered them behind `import.meta.env.DEV`. In a production build that
+compiles to `false`, so the panel is dropped. The array is not: it is data in
+module scope, and Rollup keeps it because it is a top-level binding the entry
+module owns. `grep 'pin:"1111"' dist/assets/index-*.js` found four.
+
+The general form is worth stating, because it applies to every bundler and every
+framework: **a build-time flag removes the code that reads a value, not the
+value.** Anything you would be unhappy to see in `view-source` has to be
+deleted from the module, or it has to arrive at runtime from somewhere that is
+allowed to hold it.
+
+That is why the fix is deletion rather than a `DEV_BUILD`-guarded array, and why
+the regression test reads `dist/` instead of reading the source. A test that
+asserts "the panel is not rendered" would have passed against the vulnerable
+build.
+
+### 18.2 The migration that flagged nothing
+
+The first version of 018 did this:
+
+```sql
+UPDATE user_credentials SET pin_hash = crypt(random…) WHERE pin_hash = crypt('1111', pin_hash);
+UPDATE users SET must_change_pin = true WHERE exists (
+  SELECT 1 FROM user_credentials c
+   WHERE c.user_id = users.id AND c.pin_hash = crypt('1111', c.pin_hash)   -- never matches again
+);
+```
+
+The second statement re-derives its set from the hash it just replaced. After
+the first statement, nothing matches the published PIN any more, so the accounts
+that were rotated were never flagged. The result would have been the worst of
+both: a PIN nobody knows, and no forced-change screen to escape it through.
+
+It was caught by querying the flag state after applying, rather than trusting
+that the statement ran. `RETURNING … INTO` in a `FOREACH` would also have kept
+only the last row, so the fixed version wraps the update in a CTE and aggregates
+the returned ids.
+
+**The habit worth keeping:** verify the *state the migration claims to produce*,
+not that it executed. Both defects above would survive a green build and a
+successful `pg` response.
+
+### 18.3 What now stops it
+
+| Layer | Where | Fails when |
+| :--- | :--- | :--- |
+| Source | `tests/credentials.test.ts` (5 tests) | a PIN pair, seeded identifier or real number appears in `src/`, in a second |
+| Artifact | `scripts/check-credentials.mjs` | any of the above appears in `dist/`, after a build |
+| CI | `npm run verify` → `bundle:check` | the same, before a deploy |
+
+The guard was tested by planting a credential, not by watching it pass. A check
+that has never failed is a check nobody has verified.
+
+### 18.4 The one thing Batch I did not do
+
+Redeploy. The Vercel build predates this work. It is low risk — the database
+refuses every published PIN now, so an old bundle exposes dead credentials — but
+"the PINs are dead in the database" and "the bundle does not contain them" are
+two different statements, and only the first is verified in production until the
+merge lands.
