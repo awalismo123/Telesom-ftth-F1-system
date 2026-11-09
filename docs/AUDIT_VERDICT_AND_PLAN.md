@@ -177,10 +177,27 @@ both looked like success:
   failed because `node_modules` was missing — the pipe returned `tail`'s status.
   Caught by looking at `dist/`, which was empty.
 
-**Still open in Phase 0:** production redeploy. The Vercel build is one commit
-behind `main` and predates this work; the published PINs it may still contain
-are dead in the database, so the risk is bounded, but the deployed asset should
-be re-checked after the merge.
+**Still open in Phase 0:** production redeploy. Merged to `main` as `2d25184`;
+Vercel built the PR preview successfully (status *Ready*), so the branch compiles
+in their environment — but ~15 minutes later the production URL still served the
+old login copy. The preview is access-protected, so the deployed bundle could not
+be inspected directly.
+
+Two things to do in the Vercel dashboard, neither of which is reachable from
+here: check whether the `main` commit appears in *Deployments* at all, and if it
+does, why it was not promoted to production (production branch setting, an
+"ignored build step", or a paused project). The PINs are dead in the database
+either way, so this is a consistency problem rather than an exposure — but "the
+fix is merged" and "the fix is live" are different sentences and only the first
+one is currently true.
+
+**A correction to this document's own reasoning.** Earlier drafts treated the
+production placeholder reading `supervisor ama 634...` as proof that production
+was built from older code than `main` (which held `634100101`). That inference
+was too strong: an ellipsis in a rendered placeholder is exactly what a clipped
+input looks like, so it may have been a rendering artifact. The drift is
+unconfirmed, and the only solid observation is the one above — after the merge,
+production did not change.
 
 ### Phase 1 — Release trust (≈2 days)
 

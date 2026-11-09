@@ -197,6 +197,23 @@ refresh button) forces it immediately.
    see `supabase/migrations/007_session_and_health_fixes.sql` and re-apply only if
    it was never applied (check `list_migrations` first).
 
+### The merge went in but the site did not change
+
+Vercel is connected (it comments a preview link on each PR), but it does not
+always promote a merge to production. Check, in this order:
+
+1. Vercel → the project → **Deployments**: does the `main` commit appear? If not,
+   the push never reached Vercel — check the project's Git connection.
+2. If it appears and says *Ready* but the live URL is unchanged: the project's
+   **production branch** is not `main`, or an **Ignored Build Step** skipped it,
+   or the project is **paused** (a free-tier project pauses after inactivity).
+3. If it appears and says *Error*: open the build log — a type error fails
+   `npm run verify` locally too.
+
+Do not diagnose this by looking at the footer version: `BUILD_DATE` is a
+constant in `src/lib/version.ts`, so an old build and a new one can carry the
+same label. Compare a string you actually changed.
+
 ### A deploy broke something
 
 Vercel → *Deployments* → the previous green deployment → **Promote**. The
