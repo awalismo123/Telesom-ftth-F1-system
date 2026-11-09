@@ -21,19 +21,26 @@ system must get right.
 
 ---
 
-## 2. Search can show a job that is not yours
+## 2. Search can show a technician a job that is not theirs — but not another group
 
-`global_search` returns any job in the group to any signed-in user of that group —
-including a technician searching a line they are not assigned. They see the
-customer's name and phone.
+**Corrected 09/11/2026.** This entry used to claim `global_search` returned jobs
+from other groups. It does not: the function refuses a group the caller does not
+belong to, and the probe below confirms it.
 
-This is the same exposure the REST API already had (`tasks` has a single
-`SELECT USING (true)` policy), now with a convenient door. It is *recorded*, not
-fixed, because the fix is the security batch that was parked:
+What is still true: a technician searching their **own** group sees the line
+number, customer name and phone of jobs assigned to somebody else. That is a
+deliberate trade — a technician covering for a colleague needs to find the job —
+but it is broader than "my route".
 
-- make the `tasks` policy group- and role-scoped,
-- give the technician role a policy that only sees its own jobs,
-- keep supervisor search group-wide.
+```
+global_search(technician, F2, '634')  → refused: Not allowed for this group
+global_search(technician, F1, '634')  → allowed
+```
+
+Narrowing it to "my jobs plus my crew's" is a policy question for the
+department, not a defect: it costs a technician the ability to look up a line
+that a customer calls about directly. Recorded so the decision is made on
+purpose rather than by default.
 
 ---
 

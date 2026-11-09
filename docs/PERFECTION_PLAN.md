@@ -1430,7 +1430,10 @@ See §15 — found by listing every `public` function that does not take a token
 * **The manager portal has not been clicked in a browser.** There is no browser
   in the build environment; the shell renders under `renderToString`, the modules
   compile and serve, and every function behind them was exercised against live
-  data — but "it looks right" is still owed before a manager sees it.
+  data — but "it looks right" is still owed before a manager sees it. §16 and
+  §17 are what that gap costs: two defects (a PIN rule the data had never been
+  told about, and a manager listed in the staff table) were found by *asking*
+  rather than by a test failing.
 * **Only F1 has data.** F2/F3/F5/GA exist and are marked not live; the
   cross-group screens show them as empty, which is the truth, but they have not
   been seen with real second-group traffic.
@@ -1506,3 +1509,54 @@ feature was built, tested, deployed, documented — and inert. The test it lacke
 was not a unit test of the flag, it was a question about the data. Two of Batch
 H's three findings came from that shape of question rather than from a failing
 assertion.
+
+## §17 Batch H — the last look around (09/11/2026)
+
+After the Batch H merge, three questions were asked of the live system rather
+than of the test suite. Two found defects; one found nothing, which is also worth
+recording.
+
+| Question | Answer |
+| :--- | :--- |
+| "Is the search still a group-wide door?" | **No.** A technician calling `global_search` for F2 is refused (`Not allowed for this group`); their own group is allowed. The `KNOWN_LIMITS` §2 entry is out of date and needs correcting — the hole it described was closed by the function's own group check, not by an RLS policy. |
+| "Who is still on a department PIN?" | **Everybody: 6 of 6.** §16. |
+| "What does the supervisor's Team screen show now?" | **The manager, with an edit button that cannot save.** §17 below. |
+
+### 17.1 The manager in the staff list
+
+Migration 014 attaches a manager to a group so the role has a home row.
+`group_overview` returns every user in the group, so the manager appeared in the
+supervisor's Team list with an edit button — and `upsert_team_member` now refuses
+to write a manager row (014 §2). A screen offering an action that cannot succeed
+is worse than a screen that does not mention the person.
+
+Migration 017 filters manager rows out of `group_overview`. Nothing else changes:
+same five keys, same counts, same group check.
+
+### 17.2 The mistake made while fixing it
+
+The first version of 017 was written by hand from a partial read of migration
+011, and it returned a shape no client reads:
+
+```
+'tasks_open' … 'tasks_unassigned' … 'boxes' …      ← invented
+'cableboxes' … 'counts' …                          ← what the app expects
+```
+
+It would have broken the supervisor dashboard, the team screen and the group
+switcher — silently, because the function returns a valid `jsonb` object.
+
+The probe caught it, and only because it checked **shape** rather than status:
+keys, array lengths, the `counts` object. The lesson is specific and worth
+keeping: a `SECURITY DEFINER` function that returns `jsonb` cannot be validated
+by "it ran". It has to be compared with what the client reads, which is why
+`tests/manager.test.ts` now pins the five keys of `group_overview`.
+
+### 17.3 One correction to the known-limits file
+
+`KNOWN_LIMITS` §2 ("search can show a job that is not yours") has been wrong
+since Batch E landed a group check inside `global_search`: it refuses a group the
+caller does not belong to. It is still true that **a technician can search their
+own group's jobs**, including jobs assigned to someone else — that is the part
+worth keeping. The stronger claim, that it crosses groups, is not true and is now
+corrected in that file.
