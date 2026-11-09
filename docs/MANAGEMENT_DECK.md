@@ -143,7 +143,7 @@ nothing."
 
 ## What not to put on a slide
 
-* **The test count.** 151 tests is a reason to trust the work; it is not a
+* **The test count.** 197 tests is a reason to trust the work; it is not a
   reason for a manager to approve it. Mention it only if IT asks how you know it
   will not break.
 * **Architecture diagrams.** One sentence: "the phone talks to the database

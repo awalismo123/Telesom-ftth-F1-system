@@ -5,6 +5,12 @@ import { LoginScreen } from './components/LoginScreen';
 import { HeaderBar } from './components/HeaderBar';
 import { SupervisorShell } from './components/supervisor/SupervisorShell';
 import { TechnicianShell } from './components/technician/TechnicianShell';
+
+// The manager app is its own chunk and its own shell: a technician never
+// downloads it, and a manager never downloads the dispatch board.
+const ManagerShell = React.lazy(() =>
+  import('./components/manager/ManagerShell').then((m) => ({ default: m.ManagerShell })),
+);
 import { ToastProvider } from './components/ui/Toast';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { OfflineBanner } from './components/ui/OfflineBanner';
@@ -34,6 +40,7 @@ function AppRouter() {
   // Which shell opens is decided by the saved session's own role — never by
   // what a previous person on this device last looked at.
   const supervisor = portal === 'supervisor';
+  const manager = portal === 'manager';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -42,8 +49,16 @@ function AppRouter() {
       </ErrorBoundary>
       <OfflineBanner />
       <main className="flex-1">
-        <ErrorBoundary label={supervisor ? 'Supervisor' : 'My route'}>
-          {supervisor ? <SupervisorShell /> : <TechnicianShell />}
+        <ErrorBoundary label={supervisor ? 'Supervisor' : manager ? 'Manager' : 'My route'}>
+          {supervisor ? (
+            <SupervisorShell />
+          ) : manager ? (
+            <React.Suspense fallback={<Splash />}>
+              <ManagerShell />
+            </React.Suspense>
+          ) : (
+            <TechnicianShell />
+          )}
         </ErrorBoundary>
       </main>
     </div>

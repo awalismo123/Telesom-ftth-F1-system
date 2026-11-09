@@ -134,3 +134,28 @@
 .print-only {
   display: none;
 }
+
+/* --------------------------------------------------------------------------
+   Printing a report
+   --------------------------------------------------------------------------
+   The period report renders into a portal on `document.body` (`.print-root`),
+   so the paper can contain the report and nothing else. `:has()` is the honest
+   way to say that in CSS — no JavaScript class juggling on `body`, no fragile
+   parent selectors.
+   -------------------------------------------------------------------------- */
+@media print {
+  body:has(.print-root) > #root {
+    display: none !important;
+  }
+
+  body:has(.print-root) .print-root {
+    position: static !important;
+    inset: auto !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+  }
+
+  .print-root .no-print {
+    display: none !important;
+  }
+}

@@ -53,6 +53,13 @@ const QUICK_ACCOUNTS = [
     role: 'supervisor' as const,
   },
   {
+    label: 'Maamule (Manager)',
+    sub: 'All groups · read only',
+    identifier: 'maamule',
+    pin: '1111',
+    role: 'manager' as const,
+  },
+  {
     label: 'Cabdiraxmaan (Crew A)',
     sub: '634100101',
     identifier: 'cabdi',
@@ -272,10 +279,10 @@ export function LoginScreen() {
                   onClick={() => handleQuickFillAndSignIn(acc.identifier, acc.pin)}
                   className="flex items-center gap-2 p-2 rounded-xl bg-white hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition cursor-pointer"
                 >
-                  {acc.role === 'supervisor' ? (
-                    <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                  ) : (
+                  {acc.role === 'technician' ? (
                     <Wrench className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
                   )}
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-slate-800 truncate">{acc.label}</div>

@@ -65,6 +65,7 @@ A technician, in the field:
 | **Phase 3** | Xaafada & Cablebox route clustering, bulk assignment, 1-click WhatsApp / Telegram dispatch summary | ✅ **Live** |
 | **Phase 4** | Technician mobile route, `tel:` click-to-call, live timer, blockers, optical `dBm` capture | ✅ **Live** |
 | **Phase 5** | Cablebox port & fault history registry, supervisor analytics, CSV + WhatsApp daily report | ✅ **Live** |
+| **Batch H** | Audit trail (**Record** tab), printable period report, 3-day aging badge, **photo proof on completion**, **read-only manager** across every group | ✅ **Live** |
 
 ---
 
@@ -100,6 +101,36 @@ Everything that used to be a call to the office now happens in the app:
 * **Notifications** — the bell: for a technician, new work and cleared blockers;
   for a supervisor, blocked jobs and jobs running over two hours. Derived from
   the job data, never stored, so it cannot go stale.
+
+## The record (Batch H)
+
+The work log has been written since Phase 1; Batch H is the first time a
+supervisor can read it without a SQL console.
+
+* **Record tab** — one reverse-chronological feed of imports, assignments,
+  starts, blockers, completions, reopens, cancellations, dispatch plans and
+  phone-in jobs. Filter by 1 / 7 / 30 days, by action chip, by person, or search
+  the line number, customer, note or reason. Export as CSV.
+* **Aging badge** — an open job goes amber on the third day and rose after it,
+  counted from the date the customer reported it. Completed and cancelled jobs
+  leave the count.
+* **Period report** — from Analytics: pick today, a week, this month, last month
+  or any two dates, and get a one-page report — created, completed, cancelled,
+  still open, waiting past the promise, average duration and signal, per
+  technician, per cablebox, cancellation reasons, day by day. **Print / PDF**
+  opens the browser's print dialog with the app hidden, so no PDF library ships.
+  **Download CSV** gives the same numbers to a spreadsheet.
+
+A report for a past period is computed as of that period's end, not as of now:
+closing a job today does not rewrite last month.
+
+**Photo proof.** When a technician completes a job they can take up to three
+photographs. Each is resized on the phone to 640 px (usually 40–120 kB) before it
+is sent, stored privately, and shown as a green *Photo* chip on the completion in
+the Record feed and in a *Photo proof* section on the job sheet. The photo is
+optional by design — a dead camera must never stop a job from closing — and it is
+sent *after* the completion, so a failed upload never reports a finished job as
+failed.
 
 ## Working the day (Phase 4)
 
@@ -156,7 +187,7 @@ npm run verify       # all four, in order
 ```
 
 **Performance budget.** The first visit — entry chunk, React, Supabase, icons and
-CSS, gzipped — must stay under **200 kB** (currently ~172 kB). Every screen
+CSS, gzipped — must stay under **200 kB** (currently ~191 kB). Every screen
 behind a tab is a separate chunk loaded on intent, so opening the app to read a
 route never downloads the OCR wizard or the analytics charts. `bundle:check`
 fails the build if the budget is exceeded; raise the code split, not the number.
@@ -171,6 +202,25 @@ The interface is defensive by design:
 
 ---
 
+## The manager view
+
+A third role, `manager`, sees **every group** and changes nothing.
+
+* **Groups** — one card per group: open, blocked, late, completed, staff, and the
+  last activity, with the group's open jobs behind a disclosure. It is a
+  comparison screen, not a dispatch board.
+* **Record** — the same feed as the supervisor's, across all groups, with the
+  group code on every row and in the CSV.
+* **Report** — the same printable period report, plus a *By group* table and a
+  per-group CSV.
+
+Read-only is enforced in the database, not by hiding buttons: every write to an
+operational table raises `A manager account is read-only` when the session's role
+is `manager` (migration 014). A manager's own PIN and session stay writable.
+Managers are created by an administrator, not from a group screen.
+
+---
+
 ## Sign-in Accounts (seeded)
 
 | Role | Username | Phone | PIN |
@@ -180,6 +230,7 @@ The interface is defensive by design:
 | Technician (Crew A) | `xasan` | `634100102` | `1111` |
 | Technician (Crew B) | `maxamed` | `634100103` | `1111` |
 | Technician (Crew B) | `mustafe` | `634100104` | `1111` |
+| **Manager** (read-only, all groups) | `maamule` | `634000009` | `1111` |
 
 *Login accepts either the username or the Telesom phone number. Every user can change their own PIN from the header menu.*
 

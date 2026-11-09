@@ -8,6 +8,7 @@ import {
   Clock,
   Copy,
   Download,
+  FileText,
   MessageCircle,
   RefreshCw,
   ShieldAlert,
@@ -43,6 +44,7 @@ import {
 } from '../../lib/registryService';
 import { cacheKeys, invalidateCache, readCache, writeCache } from '../../lib/cache';
 import { BoxSheet } from '../registry/BoxSheet';
+import { PeriodReportSheet } from './PeriodReportSheet';
 import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
@@ -68,6 +70,7 @@ export function Analytics() {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [openBoxId, setOpenBoxId] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -196,6 +199,19 @@ export function Analytics() {
         </div>
 
         <div className="ml-auto flex items-center gap-1">
+          {/* The printable report answers "what did we do last month" — the
+              analytics window answers "how are we doing". Different questions,
+              so a different door. */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setReportOpen(true)}
+            className="mr-1"
+          >
+            <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+            {so ? 'Warbixin' : 'Report'}
+          </Button>
+
           {WINDOWS.map((value) => (
             <button
               key={value}
@@ -572,6 +588,8 @@ export function Analytics() {
           onChanged={() => void load()}
         />
       )}
+
+      <PeriodReportSheet open={reportOpen} onClose={() => setReportOpen(false)} />
     </div>
   );
 }

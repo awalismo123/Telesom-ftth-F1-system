@@ -30,6 +30,7 @@ const translations = {
     navIngest: 'Daily Sheet Upload',
     navDispatch: 'Dispatch & Clustering',
     navInsights: 'Insights',
+    navActivity: 'Record',
     navCablebox: 'Cablebox History',
     navTeam: 'Team & Crews',
 
@@ -200,6 +201,7 @@ const translations = {
     navIngest: 'Soo Geli Warqadda (Pic/Excel)',
     navDispatch: 'Qaybinta & Xaafadaha',
     navInsights: 'Falanqayn',
+    navActivity: 'Diiwaan',
     navCablebox: 'Taariikhda Cablebox',
     navTeam: 'Shaqaalaha & Gaadiidka',
 

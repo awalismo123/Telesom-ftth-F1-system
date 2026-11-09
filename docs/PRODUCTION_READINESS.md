@@ -1,8 +1,9 @@
 # Production readiness — what is done, what is missing, what to say
 
-> Written 09/11/2026, after Batch F. Every claim below was checked against the
-> live system, not against the plan. Where something is a judgement call it says
-> so. Where a number is measured, the number is here.
+> Written 09/11/2026, after Batch F, and revised the same day after Batch H. Every
+> claim below was checked against the live system, not against the plan. Where
+> something is a judgement call it says so. Where a number is measured, the
+> number is here.
 
 ---
 
@@ -11,7 +12,7 @@
 **The system is functionally complete and it is live.** All five modules your
 managers asked for exist and work: sheet photos in, only F1 rows kept,
 dispatch by area and cablebox, a technician route with a live timer, dBm
-completion, box health and a daily report. It is bilingual, it has 137 tests,
+completion, box health and a daily report. It is bilingual, it has 197 tests,
 and it installs on a phone.
 
 **It is now safe to put real customer data into it.** The hole described in the
@@ -26,8 +27,10 @@ gaps are operational, not structural:
    alert, no browser tests, and hosting on a plan that pauses a quiet project
    and keeps one day of logs.
 2. **The questions managers ask next** — an audit screen, photo proof, period
-   reports, a read-only manager view. The data for the audit screen already
-   exists; only the screen is missing.
+   reports, a read-only manager view. **These were built in Batch H** (§4 below
+   is now a list of answers rather than a list of gaps). One item from that batch
+   cannot be proven by a test: the camera path has not been exercised on a
+   physical phone.
 
 Everything else — the features, the language, the documentation, the design —
 is genuinely in the state you would show people. Detail below.
@@ -39,17 +42,18 @@ is genuinely in the state you would show people. Detail below.
 | Area | State | What it means in a meeting |
 | :--- | :--- | :--- |
 | Functional scope (5 modules) | ✅ complete | Nothing on the brief is missing |
+| **Manager pack** | ✅ built in Batch H | Record, photo proof, printable period report, 3-day aging badge, read-only manager across groups |
 | Bilingual EN/SO | ✅ enforced by test | Cannot drift back to English-only |
 | Offline tolerance | ⚠️ online-only by your decision | Drafts survive a failed submit, nothing queues |
-| **Access control** | ✅ fixed in Batch B | Anonymous read of customer data now returns nothing |
-| **File storage** | ✅ fixed in Batch B | Private; no public URL exists for a sheet photo |
+| **Access control** | ✅ fixed in Batch B, tightened in H | Anonymous read of customer data returns nothing; four internal functions that were callable without a session are closed |
+| **File storage** | ✅ fixed in Batch B | Private; no public URL exists for a sheet photo, and completion photos are private too |
 | **Brute-force resistance** | ✅ fixed in Batch B | 5 attempts, then a 15-minute lock; supervisor-issued PINs must be replaced |
 | Backups / disaster recovery | ❌ none on current plan | A bad delete is unrecoverable |
 | Error monitoring | ❌ none | You learn about crashes by phone call |
 | Uptime / alerting | ❌ none | Nobody is told when it goes down |
-| Test coverage | ⚠️ 137 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
+| Test coverage | ⚠️ 197 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
 | Mobile / PWA | ✅ installable, safe-area aware | Not yet held in a real technician's hand |
-| Docs (runbook, limits) | ✅ good | But no technician-facing guide |
+| Docs (runbook, limits) | ✅ good | Technician card, manager page and runbook all written |
 | Cost / licensing | ⚠️ free tiers | Needs ~$25–65/month to be legitimate |
 
 ---
@@ -182,13 +186,13 @@ These are not defects — they are the questions that come after "it looks good"
 
 | Their question | Today's answer | What to build | Effort |
 | :--- | :--- | :--- | :--- |
-| "Show me who changed this job and when" | Data exists (`dispatch_log`, `task_work_logs`, `cancelled_by`), **no screen** | Activity / audit screen, filterable by job, person, day; exportable | 2 days |
-| "Prove the technician was actually there" | dBm + notes + timestamps | Optional photo on completion (camera, in-browser, same storage discipline), stored per job | 1–2 days |
-| "What did we do last month?" | 30-day analytics + today's CSV | Period picker (this week / month / custom) and a one-page PDF | 2 days |
-| "Which jobs have been waiting too long?" | Board is ordered by date, no aging badge | "Waiting 3 days" badge + an SLA target per job type | 1 day |
+| "Show me who changed this job and when" | **Built (Batch H)** — Record tab: one feed, filters by day / action / person / text, CSV | — | ✅ |
+| "Prove the technician was actually there" | **Built (Batch H)** — optional 1–3 photos per completed job, resized on the phone, private, visible in the record and on the job sheet | — | ✅ |
+| "What did we do last month?" | **Built (Batch H)** — period picker + one-page printable report + CSV | — | ✅ |
+| "Which jobs have been waiting too long?" | **Built (Batch H)** — amber at 3 days, rose after, from the reported date | — | ✅ |
 | "Tell the technician when work arrives" | They must open the app | In-app badge exists (notifications bell); real push needs a service worker or WhatsApp send | 2–3 days |
-| "Show me F2 and F3 too" | `upsert_group` exists; supervisor is scoped to one group | A manager role that sees all groups, read-only | 2–3 days |
-| "Can a manager see it without changing anything?" | Two roles only: supervisor, technician | Read-only manager role | 1 day |
+| "Show me F2 and F3 too" | **Built (Batch H)** — manager portfolio lists every group, including the ones not yet live | — | ✅ |
+| "Can a manager see it without changing anything?" | **Built (Batch H)** — third role, write-refused in the database, separate app | — | ✅ |
 | "Is this version the one I approved?" | No version number anywhere | Version + build date in the footer of the login and the hub | 2 hours |
 | "What happens when the network is down?" | Online-only, by your decision | Offline queue, or an explicit written acceptance of the risk | 3–5 days / 0 |
 | "Who is allowed to see customer numbers?" | Everyone with the URL | **That is 3.1** — fix before asking | — |
@@ -231,7 +235,7 @@ Four batches. **B is done** — the gate before real customer data is open.
 | :--- | :--- | :--- | :--- |
 | **B — Access control** ✅ **done** | Token-scoped reads, private sheet archive, PIN attempt limits, forced first-login change, security headers, dependency audit | Turns "demo" into "deployable" | 3–4 days |
 | **G — Operational trust** | Supabase Pro (backups, no pause), uptime monitor with an alert to a real phone, error capture (own table or Sentry), a browser smoke test of the three critical paths on every deploy, restore drill performed and recorded | You can hand it over without being the only person who can fix it | 3 days |
-| **H — Manager pack** | Audit screen, photo proof on completion, period reports + PDF, aging/SLA badge, read-only manager role | Answers the questions in §4 | 5–7 days |
+| **H — Manager pack** | Audit screen, photo proof, period reports + PDF, aging badge, read-only manager across groups | Answers the questions in §4 | **built** |
 | **I — Handover** ✅ **done** | `docs/HANDOVER.md`: the bilingual technician card, the 30-minute training run, a one-page data policy, release notes; version stamp on the sign-in screen | The part that makes it *the department's* system rather than yours | 2 days |
 
 Suggested order: **G → H.** G because without it a single bad night undoes months

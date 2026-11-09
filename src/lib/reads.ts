@@ -1,5 +1,6 @@
 import { rpcRead, rpc } from './rpc';
 import type { Cablebox, Crew, Task, UserProfile } from '../types/database';
+import type { ActivityEvent } from './activity';
 
 /**
  * Every read the app performs, in one place, through a token-checked function.
@@ -232,4 +233,206 @@ export function blobToBase64(blob: Blob): Promise<string> {
     };
     reader.readAsDataURL(blob);
   });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Batch H — the record                                                       */
+/* -------------------------------------------------------------------------- */
+
+export interface PeriodReportTotals {
+  created: number;
+  completed: number;
+  cancelled: number;
+  open_at_end: number;
+  waiting_over_sla: number;
+  avg_minutes: number;
+  avg_dbm: number | null;
+  repeat_faults: number;
+  dispatches: number;
+  /** Completion photos attached in the period (Batch H). */
+  photos: number;
+}
+
+export interface PeriodReport {
+  from: string;
+  to: string;
+  totals: PeriodReportTotals;
+  techs: { id: string; name: string; completed: number; avg_minutes: number; avg_dbm: number | null }[];
+  boxes: {
+    box_code: string;
+    health_status: string;
+    total_ports: number;
+    damaged_ports: number;
+    faults: number;
+  }[];
+  cancel_reasons: { reason: string; count: number }[];
+  daily: { day: string; completed: number; created: number }[];
+}
+
+/**
+ * The audit feed: job changes, dispatch sends, cancellations and phone-in jobs,
+ * merged in one call and scoped to the caller's group.
+ */
+export async function fetchActivity(
+  token: string,
+  groupId: string,
+  days = 7,
+  limit = 200,
+): Promise<ActivityEvent[]> {
+  const data = await rpcRead<ActivityEvent[] | null>('group_activity', {
+    p_token: token,
+    p_group_id: groupId,
+    p_days: days,
+    p_limit: limit,
+  });
+  return data ?? [];
+}
+
+/** One period, as aggregates a manager can print. */
+export async function fetchPeriodReport(
+  token: string,
+  groupId: string,
+  from: string,
+  to: string,
+): Promise<PeriodReport> {
+  return (await rpcRead<PeriodReport>('period_report', {
+    p_token: token,
+    p_group_id: groupId,
+    p_from: from,
+    p_to: to,
+  })) as PeriodReport;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Photo proof (Batch H)                                                       */
+/* -------------------------------------------------------------------------- */
+
+export interface TaskPhotoMeta {
+  id: string;
+  mime: string;
+  byte_size: number;
+  created_at: string;
+  uploaded_by_name: string;
+  uploaded_by_role: string;
+}
+
+export interface TaskPhoto extends TaskPhotoMeta {
+  task_id: string;
+  /** The JPEG itself, base64. Never logged, never cached. */
+  base64: string;
+}
+
+/** Which photos a completed job has. Thumbnails are fetched one at a time. */
+export async function fetchTaskPhotos(token: string, taskId: string): Promise<TaskPhotoMeta[]> {
+  const data = await rpcRead<TaskPhotoMeta[] | null>('list_task_photos', {
+    p_token: token,
+    p_task_id: taskId,
+  });
+  return data ?? [];
+}
+
+/** One photo, bytes included. The group check happens on the server. */
+export async function fetchTaskPhoto(token: string, photoId: string): Promise<TaskPhoto> {
+  return (await rpcRead<TaskPhoto>('get_task_photo', {
+    p_token: token,
+    p_photo_id: photoId,
+  })) as TaskPhoto;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Manager — every group, read-only (Batch H)                                  */
+/* -------------------------------------------------------------------------- */
+
+export interface ManagerGroupRow {
+  id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  members: number;
+  technicians: number;
+  unassigned: number;
+  active: number;
+  blocked: number;
+  urgent: number;
+  waiting_over_sla: number;
+  completed: number;
+  photos: number;
+  avg_minutes: number;
+  last_activity_at: string | null;
+}
+
+export interface ManagerPortfolio {
+  window_days: number;
+  generated_at: string;
+  groups: ManagerGroupRow[];
+  totals: {
+    members: number;
+    technicians: number;
+    unassigned: number;
+    active: number;
+    blocked: number;
+    urgent: number;
+    waiting_over_sla: number;
+    completed: number;
+    photos: number;
+    groups: number;
+    live_groups: number;
+  };
+}
+
+export interface ManagerActivityEvent extends ActivityEvent {
+  group_code: string;
+  group_id: string;
+}
+
+export interface ManagerReport extends PeriodReport {
+  scope: 'manager';
+  groups: { id: string; code: string; name: string; totals: PeriodReportTotals }[];
+}
+
+/** Every group with its load — the manager's first screen. */
+export async function fetchManagerPortfolio(token: string, days = 30): Promise<ManagerPortfolio> {
+  return (await rpcRead<ManagerPortfolio>('manager_portfolio', {
+    p_token: token,
+    p_days: days,
+  })) as ManagerPortfolio;
+}
+
+/** The record across groups, optionally narrowed to one. */
+export async function fetchManagerActivity(
+  token: string,
+  days = 7,
+  groupId: string | null = null,
+  limit = 300,
+): Promise<ManagerActivityEvent[]> {
+  const data = await rpcRead<ManagerActivityEvent[] | null>('manager_activity', {
+    p_token: token,
+    p_days: days,
+    p_group_id: groupId,
+    p_limit: limit,
+  });
+  return data ?? [];
+}
+
+/** One period across groups, with a row per group. */
+export async function fetchManagerReport(
+  token: string,
+  from: string,
+  to: string,
+  groupId: string | null = null,
+): Promise<ManagerReport> {
+  return (await rpcRead<ManagerReport>('manager_report', {
+    p_token: token,
+    p_from: from,
+    p_to: to,
+    p_group_id: groupId,
+  })) as ManagerReport;
+}
+
+/** The open jobs of one group — read-only, no assignment controls. */
+export async function fetchManagerTasks(token: string, groupId: string): Promise<Task[]> {
+  return (await rpcRead<Task[]>('manager_tasks', {
+    p_token: token,
+    p_group_id: groupId,
+  })) as Task[];
 }
