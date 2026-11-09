@@ -9,11 +9,13 @@ import {
   Wifi,
   Truck,
   BarChart3,
+  History,
   CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import type { Cablebox } from '../../types/database';
+import { ActivityLog } from './ActivityLog';
 import { fetchGroupOverview } from '../../lib/reads';
 import { Tabs, type TabItem } from '../ui/Tabs';
 import { Stat } from '../ui/Stat';
@@ -53,7 +55,7 @@ const PRELOAD: Partial<Record<SupervisorTab, PreloadKey>> = {
   cableboxes: 'supervisor-boxes',
 };
 
-type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'insights' | 'cableboxes' | 'team';
+type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'insights' | 'activity' | 'cableboxes' | 'team';
 
 export function SupervisorShell() {
   const { session, activeGroup } = useAuth();
@@ -119,6 +121,7 @@ export function SupervisorShell() {
     { id: 'ingest', label: t('navIngest'), icon: <Camera className="w-4 h-4" /> },
     { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" /> },
     { id: 'insights', label: t('navInsights'), icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'activity', label: t('navActivity'), icon: <History className="w-4 h-4" /> },
     {
       id: 'cableboxes',
       label: t('navCablebox'),
@@ -296,6 +299,11 @@ export function SupervisorShell() {
             {activeTab === 'insights' && (
               <LazyPanel shape="cards" label={t('navInsights')}>
                 <Analytics />
+              </LazyPanel>
+            )}
+            {activeTab === 'activity' && (
+              <LazyPanel shape="rows" label={t('navActivity')}>
+                <ActivityLog />
               </LazyPanel>
             )}
           </div>

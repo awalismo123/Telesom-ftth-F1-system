@@ -1,7 +1,8 @@
 import React from 'react';
-import { AlertTriangle, Clock, MapPin, MoreVertical, Phone, Repeat, Undo2, User } from 'lucide-react';
+import { AlertTriangle, Clock, Hourglass, MapPin, MoreVertical, Phone, Repeat, Undo2, User } from 'lucide-react';
 import type { Task } from '../../../types/database';
 import { formatPhoneE164, formatPhoneLocal, taskPlace } from '../../../lib/dispatch';
+import { agingBand, agingLabel, waitingDays } from '../../../lib/activity';
 
 interface Props {
   task: Task;
@@ -38,6 +39,11 @@ export function TaskCard({
   const place = taskPlace(task);
   const urgent = task.priority === 'urgent';
   const carry = (task.carryover_count ?? 0) > 0;
+
+  // Aging is the question a supervisor actually asks: "how long has this been
+  // sitting?" Fresh jobs say nothing — a badge on every card is noise.
+  const waiting = waitingDays(task);
+  const band = agingBand(waiting);
 
   return (
     <div
@@ -82,6 +88,19 @@ export function TaskCard({
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
                 <Repeat className="w-2.5 h-2.5" />
                 {CARRY_LABEL[lang]}
+              </span>
+            )}
+            {band !== 'fresh' && waiting !== null && (
+              <span
+                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                  band === 'late'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-amber-200 text-amber-900'
+                }`}
+                title={`${waiting} ${lang === 'so' ? 'maalmood' : 'days'} ${lang === 'so' ? 'oo sugaya' : 'waiting'}`}
+              >
+                <Hourglass className="w-2.5 h-2.5" aria-hidden="true" />
+                {agingLabel(waiting, lang)}
               </span>
             )}
             {statusLabel && (

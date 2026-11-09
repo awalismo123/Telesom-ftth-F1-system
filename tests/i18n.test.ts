@@ -132,6 +132,8 @@ const COPY_ALLOWLIST = new Set([
   'FTTH • GROUP F1',
   'Fixed Broadband · Group F1',
   'Group F1',
+  // The letterhead on the printable period report.
+  'Telesom · Fixed Broadband',
   // Sheet categories posted in the group chat, written this way on the sheets.
   'Galinta',
   'Cilada',

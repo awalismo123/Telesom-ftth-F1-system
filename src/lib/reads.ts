@@ -1,5 +1,6 @@
 import { rpcRead, rpc } from './rpc';
 import type { Cablebox, Crew, Task, UserProfile } from '../types/database';
+import type { ActivityEvent } from './activity';
 
 /**
  * Every read the app performs, in one place, through a token-checked function.
@@ -232,4 +233,70 @@ export function blobToBase64(blob: Blob): Promise<string> {
     };
     reader.readAsDataURL(blob);
   });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Batch H — the record                                                       */
+/* -------------------------------------------------------------------------- */
+
+export interface PeriodReportTotals {
+  created: number;
+  completed: number;
+  cancelled: number;
+  open_at_end: number;
+  waiting_over_sla: number;
+  avg_minutes: number;
+  avg_dbm: number | null;
+  repeat_faults: number;
+  dispatches: number;
+}
+
+export interface PeriodReport {
+  from: string;
+  to: string;
+  totals: PeriodReportTotals;
+  techs: { id: string; name: string; completed: number; avg_minutes: number; avg_dbm: number | null }[];
+  boxes: {
+    box_code: string;
+    health_status: string;
+    total_ports: number;
+    damaged_ports: number;
+    faults: number;
+  }[];
+  cancel_reasons: { reason: string; count: number }[];
+  daily: { day: string; completed: number; created: number }[];
+}
+
+/**
+ * The audit feed: job changes, dispatch sends, cancellations and phone-in jobs,
+ * merged in one call and scoped to the caller's group.
+ */
+export async function fetchActivity(
+  token: string,
+  groupId: string,
+  days = 7,
+  limit = 200,
+): Promise<ActivityEvent[]> {
+  const data = await rpcRead<ActivityEvent[] | null>('group_activity', {
+    p_token: token,
+    p_group_id: groupId,
+    p_days: days,
+    p_limit: limit,
+  });
+  return data ?? [];
+}
+
+/** One period, as aggregates a manager can print. */
+export async function fetchPeriodReport(
+  token: string,
+  groupId: string,
+  from: string,
+  to: string,
+): Promise<PeriodReport> {
+  return (await rpcRead<PeriodReport>('period_report', {
+    p_token: token,
+    p_group_id: groupId,
+    p_from: from,
+    p_to: to,
+  })) as PeriodReport;
 }

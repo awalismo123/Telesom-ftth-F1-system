@@ -1080,3 +1080,143 @@ signal-not-data realtime, and no token in a URL or a console line.
 attacker an account exists — which they could already infer from a successful
 lockout, and which is worth the trade for a person who needs to know why they
 cannot get in. Recorded rather than hidden.
+
+## §12 Batch H — the record (part 1, 09/11/2026)
+
+Every screen built so far answers *what is happening*. None of them answered
+*what happened*: a job that was completed three weeks ago, who cancelled the
+duplicate, which technician closed eleven jobs last month and at what signal. The
+data was already in the database — `task_work_logs` has logged every
+import / assign / start / block / resume / complete / reopen since Phase 1 — but
+nobody could read it without a SQL console.
+
+Batch H is the manager pack. This part is the record; photo proof on completion
+and a read-only manager role follow.
+
+### 12.1 Two questions, two screens
+
+| Question | Screen | Shape |
+| :--- | :--- | :--- |
+| "Who did what, when?" | **Record** tab (supervisor) | Reverse-chronological feed, filter by window / action / person, search, CSV |
+| "What did the group deliver between two dates?" | **Report** (from Analytics) | Printable one-pager for a head manager, CSV for the desk |
+
+They read two new functions. Both are `SECURITY DEFINER`, both take `p_token`
+first, both resolve the caller with `get_session_user`, and both prove the caller
+belongs to `p_group_id` before returning a row — the same shape as every read
+since Batch B, enforced by `tests/access.test.ts`.
+
+### 12.2 What the database now returns
+
+`group_activity(p_token, p_group_id, p_days, p_limit)` merges four sources into
+one feed:
+
+| Source | What it contributes |
+| :--- | :--- |
+| `task_work_logs` | imported, assigned, started, paused, blocked, resumed, completed, reopened — with duration, dBm, blocker reason and notes |
+| `dispatch_log` | plan sent, with channel and job count |
+| `tasks where cancelled_at is not null` | cancellations, with the reason |
+| `tasks where source = 'manual'` | phone-in jobs, which never had a work-log row |
+
+`p_limit` is capped at 500 and `p_days` at a year, because a screen that can be
+asked for everything will eventually be asked for everything.
+
+`period_report(p_token, p_group_id, p_from, p_to)` returns totals, per-technician
+output, per-box faults, cancellation reasons and a day-by-day series. Two
+decisions worth writing down:
+
+* **`open_at_end` counts jobs that existed and were not closed by `p_to`** —
+  not jobs that exist now. A report for last month must not change because of
+  what happened this morning.
+* **`waiting_over_sla` is measured at the end of the window**, with the same
+  three-day rule the badge uses. The report and the board cannot disagree.
+* A reversed range is refused by name. A range longer than 366 days is refused
+  by name. Neither silently returns zero.
+
+### 12.3 The numbers the probe produced
+
+Both functions were created on the live project and then called inside a
+rolled-back transaction against the real group:
+
+```
+group_activity(days=30, limit=300)
+  → 50 events; newest: assigned · 2026-10-31 · actor "F1 Supervisor (Kormeeraha F1)"
+
+period_report(from = 30 days ago, to = today)
+  totals: created 44 · completed 34 · cancelled 0 · open_at_end 5
+          waiting_over_sla 5 · avg 142 min · avg dBm −21.4
+          dispatches 1 · repeat faults 0
+  first technician: "Cabdiraxmaan Maxamed" — 3 jobs, 916 min
+  daily: 7 points over a 7-day window
+```
+
+The point of running it against live data rather than a fixture: the SQL was
+written in a sandbox that had no rows, and a function that returns `[]` is a
+function that could be returning `[]` for the wrong reason.
+
+### 12.4 What the supervisor sees
+
+**Record** — a single feed, newest first, with the words a supervisor uses: *La
+qoondeeyay* / *Assigned* is a blue chip, *La dhammeeyay* / *Completed* is green,
+*La xayiray* / *Blocked* is amber, *La tirtiray* / *Cancelled* is red. The second
+line carries the evidence — `−22.9 dBm · 1h 29m`, `Telegram · 7 jobs`, the
+cancellation reason — and never repeats the label. Windows of 1 / 7 / 30 days,
+action chips, an actor dropdown and a search box that looks at line number,
+customer name, person, notes and reason (the five things a supervisor actually
+remembers). Export is a CSV named with the window, in the language of the person
+who pressed it.
+
+**Aging** — every open job on the dispatch board now carries a small badge:
+nothing until day two, amber *3 maalmood / 3 days* on the promise, rose after
+it. It is computed from `reported_date` (what the sheet says, which is what the
+customer counts from), falling back to `created_at` when the sheet has no date,
+clamped at zero so a clock skew never produces a negative wait. Completed and
+cancelled jobs leave the count, which is the part that makes the number worth
+showing.
+
+**Report** — opens from Analytics. Presets for today, last 7 days, this month and
+last month; editable dates; letterhead with the group and the range; headline
+tiles; a day-by-day bar row; technician and cablebox tables; cancellation
+reasons. **Print / PDF** uses the browser's own print dialog, and the print
+stylesheet hides the app entirely so the page that comes out is the report and
+nothing else — no PDF library, no server, no dependency. **Download CSV** gives
+the same numbers to the person who will put them in a deck.
+
+### 12.5 Verification
+
+| Check | Result |
+| :--- | :--- |
+| `group_activity` on live data | 50 events, newest 2026-10-31 |
+| `period_report` on live data | 44 created / 34 completed / 5 open at end / 142 min avg |
+| Reversed range | refused by name |
+| Range > 366 days | refused by name |
+| `tsc -b` | clean |
+| `npm test` | **170 / 170** (was 151; +17 in `tests/activity.test.ts`, +2 render) |
+| `npm run build` | 3.7 s |
+| `bundle:check` | **189.2 kB / 200 kB** |
+| Dev server | 200 on 5173 |
+
+The new tests are rules, not snapshots: the promise is exactly three days; a
+missing date is `fresh` rather than an accusation; a job is counted from
+`reported_date`, not from when we read the sheet; a finished job drops out of
+the late list; an unrecognised event kind renders as itself instead of vanishing;
+a name with a comma and a quote survives the CSV; a search with spaces at both
+ends is not a filter.
+
+Two of them failed on the first run and both failures were worth having. One
+caught a duplicated line number in my own fixture, which is exactly the mistake
+the search box exists to tolerate. The other caught a CSV expectation that
+assumed the note was the whole cell, when the detail line is `dBm · duration ·
+note` — the test was wrong, the code was right, and the assertion now says what
+it means.
+
+### 12.6 What part 1 deliberately did not do
+
+* **Photo proof on completion (H2).** The storage bucket and the read function
+  exist since Batch B; the capture UI, the compression to a phone-sized JPEG and
+  the thumbnail in the task card do not.
+* **A read-only manager role (H3).** The `role` check still allows `supervisor`
+  and `technician` only. Adding `manager` touches the role constraint,
+  `portalForRole`, every supervisor RPC's authorisation and the shell's tab list —
+  a batch of its own, not an afternoon's edit.
+* **Editing the feed.** There is no delete and no amend, by design. A record that
+  can be rewritten is not a record.

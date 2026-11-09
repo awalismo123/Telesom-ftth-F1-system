@@ -96,3 +96,52 @@ test('the offline strip is honest in both states', async () => {
   // Online and never offline => nothing rendered at all.
   assert.equal(render(), '');
 });
+
+test('the record tab mounts even before there is data to show', async () => {
+  const { LanguageProvider } = await import('../src/lib/i18n');
+  const { AuthProvider } = await import('../src/contexts/AuthContext');
+  const { ToastProvider } = await import('../src/components/ui/Toast');
+  const { ActivityLog } = await import('../src/components/supervisor/ActivityLog');
+
+  const html = renderToString(
+    React.createElement(
+      ToastProvider,
+      null,
+      React.createElement(
+        LanguageProvider,
+        null,
+        React.createElement(AuthProvider, null, React.createElement(ActivityLog)),
+      ),
+    ),
+  );
+
+  // No session in a server render, so the feed is empty — but the screen must
+  // still exist: the failure this guards against is a broken import blanking
+  // the whole Record tab.
+  assert.ok(html.length > 200, 'expected the record screen to render');
+});
+
+test('the period report draws nothing until it is opened', async () => {
+  const { LanguageProvider } = await import('../src/lib/i18n');
+  const { AuthProvider } = await import('../src/contexts/AuthContext');
+  const { ToastProvider } = await import('../src/components/ui/Toast');
+  const { PeriodReportSheet } = await import('../src/components/supervisor/PeriodReportSheet');
+
+  const tree = (children: React.ReactNode) =>
+    React.createElement(
+      ToastProvider,
+      null,
+      React.createElement(
+        LanguageProvider,
+        null,
+        React.createElement(AuthProvider, null, children),
+      ),
+    );
+
+  const closed = renderToString(tree(React.createElement(PeriodReportSheet, { open: false, onClose: () => {} })));
+  const empty = renderToString(tree(null));
+
+  // The toast live region paints either way; the sheet must add nothing to it.
+  assert.equal(closed, empty, 'a closed sheet must not paint');
+  assert.doesNotMatch(closed, /Telesom · Fixed Broadband/, 'no letterhead before the sheet opens');
+});
