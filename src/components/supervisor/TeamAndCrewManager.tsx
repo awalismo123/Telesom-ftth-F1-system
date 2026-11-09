@@ -498,10 +498,10 @@ export function TeamAndCrewManager() {
 
                 <div className="pt-3 border-t border-slate-100">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                    Assigned Technicians ({cMembers.length})
+                    {t('assignedTechnicians', { count: cMembers.length })}
                   </div>
                   {cMembers.length === 0 ? (
-                    <div className="text-xs text-slate-500 italic">No technicians assigned yet</div>
+                    <div className="text-xs text-slate-500 italic">{t('noTechniciansYet')}</div>
                   ) : (
                     <div className="space-y-2">
                       {cMembers.map((tech) => (
@@ -561,7 +561,7 @@ export function TeamAndCrewManager() {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-500">Department Scaling</span>
+                <span className="text-[11px] text-slate-500">{t('deptScaling')}</span>
                 {g.code !== 'F1' ? (
                   <button
                     type="button"
@@ -572,10 +572,10 @@ export function TeamAndCrewManager() {
                         : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
                     }`}
                   >
-                    {g.is_active ? 'Deactivate' : `Activate Group ${g.code}`}
+                    {g.is_active ? t('deactivate') : t('activateGroup', { code: g.code })}
                   </button>
                 ) : (
-                  <span className="text-[11px] font-bold text-emerald-700">Primary Team</span>
+                  <span className="text-[11px] font-bold text-emerald-700">{t('primaryTeam')}</span>
                 )}
               </div>
             </div>
@@ -616,7 +616,7 @@ export function TeamAndCrewManager() {
                   required
                   value={mFullName}
                   onChange={(e) => setMFullName(e.target.value)}
-                  placeholder="e.g. Cabdiraxmaan Maxamed"
+                  placeholder={t('memberNamePlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
               </div>
@@ -772,7 +772,7 @@ export function TeamAndCrewManager() {
                   type="text"
                   value={cZone}
                   onChange={(e) => setCZone(e.target.value)}
-                  placeholder="e.g. Jigjigayar, Gantalaha, Bada Cas"
+                  placeholder={t('crewZonePlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
               </div>
@@ -851,34 +851,34 @@ export function TeamAndCrewManager() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Group Code</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t('groupCode')}</label>
                 <input
                   type="text"
                   required
                   value={gCode}
                   onChange={(e) => setGCode(e.target.value.toUpperCase())}
-                  placeholder="e.g. F4"
+                  placeholder={t('groupCodePlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Group Name</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t('groupName')}</label>
                 <input
                   type="text"
                   required
                   value={gName}
                   onChange={(e) => setGName(e.target.value)}
-                  placeholder="Group F4 — Fixed Broadband"
+                  placeholder={t('groupNamePlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t('groupDescription')}</label>
                 <input
                   type="text"
                   value={gDesc}
                   onChange={(e) => setGDesc(e.target.value)}
-                  placeholder="Zone or team notes"
+                  placeholder={t('groupDescriptionPlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"
                 />
               </div>

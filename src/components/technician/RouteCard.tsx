@@ -20,6 +20,7 @@ import {
   taskWarnings,
 } from '../../lib/execution';
 import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
+import { formatDbm } from '../../lib/format';
 
 interface Props {
   task: RouteTask;
@@ -78,7 +79,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
           {so ? 'Dhammaaday' : 'Completed'}
           <span className="ml-auto font-mono">{formatClock(elapsed)}</span>
           {task.optical_dbm !== null && (
-            <span className="font-mono opacity-80">· {Number(task.optical_dbm).toFixed(1)} dBm</span>
+            <span className="font-mono opacity-80">· {formatDbm(task.optical_dbm)}</span>
           )}
         </div>
       )}

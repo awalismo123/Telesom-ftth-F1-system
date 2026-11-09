@@ -24,6 +24,8 @@ import { SkeletonCard } from '../ui/Skeleton';
 import { Tabs } from '../ui/Tabs';
 import { cx } from '../ui/cx';
 import type { BadgeTone } from '../ui/Badge';
+import { formatDbm } from '../../lib/format';
+import { FirstRunHint } from '../ui/FirstRunHint';
 
 type Filter = 'all' | 'critical' | 'warning' | 'chronic';
 
@@ -126,6 +128,16 @@ export function BoxRegistry({
 
   return (
     <div className="space-y-4">
+      <FirstRunHint
+        id="boxes-history"
+        userId={session?.user.id}
+        title={so ? 'Taariikhda sanduuq kasta' : 'Every box remembers'}
+      >
+        {so
+          ? 'Taabo sanduuq si aad u aragto port kasta, cilad kasta iyo cabbir kasta oo dBm. Farsamayaqaanka soo socda wuxuu arkaa waxa hore loo sameeyay.'
+          : 'Tap a box to see every port, every fault and every dBm reading. The next technician inherits what was already tried.'}
+      </FirstRunHint>
+
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-extrabold text-slate-900 inline-flex items-center gap-2">
@@ -368,7 +380,7 @@ function BoxCard({ box, lang, onOpen }: { box: BoxSummary; lang: 'so' | 'en'; on
             <Signal className="w-2.5 h-2.5" aria-hidden="true" /> dBm
           </div>
           <div className="text-xs font-extrabold text-slate-800">
-            {box.avg_dbm_30d !== null ? Number(box.avg_dbm_30d).toFixed(1) : '—'}
+            {formatDbm(box.avg_dbm_30d)}
           </div>
         </div>
       </div>

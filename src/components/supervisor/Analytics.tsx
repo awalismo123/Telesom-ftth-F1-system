@@ -47,6 +47,7 @@ import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
 import { Skeleton, SkeletonCard } from '../ui/Skeleton';
+import { countLabel, formatDate } from '../../lib/format';
 
 const WINDOWS = [7, 30, 90];
 
@@ -115,7 +116,7 @@ export function Analytics() {
         downloadCsv(`telesom-${activeGroup?.code ?? 'F1'}-boxes-${date}.csv`, buildBoxCsv(data.boxes));
       }
       toast.success(so ? '3 fayl CSV waa la soo dejiyay' : '3 CSV files downloaded', {
-        description: `${jobs.length} ${so ? 'shaqo' : 'jobs'} · ${days} ${so ? 'maalmood' : 'days'}`,
+        description: `${countLabel(jobs.length, 'jobs', lang)} · ${countLabel(days, 'days', lang)}`,
       });
     } catch (err) {
       setError(describeError(err, lang));
@@ -150,7 +151,7 @@ export function Analytics() {
       const result = await seedDemoData(token, groupId);
       invalidateCache('directory:');
       toast.success(so ? 'Xogta tijaabada waa lagu daray' : 'Demo history loaded', {
-        description: `${result.tasks_created} ${so ? 'shaqo' : 'jobs'} · ${result.logs_created} ${so ? 'dhacdo' : 'incidents'}`,
+        description: `${countLabel(result.tasks_created, 'jobs', lang)} · ${countLabel(result.logs_created, 'incidents', lang)}`,
       });
       await load();
     } catch (err) {
@@ -167,7 +168,7 @@ export function Analytics() {
       const result = await clearDemoData(token);
       invalidateCache('directory:');
       toast.success(so ? 'Xogta tijaabada waa la tirtiray' : 'Demo data removed', {
-        description: `${result.removed_tasks} ${so ? 'shaqo' : 'jobs'} · ${result.removed_logs} ${so ? 'dhacdo' : 'incidents'}`,
+        description: `${countLabel(result.removed_tasks, 'jobs', lang)} · ${countLabel(result.removed_logs, 'incidents', lang)}`,
       });
       invalidateCache('analytics:');
       await load();
@@ -329,7 +330,7 @@ export function Analytics() {
                       day.completed > 0 ? 'bg-emerald-600 group-hover:bg-emerald-500' : 'bg-slate-100'
                     }`}
                     style={{ height: `${day.completed === 0 ? 3 : Math.max(6, (day.completed / peak) * 100)}%` }}
-                    title={`${day.date} · ${day.completed} ${so ? 'shaqo' : 'jobs'}${day.avg_minutes ? ` · ${formatMinutes(day.avg_minutes, lang)}` : ''}`}
+                    title={`${formatDate(day.date)} · ${countLabel(day.completed, 'jobs', lang)}${day.avg_minutes ? ` · ${formatMinutes(day.avg_minutes, lang)}` : ''}`}
                   />
                 </div>
               ))}

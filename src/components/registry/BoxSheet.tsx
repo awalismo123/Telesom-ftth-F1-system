@@ -167,8 +167,8 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged, onEd
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close / Xir"
-              title="Close / Xir"
+              aria-label={so ? 'Xir' : 'Close'}
+              title={so ? 'Xir' : 'Close'}
               className="p-2 -mr-1 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer"
             >
               <X className="w-5 h-5" aria-hidden="true" />
@@ -215,7 +215,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged, onEd
                 <div className="rounded-xl bg-white border border-slate-200 px-2 py-1.5">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">dBm</div>
                   <div className="text-sm font-extrabold text-slate-900">
-                    {detail.stats.last_dbm !== null ? Number(detail.stats.last_dbm).toFixed(1) : '—'}
+                    {formatDbm(detail.stats.last_dbm)}
                   </div>
                 </div>
                 <div className="rounded-xl bg-white border border-slate-200 px-2 py-1.5">

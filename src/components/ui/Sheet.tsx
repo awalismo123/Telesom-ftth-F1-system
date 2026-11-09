@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cx } from './cx';
+import { useLanguageSafe } from '../../lib/i18n';
 
 /**
  * The one modal surface: a bottom sheet on a phone, a centred dialog on a
@@ -30,6 +31,8 @@ export function Sheet({
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg';
 }) {
+  const i18n = useLanguageSafe();
+  const closeLabel = i18n ? i18n.t('close') : 'Close';
   const panelRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
   const [dragY, setDragY] = React.useState(0);
@@ -146,7 +149,7 @@ export function Sheet({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={closeLabel}
             className="shrink-0 h-11 w-11 -mr-2 -mt-1 inline-flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer"
           >
             <X className="w-4 h-4" aria-hidden="true" />

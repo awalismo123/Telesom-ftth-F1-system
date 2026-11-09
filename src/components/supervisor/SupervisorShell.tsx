@@ -57,7 +57,8 @@ type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'insights' | 'cablebox
 
 export function SupervisorShell() {
   const { activeGroup } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const so = lang === 'so';
 
   const [activeTab, setActiveTab] = useState<SupervisorTab>('overview');
   const [techCount, setTechCount] = useState(0);
@@ -235,7 +236,7 @@ export function SupervisorShell() {
                     value={crewCount}
                     icon={<Truck className="w-4 h-4" />}
                     tone="sky"
-                    hint="Individual + 2-tech vehicles"
+                    hint={so ? 'Farsamayaqaan ama gaadiid laba qof' : 'Individual or 2-tech vehicle'}
                   />
                   <Stat
                     label={t('openTasks')}
@@ -250,7 +251,7 @@ export function SupervisorShell() {
                     value={cableboxes.length}
                     icon={<Server className="w-4 h-4" />}
                     tone="violet"
-                    hint="FAT / cablebox memory"
+                    hint={so ? 'Taariikhda sanduuq kasta' : 'History per cablebox'}
                   />
                 </div>
 
@@ -259,7 +260,7 @@ export function SupervisorShell() {
                     <div>
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold mb-2">
                         <Wifi className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span>SUPABASE LIVE • VERCEL READY</span>
+                        <span>{so ? 'NIDAAMKA WAA FIRFIRCOON' : 'SYSTEM IS LIVE'}</span>
                       </div>
                       <h2 className="text-lg sm:text-xl font-extrabold">{t('roadmapTitle')}</h2>
                     </div>

@@ -31,6 +31,8 @@ import { ExecutionSheet } from './ExecutionSheet';
 import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
+import { countLabel } from '../../lib/format';
+import { FirstRunHint } from '../ui/FirstRunHint';
 
 interface ConfirmState {
   task: RouteTask;
@@ -194,6 +196,16 @@ export function RouteView({
 
   return (
     <div className="space-y-4">
+      <FirstRunHint
+        id="route-timer"
+        userId={session?.user.id}
+        title={so ? 'Shaqada maanta' : 'Your route today'}
+      >
+        {so
+          ? 'Taabo shaqo si aad u bilowdo saacadda. Markaad dhammeeyso waa inaad gelisaa cabbirka dBm — haddii aan la gelin, shaqada lama xiri karo.'
+          : 'Tap a job to start its timer. To finish it you must enter the dBm reading — the job cannot be closed without one.'}
+      </FirstRunHint>
+
       {/* summary */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-2xl bg-white border border-slate-200 p-3">
@@ -285,7 +297,7 @@ export function RouteView({
               <span className="text-[11px] text-slate-500">· {section.sublabel}</span>
             )}
             <span className="ml-auto text-[10px] font-bold text-slate-500">
-              {section.tasks.length} {so ? 'shaqo' : section.tasks.length === 1 ? 'job' : 'jobs'}
+              {countLabel(section.tasks.length, 'jobs', lang)}
             </span>
           </div>
 

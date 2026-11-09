@@ -9,6 +9,7 @@ import { describeError } from '../../lib/useErrorMessage';
 import { Sheet } from './Sheet';
 import { Input } from './Field';
 import { cx } from './cx';
+import { countLabel } from '../../lib/format';
 
 /**
  * One box for "where is…".
@@ -242,7 +243,7 @@ export function SearchPalette({
                         <Server className="w-3.5 h-3.5 text-emerald-700" />
                         <span className="text-[12px] font-extrabold text-slate-900">{hit.box_code}</span>
                         <span className="text-[10px] font-bold text-slate-500">
-                          {hit.total_ports} {so ? 'port' : 'ports'}
+                          {countLabel(hit.total_ports, 'ports', lang)}
                         </span>
                         {hit.ports_damaged > 0 && (
                           <span className="text-[10px] font-bold text-rose-700">

@@ -36,13 +36,32 @@ const translations = {
     techProfile: 'My Crew & PIN',
 
     // Overview KPIs
-    activeGroup: 'Active Group',
     activeTechs: 'Active Technicians',
     fieldCrews: '2-Tech Crews',
     trackedBoxes: 'Tracked Cableboxes',
     openTasks: 'Open F1 Tasks',
-    pendingInstallations: 'Pending Installations (Galinta)',
-    activeFaults: 'Active Faults (Cilada)',
+
+    // Shared interface words — used by more than one screen
+    close: 'Close',
+    dismiss: 'Dismiss',
+    backspace: 'Delete last digit',
+    selectActiveGroup: 'Select active group',
+    switchLanguage: 'Switch language (Somali / English)',
+    pinUpdated: 'PIN updated successfully',
+    assignedTechnicians: 'Assigned technicians ({count})',
+    noTechniciansYet: 'No technicians assigned yet',
+    deptScaling: 'Department scaling',
+    deactivate: 'Deactivate',
+    activateGroup: 'Activate group {code}',
+    primaryTeam: 'Primary team',
+    groupCode: 'Group code',
+    groupName: 'Group name',
+    groupDescription: 'Description',
+    memberNamePlaceholder: 'e.g. Cabdiraxmaan Maxamed',
+    crewZonePlaceholder: 'e.g. Jigjigayar, Gantalaha, Bada Cas',
+    groupCodePlaceholder: 'e.g. F4',
+    groupNamePlaceholder: 'Group F4 — Fixed Broadband',
+    groupDescriptionPlaceholder: 'Zone or team notes',
 
     // Team & Crews Management
     teamHeader: 'Group Team, 2-Tech Crews & Department Scaling',
@@ -97,16 +116,15 @@ const translations = {
     dispatchPlanEmpty: 'No unassigned jobs to cluster.',
     dispatchApplyPlan: 'Apply plan',
     dispatchApplyPartial: 'Apply selected routes',
-    dispatchPlanReasonZone: 'crew covers this area',
-    dispatchPlanReasonBox: 'already working this box',
-    dispatchPlanReasonBalance: 'balances the load',
+    dispatchPlanReasonZone: 'the crew covers this area',
+    dispatchPlanReasonBox: 'they already worked this box',
+    dispatchPlanReasonBalance: 'it balances the load',
     dispatchUnassign: 'Return to pool',
     dispatchMessage: 'Group-chat message',
     dispatchMessageHint: 'Send one master plan, or one message per team.',
     dispatchCopy: 'Copy',
     dispatchCopied: 'Copied',
     dispatchCopyAll: 'Copy full plan',
-    dispatchCopyFor: 'Copy for this team',
     dispatchShare: 'Share',
     dispatchWhatsApp: 'WhatsApp',
     dispatchTelegram: 'Telegram',
@@ -117,31 +135,42 @@ const translations = {
     dispatchOpenJobs: 'open',
     dispatchUrgentJobs: 'urgent',
     dispatchDoneToday: 'done today',
-    dispatchAssigning: 'Assigning…',
-    dispatchAssignOk: 'Assigned to',
     dispatchAssignSkipped: 'skipped (already started or finished)',
     dispatchNoTargets: 'Add a technician or a crew first — see Team & Crews.',
     dispatchEmptyMessage: 'Assign some jobs first — then the message writes itself.',
-    dispatchUrgentShort: 'URGENT',
-    dispatchCarryShort: 'carried over',
     dispatchUnassignedShort: 'unassigned',
     dispatchInProgressShort: 'in progress',
-    dispatchLoad: 'Load',
     // Roadmap Banner
     roadmapTitle: 'Step-by-Step Build Progress',
     phase1Done: 'Phase 1 Live: Supabase Cloud + PIN Auth + Bilingual UI + Team & 2-Tech Crews',
     phase2Done: 'Phase 2 Live: Group-chat picture OCR (Galinta & Cilada), Excel/CSV/paste, Group F1 filter, carry-over & repeat-fault decisions, undo',
-    phase2Next: 'Phase 3 Next: Xaafada & Cablebox clustering, individual/crew assignment, 1-click WhatsApp summary',
     phase3Done: 'Phase 3 (live): Cablebox & Xaafada route clustering, technician/crew dispatch, one-tap WhatsApp plan',
     phase4Done: 'Phase 4 (live): technician mobile route, server-side live timer, standard blockers, mandatory dBm capture',
-    phase4Next: 'Phase 5 Next: cablebox port & fault history, analytics and daily export',
     phase5Done: 'Phase 5 (live): cablebox port registry, full box history for the next technician, team & box analytics, CSV + WhatsApp report',
-    phase3Pending: 'Phase 3: Xaafada & Cablebox Clustering + 1-Click WhatsApp Summary',
-    phase4Pending: 'Phase 4: Mobile Execution, Live Timer, Blockers & Optical dBm',
-    phase5Pending: 'Phase 5: Full Cablebox Port History & Efficiency Analytics',
   },
   so: {
     appName: 'Nidaamka FTTH Telesom',
+    // Erayada la wadaago
+    close: 'Xir',
+    dismiss: 'Xir',
+    backspace: 'Tirtir lambarka ugu dambeeya',
+    selectActiveGroup: 'Dooro kooxda firfircoon',
+    switchLanguage: 'Beddel luuqadda (Soomaali / Ingiriis)',
+    pinUpdated: 'PIN-ka si guul leh ayaa loo beddelay',
+    assignedTechnicians: 'Farsamayaqaannada la qoondeeyay ({count})',
+    noTechniciansYet: 'Weli farsamayaqaan lama qoondeyn',
+    deptScaling: 'Ballaarinta waaxda',
+    deactivate: 'Dami',
+    activateGroup: 'Daar kooxda {code}',
+    primaryTeam: 'Kooxda koowaad',
+    groupCode: 'Lambarka kooxda',
+    groupName: 'Magaca kooxda',
+    groupDescription: 'Sharaxaad',
+    memberNamePlaceholder: 'tusaale: Cabdiraxmaan Maxamed',
+    crewZonePlaceholder: 'tusaale: Jigjigayar, Gantalaha, Bada Cas',
+    groupCodePlaceholder: 'tusaale: F4',
+    groupNamePlaceholder: 'Kooxda F4 — Fixed Broadband',
+    groupDescriptionPlaceholder: 'Aag ama qoraal kooxeed',
     deptSubtitle: 'Waaxda Fixed Broadband — Hawlgalka Kooxda',
     loginTitle: 'Soo Gal Nidaamka Shaqada',
     loginSubtitle: 'Geli magacaaga isticmaalaha ama lambarka Telesom iyo PIN-ka 4-ta lambar',
@@ -174,13 +203,10 @@ const translations = {
     techProfile: 'Kooxdayda & PIN',
 
     // Overview KPIs
-    activeGroup: 'Kooxda Shaqaynaysa',
     activeTechs: 'Farsamayaqaannada F1',
     fieldCrews: 'Kooxaha Gaadiidka (Crews)',
     trackedBoxes: 'Cablebox-yada Diwaangashan',
     openTasks: 'Shaqooyinka Furan (F1)',
-    pendingInstallations: 'Galinta Cusub (Pending Install)',
-    activeFaults: 'Ciladaha Taagan (Cilada)',
 
     // Team & Crews Management
     teamHeader: 'Maamulka Shaqaalaha, Lammaanaha Gaadiidka & Kooxaha FBB',
@@ -244,7 +270,6 @@ const translations = {
     dispatchCopy: 'Koobi',
     dispatchCopied: 'La koobiyay',
     dispatchCopyAll: 'Koobi qorshaha oo dhan',
-    dispatchCopyFor: 'Koobi kooxdan',
     dispatchShare: 'La wadaag',
     dispatchWhatsApp: 'WhatsApp',
     dispatchTelegram: 'Telegram',
@@ -255,29 +280,19 @@ const translations = {
     dispatchOpenJobs: 'furan',
     dispatchUrgentJobs: 'degdeg',
     dispatchDoneToday: 'maanta dhammaaday',
-    dispatchAssigning: 'Waa la qaybinayaa…',
-    dispatchAssignOk: 'Waxaa la siiyay',
     dispatchAssignSkipped: 'la booday (horaa loo bilaabay ama waa dhammaaday)',
     dispatchNoTargets: 'Marka hore ku dar farsamayaqe ama koox — eeg Shaqaalaha & Gaadiidka.',
     dispatchEmptyMessage: 'Marka hore shaqooyin qaybi — fariintu iskeed ayay u qormaysaa.',
-    dispatchUrgentShort: 'DEGDEG',
-    dispatchCarryShort: 'harsan',
     dispatchUnassignedShort: 'aan la qaybin',
     dispatchInProgressShort: 'socda',
-    dispatchLoad: 'Culays',
 
     // Roadmap Banner
     roadmapTitle: 'Heerarka Dhismaha Nidaamka (Mid-Mid)',
     phase1Done: 'Qaybta 1aad (Shaqaynaysa): Supabase Cloud + PIN Auth + Af-Soomaali/English + Maamulka Shaqaalaha & Crews',
     phase2Done: 'Qaybta 2aad (Shaqaynaysa): Sawirka Kooxda (OCR) — Galinta & Cilada, Excel/CSV, shaandhaynta F1, go\'aamadaha Baaqi & Cilad-soo-noqod, Undo',
-    phase2Next: 'Qaybta 3aad (Xigta): Isku-xidhka Xaafadaha & Cablebox, qaybinta shaqaalaha, fariinta WhatsApp-ka',
     phase3Done: 'Qaybta 3aad (Shaqaynaysa): Isku-xidhka Cablebox & Xaafadaha, qaybinta shaqaalaha, fariinta WhatsApp-ka hal guji',
     phase4Done: 'Qaybta 4aad (Shaqaynaysa): Mobile-ka farsamayaqaanka, saacadda server-ka, caqabadaha, cabbirka dBm ee qasabka ah',
-    phase4Next: 'Qaybta 5aad (Xigta): Taariikhda port-yada cablebox, falanqaynta iyo warbixinta maalinlaha ah',
     phase5Done: 'Qaybta 5aad (Shaqaynaysa): Diiwaanka port-yada cablebox, taariikhda buuxda farsamayaqaanka xiga, falanqaynta kooxda & sanduuqa, CSV + warbixinta WhatsApp',
-    phase3Pending: 'Qaybta 3aad: Isku-xidhka Xaafadaha & Cablebox + Fariinta WhatsApp-ka Kooxda',
-    phase4Pending: 'Qaybta 4aad: Mobile-ka Farsamayaqaanka, Saacadda (Timer), Caqabadaha & Cabirka dBm',
-    phase5Pending: 'Qaybta 5aad: Taariikhda Port-yada Cablebox & Warbixinta Waxqabadka',
   },
 } as const;
 
@@ -286,7 +301,21 @@ export type TranslationKey = keyof typeof translations.en;
 interface LanguageContextValue {
   lang: Language;
   setLang: (l: Language) => void;
-  t: (key: TranslationKey) => string;
+  /**
+   * `t('activateGroup', { code: 'F4' })`
+   *
+   * Interpolation exists so a sentence can move as one unit: splitting "Activate
+   * group" and the code across a template literal is exactly how translations
+   * end up with the wrong word order.
+   */
+  t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
+}
+
+function interpolate(template: string, vars?: Record<string, string | number>): string {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (match, name) =>
+    Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : match,
+  );
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -309,8 +338,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  const t = (key: TranslationKey): string => {
-    return translations[lang][key] ?? translations.en[key] ?? key;
+  const t = (key: TranslationKey, vars?: Record<string, string | number>): string => {
+    const template = translations[lang][key] ?? translations.en[key] ?? key;
+    return interpolate(template, vars);
   };
 
   return (
@@ -324,4 +354,13 @@ export function useLanguage() {
   const ctx = useContext(LanguageContext);
   if (!ctx) throw new Error('useLanguage must be used inside LanguageProvider');
   return ctx;
+}
+
+/**
+ * For shared primitives (Sheet, Toast) that must also work when rendered alone
+ * in a test, outside the provider. Screens keep using `useLanguage`, which
+ * throws — a screen without a language is a bug, a modal without one is a test.
+ */
+export function useLanguageSafe(): LanguageContextValue | null {
+  return useContext(LanguageContext);
 }

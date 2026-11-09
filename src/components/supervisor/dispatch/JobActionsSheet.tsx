@@ -24,6 +24,7 @@ import { Select, Textarea } from '../../ui/Field';
 import { Sheet } from '../../ui/Sheet';
 import { Skeleton } from '../../ui/Skeleton';
 import { useToast } from '../../ui/Toast';
+import { countLabel, formatDate } from '../../../lib/format';
 
 /**
  * Everything a supervisor can do to one job, in one place.
@@ -134,7 +135,7 @@ export function JobActionsSheet({
     void run('release', async () => {
       const result = await unassignTasks({ token, groupId, taskIds: [task.id] });
       toast.success(so ? 'Shaqada waa lagu celiyay guddiga' : 'Returned to the pool', {
-        description: `${result.released} ${so ? 'shaqo' : 'job'}`,
+        description: countLabel(result.released, 'jobs', lang),
       });
       onClose();
     });
@@ -230,7 +231,7 @@ export function JobActionsSheet({
               </span>
               <span className="inline-flex items-center gap-1">
                 <CalendarClock className="w-3 h-3" />
-                {task.reported_date || '—'}
+                {formatDate(task.reported_date)}
               </span>
             </div>
 

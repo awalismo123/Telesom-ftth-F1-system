@@ -694,3 +694,175 @@ technician searching a line they do not own will see the customer name and
 phone. This is the same exposure Batch B was parked for, now with a more
 convenient door; the fix remains the same (group- and role-scoped RLS plus a
 search policy), and it is recorded here rather than silently shipped.
+
+---
+
+## §10 Batch F — the app speaks both languages, and says what it means (31/10/2026)
+
+Batch F was the last batch in the programme, and the least glamorous: no new
+capability, no new screen. It fixes the class of defect that never shows up in a
+demo — the button that says *"Close"* in the English build and *"Close"* in the
+Somali one, the date that reads `10/31/2026` on a supervisor's phone because the
+browser was in en-US, the count that says *"4 shaqooyin"* when Somali takes the
+singular after a numeral.
+
+None of those break the app. All of them make a field team trust it less. The
+goal was that a Somali-speaking technician never meets a word they cannot read,
+and a supervisor never meets a date they have to reinterpret.
+
+### 10.1 What was actually wrong
+
+An audit script over the real sources, not over the dictionary, found three
+separate problems:
+
+| Problem | Count before | Count after |
+| :--- | ---: | ---: |
+| Keys present in one language only | 0 | 0 (enforced by test) |
+| Keys defined but never used | 17 | 0 |
+| Single-language literals in screens | 41 | 13, all allowlisted with a reason |
+
+The 41 were not decorative. They were `aria-label="Close"` on the sheet
+dismiss, `title="Close"` on three different modals, `alt` text on extracted
+sheet thumbnails, the `↑ ↓` keyboard hint in the header, `Backspace` under the
+PIN keypad, ten strings in `TeamAndCrewManager` including the crew-activation
+dialog, and the supervisor status line that read `SUPABASE LIVE • VERCEL READY`
+— infrastructure vocabulary that means nothing to the person reading it, and
+that was in English only.
+
+Separately, dates, numbers, durations and plurals were hand-rolled in twelve
+components. That produces four different date formats in one app and no single
+place to fix them.
+
+### 10.2 One dictionary, one formatter
+
+`src/lib/i18n.tsx` is still the dictionary — 132 keys in each language, typed,
+so a missing translation is a compile error rather than an `undefined` on
+screen. Three things were added or tightened:
+
+* `t(key, vars)` now interpolates `{placeholder}` values, so
+  `t('assignedTechnicians', { names })` is one whole sentence in each language
+  instead of concatenated fragments that only read correctly in English.
+* `useLanguageSafe()` — a non-throwing variant for primitives (`Sheet`, `Toast`)
+  that can be rendered by a test or a story outside the provider. Screens still
+  use the throwing `useLanguage()`, because a screen that cannot find its
+  language is a bug worth crashing on in development.
+* Fourteen dead keys deleted. Three keys that *looked* dead
+  (`dispatchPlanReasonZone`, `dispatchPlanReasonBox`, `dispatchPlanReasonBalance`)
+  were kept and are load-bearing: they are reached through
+  `REASON_KEY[row.reason]`, not through a literal `t('…')`. The lint now matches
+  the key name anywhere in the source outside the dictionary, which is the only
+  way to see them.
+
+`src/lib/format.ts` is new and is now the only place a date, number, duration or
+plural is decided:
+
+| Function | Output |
+| :--- | :--- |
+| `formatDate('2026-10-31')` | `31/10/2026` — day first, always |
+| `formatDateLong('2026-10-31', 'so')` | `31 Oktoobar 2026` |
+| `formatDateTime(stamp, 'en')` | `31 Oct 2026 · 14:05` |
+| `formatDateWithWeekday('2026-10-31', 'so')` | `Sabti 31/10/2026` |
+| `todayKey()` | the **local** calendar day, never `toISOString().slice(0,10)` |
+| `formatNumber(1234.5, 1)` | `1,234.5` |
+| `formatDbm(-18.75)` | `-18.8 dBm` |
+| `formatDuration(3900)` | `1h 05m` |
+| `countLabel(4, 'jobs', 'so')` | `4 shaqo` |
+
+The plural rule is the one worth writing down: **English has one and other;
+Somali takes the singular after any numeral.** `1 shaqo`, `4 shaqo` — never
+`shaqooyin`. Getting this wrong is the most visible way a translated app reads
+as machine-translated, and it was wrong in the earlier hand-rolled counts.
+
+`todayKey()` exists because of a real bug class, not a preference. A job started
+at 22:30 in Hargeisa is already the next day in UTC; filing it under the UTC
+date puts a technician's evening work on tomorrow's report.
+
+### 10.3 The language contract is now a test
+
+`tests/i18n.test.ts` (15 tests) walks the real `src` tree and asserts:
+
+1. every key exists in both languages;
+2. the same `{placeholder}` names appear in both languages;
+3. no key is dead weight (name matched anywhere outside the dictionary);
+4. no key is defined twice inside a block;
+5. no screen ships copy in only one language — unless it is in
+   `COPY_ALLOWLIST`, and every entry there carries a comment saying why.
+
+The allowlist is deliberately short and boring: brand names (`Telesom FTTH`,
+`TELESOM FBB`, `Group F1`), the two sheet categories as they are printed on the
+sheets (`Galinta`, `Cilada`), and example values that are data rather than copy
+(`FAT 48`, `F1 - Crew A`, `Gaadhi 01`). Anything else has to be translated.
+
+This is the difference between "we did an i18n pass" and "the app cannot drift
+back". A new hardcoded English string now fails `npm test` on the way in.
+
+### 10.4 Being told once, where it matters
+
+A first-run hint (`src/components/ui/FirstRunHint.tsx`) is a small card that
+explains the one non-obvious thing on a screen, then never comes back:
+
+| Screen | What it says, once |
+| :--- | :--- |
+| Dispatch board | how jobs get from the pool into a crew's route |
+| Technician route | that the timer is the record of the visit, not a stopwatch |
+| Box registry | that history is per box and per port for the whole group |
+
+It is stored per user (`telesom_f1_hint_${userId}_${id}`), so a shared garage
+handset does not show a supervisor's hint to a technician, and dismissal is
+final rather than "for this session".
+
+### 10.5 Documentation that answers the 3 a.m. questions
+
+Three documents, written for the people who will actually be on the phone:
+
+* **`docs/RUNBOOK.md`** — rotating PINs, adding a group (F2 and beyond),
+  restoring data, what to do when a technician cannot sign in. Procedures, with
+  the SQL and the exact screen names.
+* **`docs/KNOWN_LIMITS.md`** — the honest list: online-only, OCR misreads,
+  `global_search` exposure (Batch B), one Supabase project, browser-based OCR
+  cost on a low-end phone.
+* **`README.md`** — rewritten opening: what the app is, who uses it, the five
+  modules, then a "read this next" route into the runbook and the architecture
+  document, and a corrected project structure.
+* **`docs/ARCHITECTURE_AND_PLAN.md` §5** — "architecture as built", replacing
+  what was planned in Phase 1 with what actually exists after five phases and
+  six batches.
+
+### 10.6 Verification
+
+| Check | Result |
+| :--- | :--- |
+| `tsc -b` | clean |
+| `npm test` | **136 / 136** (was 121) |
+| `npm run build` | 3.7 s |
+| `npm run bundle:check` | **181.4 kB / 200 kB** gzip first load (+1.2 kB for hints and the format module) |
+| Dev server | all changed modules transform and serve 200; `/` returns the app shell |
+
+The bundle grew by 1.2 kB to buy a shared formatter and three hints — the only
+place in the programme where a batch does not pay for itself in bytes, and worth
+stating plainly rather than hiding.
+
+### 10.7 Where this batch deviated from the plan
+
+* **Empty states** — the plan called for "better empty states" everywhere. An
+  audit found only three screens that render a real `EmptyState`, and both
+  `RouteView` and `Analytics` already have adequate inline copy plus the demo
+  banner. Nothing was rewritten for the sake of a checklist item. Recorded as a
+  decision, not as work done.
+* **Product voice** — no wholesale copy rewrite. The screens' existing wording
+  is the field team's wording; the batch fixed contradictions and
+  infrastructure language (the `SUPABASE LIVE` line) and left the rest alone.
+* **No visual redesign** — per the user's decision, emerald/slate stays. This
+  batch touched colour nowhere.
+
+### 10.8 What is still open after the programme
+
+* **Batch B (security hardening) stays parked** by the user's decision. The
+  `global_search` exposure and the group-wide `tasks` SELECT policy are
+  documented in `docs/KNOWN_LIMITS.md`, not fixed.
+* **Offline** stays declined; the app is online-only with draft protection.
+* **OCR accuracy** is bounded by the photos the group chat produces. Demo data
+  is marked and one-tap removable, so a bad read is recoverable.
+
+The programme is complete at F. Every batch the user approved is merged and
+live; the only unbuilt work is the one they explicitly deferred.
