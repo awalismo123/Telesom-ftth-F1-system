@@ -214,6 +214,27 @@ Do not diagnose this by looking at the footer version: `BUILD_DATE` is a
 constant in `src/lib/version.ts`, so an old build and a new one can carry the
 same label. Compare a string you actually changed.
 
+### CI is red for every push, in about a second
+
+That is not your code. Open any failed run and read the annotation:
+
+> The job was not started because your account is locked due to a billing issue.
+
+GitHub Actions will not start a job while the owning account has an unresolved
+billing problem, even on a public repository where minutes are free. It is fixed
+in **GitHub → Settings → Billing**, by the account owner. Nobody in the field can
+fix it, and no workflow change helps.
+
+Meanwhile:
+
+```bash
+npm run verify          # typecheck, 212 tests, build, bundle budget, credentials
+npm run hooks:install   # once per clone — runs verify before every git push
+```
+
+If a push is blocked by the hook and you are certain, `git push --no-verify`.
+Treat that as a conscious choice, not an accident.
+
 ### A deploy broke something
 
 Vercel → *Deployments* → the previous green deployment → **Promote**. The

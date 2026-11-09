@@ -199,7 +199,7 @@ input looks like, so it may have been a rendering artifact. The drift is
 unconfirmed, and the only solid observation is the one above — after the merge,
 production did not change.
 
-### Phase 1 — Release trust (≈2 days)
+### Phase 1 — Release trust (≈2 days) — **DONE 09/11/2026, one item blocked on billing**
 
 | Task | Notes |
 |---|---|
@@ -211,7 +211,69 @@ production did not change.
 | Single source of truth for the SLA | `activity.ts` + `012` + `013` |
 | Add the 21 FK indexes | One migration |
 
-**Acceptance:** CI shows a job with >0 steps and a deployed-artifact check; `list_migrations` returns 17; `anon` cannot execute the two write functions; SLA changes in one place.
+**Outcome.**
+
+*CI — blocked, and now for a known reason.* The failure annotation reads
+**"The job was not started because your account is locked due to a billing
+issue."** Earlier sessions recorded this as an unexplained account restriction;
+it is billing. The repository is public, so Actions minutes are free — a billing
+lock on the owning account blocks runs regardless of visibility. No workflow
+change can fix it: the account owner clears it in GitHub → Settings → Billing.
+
+`bundle:check` is now a CI step, so the moment runs resume the audit's P0 is
+gated on every push. Because that is not today, `npm run hooks:install` wires
+the same `npm run verify` to `git push` as a stopgap. It is a stopgap: it runs
+only on machines that installed it and can be skipped with `--no-verify`.
+
+*Ledger — done.* 8 rows back-filled for 011–018 (`created_by =
+'ledger-reconciliation'`, `statements = NULL` because they were applied by hand
+and **not** replayed), plus 019–020 for the work below. `list_migrations` now
+returns 20 rows for 20 files.
+
+*FK indexes — done.* The audit's 21 was exact: 35 foreign keys, 14 covered, 21
+not. Migration 019 adds all 21; the same query now returns zero rows.
+
+*Grants — the audit's advice was wrong, and following it would have broken the
+app.* This is the most important correction in the whole review. The linter's 58
+`anon`-executable definer functions are, for this architecture, correct: there is
+no Supabase Auth, the browser holds the public anon key, and each function
+validates `p_token` inside its own body via `get_session_user`. Revoking `anon`
+from those functions does not harden anything — it turns every RPC into
+`permission denied` and deletes the application. All 58 were checked
+individually:
+
+| Group | Count | Verdict |
+| :--- | ---: | :--- |
+| `authenticate_pin` | 1 | Must be anon — it issues the token. Lockout + 018 are the guard. |
+| Trigger functions | 2 | Not callable via PostgREST (a `trigger` return type is not an RPC). |
+| Token-first | 54 | 51 call `get_session_user`; 2 call `get_task` which does; 1 deletes the row for the token it is given. |
+| `is_task_worker` | 1 | Internal helper. **Revoked** from `anon`/`authenticated` (020). |
+
+Zero open doors. The trigger functions keep their grant deliberately: revoking
+is cosmetic, and PostgreSQL's interaction between trigger execution and
+`SECURITY DEFINER` privileges is subtle enough that a blind revoke risks
+`broadcast_change` — the realtime feed — for a linter line.
+
+*SLA — guarded, not unified.* The audit said two hardcoded sites; there are
+five. Unifying them means rewriting four `SECURITY DEFINER` report functions to
+swap a constant that already agrees, and a mistake there breaks the supervisor's
+daily report silently. That is a worse trade than the duplication. Instead
+`tests/sla.test.ts` anchors on the shape of an overdue check
+(`< … - interval 'N days'`), finds all four, and fails if any differs from
+`SLA_DAYS`. Verified by changing `SLA_DAYS` to 4: the test named all four sites.
+It reads the repository only — a live edit in the SQL editor still drifts, which
+is why the promise changes by migration, never by hand.
+
+**Acceptance:** CI shows a job with >0 steps — **not met, billing**;
+`bundle:check` runs there — met in config, unverified in a run;
+`list_migrations` returns 20 — met; `is_task_worker` not anon-executable — met;
+SLA drift — caught by test, not unified by design.
+
+**Verified against the live database after the changes:** supervisor sign-in
+succeeded, `list_open_tasks` returned 4, `my_team` 1, `group_overview` 5
+members with a `counts` object, `ops_analytics` returned its `totals` key, and
+`start_task` executed through `is_task_worker` without a permission error. The
+test session and the task it started were both reverted.
 
 ### Phase 2 — Protect the service (Batch G; gated on billing)
 

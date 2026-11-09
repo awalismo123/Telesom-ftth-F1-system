@@ -1,5 +1,25 @@
 name: CI
 
+# ---------------------------------------------------------------------------
+# Status: this workflow does not currently run.
+#
+# Every job since 2026-10-31 has failed with **zero steps executed**, in about a
+# second, with no runner assigned. The annotation on those runs says why:
+#
+#   "The job was not started because your account is locked due to a billing
+#    issue."
+#
+# This repository is public, so Actions minutes are free — but a billing lock on
+# the owning account blocks runs regardless of visibility. Nothing in this file
+# can fix that; it is cleared in GitHub → Settings → Billing, by the account
+# owner. Until then, `npm run verify` locally is the only gate, and
+# `npm run hooks:install` wires it to `git push`.
+#
+# The steps below are therefore written to be correct the day billing is
+# restored, and are verified locally by running the same commands in the same
+# order.
+# ---------------------------------------------------------------------------
+
 on:
   push:
     branches: [main]
@@ -12,7 +32,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck · Test · Build
+    name: Typecheck · Test · Build · Budget
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
@@ -38,9 +58,28 @@ jobs:
       - name: Production build
         run: npm run build
 
+      # Fails in both directions, which is the point:
+      #
+      #  * over budget          — a screen was not put behind React.lazy()
+      #  * credential in dist/  — a PIN, seeded identifier or real subscriber
+      #                           number survived minification
+      #
+      # The second one is the audit's P0. It was never checked here, and the
+      # guard existed in package.json for weeks without being wired in, so a
+      # bundle that shipped six published logins passed every green step.
+      - name: Bundle budget and credential guard
+        run: npm run bundle:check
+
       - name: Bundle report
+        if: always()
         run: |
-          echo "### Bundle" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          du -sh dist/assets/* | sort -h | tail -12 >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Bundle"
+            echo '```'
+            du -sh dist/assets/* 2>/dev/null | sort -h | tail -12
+            echo '```'
+            echo "### Credential guard"
+            echo '```'
+            node scripts/check-credentials.mjs 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
