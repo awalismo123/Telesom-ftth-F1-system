@@ -235,6 +235,27 @@ test('no screen ships copy in only one language', () => {
   );
 });
 
+test('PIN copy agrees with what the inputs accept', () => {
+  // The keypad and both PIN forms take 4 to 6 digits (min 4, maxLength 6).
+  // Copy that promises "4-digit" is a claim the input contradicts — it shipped
+  // that way, which is why this guard exists.
+  const offenders: string[] = [];
+
+  for (const file of sourceFiles) {
+    const relative = file.slice(root.length + 1);
+    const source = stripComments(read(relative));
+    source.split('\n').forEach((line, index) => {
+      if (/4[- ]digit|4\s*lambar|4-ta lambar|4-lambar/i.test(line)) {
+        offenders.push(`${relative}:${index + 1} ${line.trim()}`);
+      }
+    });
+  }
+
+  assert.deepEqual(offenders, [], 'PINs are 4–6 digits, so say so:\n' + offenders.join('\n'));
+  assert.match(en.get('pinHint') ?? '', /4–6/);
+  assert.match(so.get('pinHint') ?? '', /4–6/);
+});
+
 /* -------------------------------------------------------------------------- */
 /* Dates, numbers, plurals                                                     */
 /* -------------------------------------------------------------------------- */
