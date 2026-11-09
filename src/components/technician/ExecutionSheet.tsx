@@ -337,8 +337,8 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close / Xir"
-            title="Close / Xir"
+            aria-label={so ? 'Xir' : 'Close'}
+            title={so ? 'Xir' : 'Close'}
             className="p-2 -mr-1 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-5 h-5" aria-hidden="true" />

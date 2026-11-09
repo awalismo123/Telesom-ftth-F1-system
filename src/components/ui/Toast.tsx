@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import { useLanguageSafe } from '../../lib/i18n';
 
 /**
  * Toasts: the app's voice.
@@ -30,6 +31,7 @@ interface ToastItem {
   title: string;
   description?: string;
   duration: number;
+  dismissLabel?: string;
 }
 
 interface ToastApi {
@@ -60,6 +62,8 @@ const TONE_META: Record<ToastTone, { icon: React.ReactNode; ring: string; iconWr
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const i18n = useLanguageSafe();
+  const dismissLabel = i18n ? i18n.t('dismiss') : 'Dismiss';
   const [items, setItems] = useState<ToastItem[]>([]);
   const idRef = useRef(0);
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
@@ -138,7 +142,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => dismiss(item.id)}
-                aria-label="Dismiss"
+                aria-label={dismissLabel}
                 className="p-1 -m-1 rounded-lg text-slate-200 hover:text-white cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />

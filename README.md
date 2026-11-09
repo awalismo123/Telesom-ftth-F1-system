@@ -1,10 +1,55 @@
 # Telesom FTTH — Group F1 Field Operations System
 
-A modern, bilingual (**Somali / English**) field operations web app for Telesom's **Fixed Broadband Department — Group F1**.
+A bilingual (**Somali / English**) field operations system for Telesom's **Fixed Broadband Department — Group F1**.
 
-It replaces the daily *"picture of the table"* workflow sent in the group chat with a live system: upload the daily **Pending Installation (Galinta)** and **Cilada** sheets, auto-extract only **Group F1** rows, cluster them by `Xaafada` / `Cablebox`, dispatch to technicians or 2-tech crews, and track live timers, blockers, optical `dBm` readings and cablebox history.
+It replaces the daily *"picture of the table"* posted in the group chat with a live
+system: photograph the **Galinta** / **Cilada** sheet, extract only the F1 rows,
+cluster them by `Xaafada` / `Cablebox`, dispatch to technicians or 2-tech crews, and
+track live timers, blockers, optical `dBm` readings and cablebox history.
 
-> Live stack: **Vite + React 19 + TypeScript + Tailwind CSS 4 + Supabase (Postgres + Realtime)** → deployed on **Vercel**.
+| Who | Opens it for | Gets |
+| :--- | :--- | :--- |
+| **Supervisor** | The morning dispatch | Daily sheet import, the unassigned pool, auto-clustering, the group-chat message, every correction |
+| **Technician** | Their route, on a phone | Only their jobs, `tel:` to call the customer, a live timer, blockers, mandatory `dBm` to close |
+| **Management** | The numbers | Technician efficiency, box health, daily trend, CSV + WhatsApp report |
+
+> **Vite + React 19 + TypeScript + Tailwind 4 + Supabase (Postgres + Realtime)** → **Vercel**
+
+**Production:** <https://telesomftthfonesystem.vercel.app>
+
+---
+
+## Read this next
+
+| Document | For |
+| :--- | :--- |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Day-to-day operation: add a technician, reset a PIN, add a group, fix a mistake, recover |
+| [`docs/KNOWN_LIMITS.md`](docs/KNOWN_LIMITS.md) | What this deliberately does not do, and why |
+| [`docs/ARCHITECTURE_AND_PLAN.md`](docs/ARCHITECTURE_AND_PLAN.md) | Data model, RPCs, module map |
+| [`docs/PERFECTION_PLAN.md`](docs/PERFECTION_PLAN.md) | The audit and the six hardening batches, with measurements |
+
+---
+
+## The five minutes that matter
+
+A supervisor, first thing in the morning:
+
+1. **Daily Sheet Upload** — photograph the sheet. The app reads the grid on the
+   phone, keeps only F1 rows, and shows them for confirmation. Nothing imports that
+   a person has not seen.
+2. **Dispatch & clustering** — tick jobs, press *Auto-cluster*, choose who takes
+   what, then **Copy full plan** into the group chat.
+3. **Watch the day** — the live strip shows who is running, who is blocked, for how
+   long.
+
+A technician, in the field:
+
+1. Sign in with a PIN → **My route**, ordered the way the day should go.
+2. Tap a job → **Start**. The timer runs from the server clock, so closing the app
+   loses nothing.
+3. Something in the way? **Block** with a reason — the clock pauses, the job stays
+   theirs, and the supervisor sees it.
+4. **Complete** with the optical `dBm` reading (required) and notes.
 
 ---
 
@@ -175,41 +220,48 @@ OCR tuning harness (dev only): `npm run ocr:lab` (clean + rotated + degraded mod
 
 ```
 ├── docs/
-│   └── ARCHITECTURE_AND_PLAN.md     # Full system design & build roadmap
-├── supabase/
-│   └── migrations/
-│       └── 001_initial_schema.sql   # Complete DB schema, RLS, RPCs & seed data
-├── src/
-│   ├── components/
-│   │   ├── LoginScreen.tsx          # PIN login + numeric keypad + quick test accounts
-│   │   ├── HeaderBar.tsx            # Language toggle, group switcher, PIN change, logout
-│   │   ├── supervisor/
-│   │   │   ├── SupervisorShell.tsx
-│   │   │   ├── TeamAndCrewManager.tsx
-│   │   │   └── ingest/
-│   │   │       ├── IngestWizard.tsx       # picture → verify → decide → commit
-│   │   │       ├── ExtractionReview.tsx   # editable cells + grid overlay
-│   │   │       └── ConflictPanel.tsx      # carry-over / repeat / duplicate decisions
-│   │   └── technician/
-│   │       └── TechnicianShell.tsx
-│   ├── contexts/AuthContext.tsx     # Session token, active group, PIN auth
-│   ├── lib/
-│   │   ├── i18n.tsx                 # Somali / English dictionary + provider
-│   │   ├── importer.ts              # diff engine: new / carry-over / repeat / duplicate
-│   │   ├── supabase.ts              # Supabase client
-│   │   └── ocr/
-│   │       ├── imageOps.ts          # binarise, ruled-line detection, rule removal
-│   │       ├── assemble.ts          # words + grid → table cells
-│   │       ├── templates.ts         # Galinta & Cilada column templates
-│   │       ├── normalize.ts         # line/phone/date/group/cablebox/complaint parsers
-│   │       ├── extract.ts           # cells → typed rows
-│   │       ├── paste.ts             # clipboard / CSV / TSV
-│   │       └── engine.ts            # in-browser Tesseract pipeline
-│   ├── types/database.ts            # Shared TypeScript domain types
-│   ├── App.tsx
-│   └── main.tsx
-├── vercel.json                      # SPA rewrites for Vercel
-└── vite.config.ts
+│   ├── RUNBOOK.md                   # operating it: people, data, recovery
+│   ├── KNOWN_LIMITS.md              # what it deliberately does not do
+│   ├── ARCHITECTURE_AND_PLAN.md     # data model, RPCs, module map
+│   └── PERFECTION_PLAN.md           # audit + batches A–F, with measurements
+├── supabase/migrations/             # 001…010, forward-only, applied in order
+├── scripts/
+│   ├── check-bundle.mjs             # first-load gzip budget (fails the build)
+│   ├── generate-icons.mjs           # PWA icons from one source image
+│   └── vendor-tesseract.mjs         # OCR assets served locally, not from a CDN
+├── tests/                           # node:test — pure logic, render, and lint
+└── src/
+    ├── App.tsx                      # providers: language → toast → config → auth → nav
+    ├── components/
+    │   ├── LoginScreen.tsx          # PIN keypad, bilingual, no config card
+    │   ├── HeaderBar.tsx            # identity, search (⌘K), bell, group, language, PIN
+    │   ├── supervisor/
+    │   │   ├── SupervisorShell.tsx  # lazy-loads every module below
+    │   │   ├── dispatch/            # board, lanes, live strip, plan & message sheets
+    │   │   ├── ingest/              # wizard, extraction review, conflict decisions
+    │   │   ├── BoxRegistry.tsx  Analytics.tsx  TeamAndCrewManager.tsx
+    │   ├── technician/
+    │   │   ├── RouteView.tsx        # the route, grouped and ordered
+    │   │   ├── ExecutionSheet.tsx   # timer, blockers, dBm, notes
+    │   │   └── RunningPill.tsx      # the job running right now
+    │   ├── registry/                # box sheet, port grid, box editor
+    │   └── ui/                      # design kit: Button, Card, Sheet, Field, Alert,
+    │                                #   Tabs, Toast, EmptyState, Skeleton, LazyPanel,
+    │                                #   SearchPalette, NotificationsBell, FirstRunHint
+    ├── contexts/AuthContext.tsx     # session token, active group, PIN auth
+    └── lib/
+        ├── i18n.tsx                 # typed dictionary + interpolation + provider
+        ├── format.ts                # dates, numbers, plural rules (both languages)
+        ├── ops.ts / opsService.ts   # Batch E rules and their RPC calls
+        ├── importer.ts              # diff: new / carry-over / repeat / duplicate
+        ├── dispatch.ts              # clustering, auto-plan, message rendering
+        ├── execution.ts             # server-clock timers, blockers, dBm bands
+        ├── registry.ts              # box health, port usage, analytics shapes
+        ├── realtime.ts              # postgres_changes, one channel per subscriber
+        ├── cache.ts                 # stale-while-revalidate for tab switches
+        ├── errors.ts                # one sentence per failure, per language
+        ├── navigation.tsx           # "take me to that job" across shells
+        └── ocr/                     # in-browser grid OCR (never uploaded)
 ```
 
 ---

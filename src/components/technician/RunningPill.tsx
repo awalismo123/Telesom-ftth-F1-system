@@ -7,6 +7,7 @@ import { elapsedSeconds, formatClock, serverOffsetMs } from '../../lib/execution
 import { fetchRoute } from '../../lib/executionService';
 import { useNow } from '../../lib/useNow';
 import { useTableChanges, useVisibleInterval } from '../../lib/realtime';
+import { countLabel } from '../../lib/format';
 
 /**
  * Floating "you have work running" pill, shown above the tab bar so the timer
@@ -71,8 +72,8 @@ export function RunningPill({ onGoToRoute }: { onGoToRoute: () => void }) {
                 ? 'Shaqo socota'
                 : 'Job running'
               : so
-                ? `${tasks.length} shaqo socda`
-                : `${tasks.length} jobs running`}
+                ? `${countLabel(tasks.length, 'jobs', 'so')} socda`
+                : `${countLabel(tasks.length, 'jobs', 'en')} running`}
           </div>
           <div className="font-mono text-xs font-bold tabular-nums text-white/90 truncate">
             {tasks

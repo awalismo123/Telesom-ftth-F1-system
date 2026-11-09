@@ -37,6 +37,7 @@ import {
 } from '../../../lib/importer';
 import { ExtractionReview } from './ExtractionReview';
 import { ConflictPanel } from './ConflictPanel';
+import { formatDateTime } from '../../../lib/format';
 
 type Phase = 'source' | 'processing' | 'review' | 'conflicts' | 'done';
 
@@ -537,12 +538,7 @@ export function IngestWizard() {
                       {batch.sheet_category === 'installation' ? 'GALINTA' : 'CILADA'}
                     </span>
                     <span className="text-[10px] text-slate-500">
-                      {new Date(batch.created_at).toLocaleString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatDateTime(batch.created_at, lang)}
                     </span>
                   </div>
 

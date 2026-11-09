@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { ConflictKind, ImportPlan, PlanRow, RowDecision } from '../../../lib/importer';
 import { useLanguage } from '../../../lib/i18n';
+import { formatDate } from '../../../lib/format';
 
 interface Props {
   plan: ImportPlan;
@@ -278,12 +279,12 @@ export function ConflictPanel({ plan, onChange }: Props) {
                         {row.existing.completed_at && (
                           <span>
                             {so ? 'la dhammeeyay' : 'completed'}{' '}
-                            {new Date(row.existing.completed_at).toLocaleDateString()}
+                            {formatDate(row.existing.completed_at)}
                           </span>
                         )}
                         <span className="font-mono">
                           {so ? 'sannadka' : 'created'}{' '}
-                          {new Date(row.existing.created_at).toLocaleDateString()}
+                          {formatDate(row.existing.created_at)}
                         </span>
                       </div>
                     )}

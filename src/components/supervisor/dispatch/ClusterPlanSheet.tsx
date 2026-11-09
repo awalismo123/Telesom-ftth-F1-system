@@ -6,6 +6,7 @@ import { useLanguage } from '../../../lib/i18n';
 import { Button } from '../../ui/Button';
 import { EmptyState } from '../../ui/EmptyState';
 import { Sheet } from '../../ui/Sheet';
+import { countLabel } from '../../../lib/format';
 
 interface Props {
   open: boolean;
@@ -75,7 +76,7 @@ export function ClusterPlanSheet({ open, onClose, plan, targets, busy, onApply }
         </span>
       }
       description={
-        `${rows.length} ${so ? 'jidad' : 'routes'} · ${totalJobs} ${so ? 'shaqo' : 'jobs'}` +
+        `${countLabel(rows.length, 'routes', lang)} · ${countLabel(totalJobs, 'jobs', lang)}` +
         (urgentJobs > 0 ? ` · ${urgentJobs} ${t('dispatchFilterUrgent')}` : '')
       }
       size="lg"
@@ -133,7 +134,7 @@ export function ClusterPlanSheet({ open, onClose, plan, targets, busy, onApply }
                         {row.cluster.label}
                       </span>
                       <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold">
-                        {row.cluster.tasks.length} {so ? 'shaqo' : 'jobs'}
+                        {countLabel(row.cluster.tasks.length, 'jobs', lang)}
                       </span>
                       {row.cluster.urgentCount > 0 && (
                         <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold inline-flex items-center gap-0.5">

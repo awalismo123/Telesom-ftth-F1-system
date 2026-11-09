@@ -227,7 +227,7 @@ export function ExtractionReview({
             </div>
 
             <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white">
-              <img src={preview} alt="Processed sheet" className="w-full h-auto block" />
+              <img src={preview} alt={so ? 'Sawirka la habeeyay' : 'Processed sheet'} className="w-full h-auto block" />
               {gridLines && imageSize && (
                 <svg
                   viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}

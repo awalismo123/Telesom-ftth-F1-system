@@ -234,7 +234,7 @@ export function LoginScreen() {
                 <button
                   type="button"
                   onClick={handleBackspace}
-                  aria-label="Backspace"
+                  aria-label={t('backspace')}
                   className="h-11 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center border border-slate-200/80 transition cursor-pointer"
                 >
                   <Delete className="w-4 h-4" />

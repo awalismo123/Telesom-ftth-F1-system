@@ -25,6 +25,7 @@ import {
 import { logDispatch } from '../../../lib/dispatchService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
+import { countLabel } from '../../../lib/format';
 
 interface Props {
   open: boolean;
@@ -171,8 +172,8 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close / Xir"
-            title="Close / Xir"
+            aria-label={so ? 'Xir' : 'Close'}
+            title={so ? 'Xir' : 'Close'}
             className="p-2 rounded-xl hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-4 h-4" aria-hidden="true" />
@@ -340,7 +341,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                           {lane.target.name}
                         </span>
                         <span className="block text-[10px] text-slate-500">
-                          {lane.tasks.length} {so ? 'shaqo' : lane.tasks.length === 1 ? 'job' : 'jobs'}
+                          {countLabel(lane.tasks.length, 'jobs', uiLang)}
                         </span>
                       </span>
                       <button
@@ -379,7 +380,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
 
         <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
           <span className="text-[10px] text-slate-500">
-            {taskIds.length} {so ? 'shaqo' : 'jobs'} · {activeLanes.length} {so ? 'kooxood' : 'teams'}
+            {countLabel(taskIds.length, 'jobs', uiLang)} · {countLabel(activeLanes.length, 'teams', uiLang)}
           </span>
           <button
             type="button"

@@ -38,6 +38,7 @@ import { TaskCard } from './TaskCard';
 import { ClusterPlanSheet } from './ClusterPlanSheet';
 import { DispatchMessageSheet } from './DispatchMessageSheet';
 import { LiveStrip } from './LiveStrip';
+import { FirstRunHint } from '../../ui/FirstRunHint';
 import { ManualTaskSheet } from './ManualTaskSheet';
 import { JobActionsSheet } from './JobActionsSheet';
 import { fetchDirectory } from '../../../lib/registryService';
@@ -373,6 +374,16 @@ export function DispatchBoard({
       </div>
 
       <LiveStrip />
+
+      <FirstRunHint
+        id="dispatch-pool"
+        userId={session?.user.id}
+        title={so ? 'Sida loo qaybiyo shaqada' : 'How dispatching works'}
+      >
+        {so
+          ? 'Dooro shaqooyin ka mid ah liiska bidixda, ka dib dooro farsamayaqaan ama gaadiid. “Isku-xidh si otomaatig ah” ayaa isku keenaysa shaqooyinka isla xaafada ama isla sanduuqa.'
+          : 'Tick jobs in the left list, then choose a technician or a crew. “Auto-cluster” groups the ones in the same area or on the same box.'}
+      </FirstRunHint>
 
       {error && (
         <Alert tone="danger" onDismiss={() => setError(null)} dismissLabel={t('cancel')}>

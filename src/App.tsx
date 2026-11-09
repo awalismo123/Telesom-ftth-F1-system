@@ -45,8 +45,8 @@ function AppRouter() {
 export default function App() {
   return (
     <ErrorBoundary label="Telesom FTTH">
-      <ToastProvider>
-        <LanguageProvider>
+      <LanguageProvider>
+        <ToastProvider>
           <ConfigGate>
             <AuthProvider>
               <NavigationProvider>
@@ -54,8 +54,8 @@ export default function App() {
               </NavigationProvider>
             </AuthProvider>
           </ConfigGate>
-        </LanguageProvider>
-      </ToastProvider>
+        </ToastProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

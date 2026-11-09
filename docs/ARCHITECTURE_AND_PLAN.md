@@ -87,3 +87,123 @@ Because daily sheets arrive as **table images (`.jpeg`, `.png`)** in the group c
   * **`report_jobs`** — the flat completed-job list behind the CSV export, kept separate so the dashboard payload stays small.
   * **Exports** — CSV (jobs, teams, boxes; UTF-8 BOM for Somali names) built entirely in the browser, and a WhatsApp/Telegram report in Somali or English.
   * **Demo mode** — `seed_demo_data` / `clear_demo_data` create and remove 36 flagged sample jobs with incidents, blockers and port states so the screens can be judged on day one; `is_demo` keeps them separate from real work and the supervisor sees a banner whenever they are present.
+
+---
+
+# 5. Architecture as built (after Batch F, 31/10/2026)
+
+This section describes the system **as it exists**, not as it was planned. The
+sections above are the original design record and are kept for history.
+
+## 5.1 Shape
+
+```
+Browser (phone or desk)
+├── React 19 + Vite, one SPA, six cached chunks
+├── Providers, outermost first:
+│     LanguageProvider → ToastProvider → ConfigGate → AuthProvider → NavigationProvider
+├── Two shells, chosen by the saved session's role — never by the last screen used
+│     SupervisorShell    TechnicianShell
+└── src/lib/*            pure logic + RPC calls, no JSX
+
+Supabase
+├── Postgres  (RLS on every table; all writes via SECURITY DEFINER RPCs)
+├── Realtime  (postgres_changes on `tasks`)
+└── no storage, no edge functions, no direct table writes from the client
+```
+
+The client holds **no secrets**. The anon key is public by design; the security
+boundary is Row Level Security plus the RPCs' own checks.
+
+## 5.2 Data model
+
+| Table | Holds | Notable columns |
+| :--- | :--- | :--- |
+| `groups` | F1, F2, F3 … | `code` unique; F1 is the primary team |
+| `users` | people | `role` (supervisor/technician), `is_active`, `preferred_lang` |
+| `user_credentials`, `user_sessions` | PIN hashes, tokens | **no public policy at all** |
+| `crews`, `crew_members` | 2-tech vehicles | one job → one crew → one timer |
+| `cableboxes` | the box register | `box_code` unique **department-wide**, port count, health |
+| `cablebox_ports` | the port map | per port: free/occupied/damaged/reserved, who changed it |
+| `cablebox_logs` | box history | every fault, reading and note, with who |
+| `import_batches` | one per sheet upload | counts read/matched/created/skipped, undoable |
+| `tasks` | the jobs | see below |
+| `task_work_logs` | the audit trail | imported, assigned, started, blocked, resumed, completed, cancelled, reopened |
+| `dispatch_log` | group-chat messages | the exact text sent, by whom |
+
+`tasks` carries the whole job lifecycle:
+
+- **identity** — `line_number`, `customer_name`, `customer_phone`, `dedup_key`
+- **classification** — `task_type` (installation/cilada), `priority`, `is_repeat_fault`, `carryover_count`
+- **place** — `xaafada`, `cablebox_code_raw`, `cablebox_id`, `port_number`
+- **assignment** — `status`, `assigned_user_id` / `assigned_crew_id`, `assigned_by/at`
+- **time** — `active_started_at` + `accumulated_seconds` (server-derived; never a local stopwatch)
+- **outcome** — `optical_dbm`, `completion_notes`, `completed_at/by`
+- **cancellation** — `status='cancelled'`, `cancelled_at/by`, `cancel_reason`
+- **provenance** — `source` (sheet/manual), `created_by`, `intake_notes`, `reopened_count`, `is_demo`
+
+`cancelled` is terminal: a `BEFORE UPDATE` trigger refuses to move a cancelled job
+anywhere unless the caller is `reopen_task`.
+
+## 5.3 RPC inventory
+
+Every write, and every read that needs a role check, is a function.
+
+| Area | Functions |
+| :--- | :--- |
+| Auth & people | `authenticate_pin`, `verify_session`, `logout_session`, `build_auth_payload`, `change_own_pin`, `set_preferred_language`, `upsert_team_member`, `upsert_crew`, `upsert_group` |
+| Ingest | `find_existing_tasks`, `commit_import_batch`, `undo_import_batch`, `ensure_cablebox` |
+| Dispatch | `assign_tasks`, `unassign_tasks`, `dispatch_load`, `log_dispatch` |
+| Execution | `technician_route`, `start_task`, `block_task`, `resume_task`, `complete_task`, `live_status` |
+| Registry | `box_directory`, `box_detail`, `set_port_status`, `upsert_cablebox`, `ops_analytics`, `report_jobs` |
+| Corrections | `create_manual_task`, `cancel_task`, `reopen_task` |
+| Search | `global_search` |
+| Demo | `seed_demo_data`, `clear_demo_data` |
+
+## 5.4 Modules and their one job
+
+| File | Responsibility |
+| :--- | :--- |
+| `lib/i18n.tsx` | typed dictionary, `{placeholder}` interpolation, `<html lang>` |
+| `lib/format.ts` | `dd/mm/yyyy`, month names, `,` grouping, plural rules (`3 shaqo` / `3 jobs`) |
+| `lib/errors.ts` | one sentence per failure, per language — never a gateway's English |
+| `lib/dispatch.ts` | clustering, auto-plan, the WhatsApp/Telegram message |
+| `lib/execution.ts` | server-clock arithmetic, blocker catalogue, dBm bands |
+| `lib/importer.ts` | diff engine: new / carry-over / repeat / duplicate |
+| `lib/registry.ts` | box health, port usage, analytics shapes |
+| `lib/realtime.ts` | one channel per subscriber, debounce, never throws |
+| `lib/cache.ts` | stale-while-revalidate for instant tab switches |
+| `lib/navigation.tsx` | "take me to that job" across shells |
+| `lib/ocr/*` | grid-line OCR in the browser; the image never leaves the device |
+
+The rule that keeps this testable: **`lib/` has no JSX and no React state.** The
+screens render; the logic is pure and covered by `tests/`.
+
+## 5.5 Quality gates
+
+`npm run verify` = `tsc -b` → `node --test tests/*` → `vite build` → bundle budget.
+
+- **136 tests**, no browser: pure logic, server-side rendering of the real
+  component tree, and source-level lint (design system, i18n, realtime, OCR).
+- **Performance budget**: first load ≤ 200 kB gzip; currently **≈181 kB**.
+- **Accessibility lint**: no text below 10 px, contrast ≥ 4.5:1, every icon-only
+  button named.
+- **Language lint**: every dictionary key in both languages, no dead keys, no
+  English-only copy.
+
+GitHub Actions does not execute on this account, so the local run is the gate;
+the Vercel check still runs and must be green.
+
+## 5.6 Decisions that would otherwise be re-litigated
+
+| Decision | Why |
+| :--- | :--- |
+| Cancel, never delete | The "who cancelled this and why" answer must survive months |
+| `cancelled` enforced in a trigger | Four RPCs each guard `completed`; a fifth would forget |
+| Duplicates never auto-imported | A supervisor confirming a row is cheaper than reconciling a twin |
+| dBm mandatory to complete | The reading is the proof; without it the job is an opinion |
+| Timer from the server clock | Phone clocks lie, phones sleep, phones get locked |
+| OCR in the browser | Customer data never leaves the phone; no per-image cost |
+| One channel per subscriber | The library keys channels by topic; sharing one crashed a screen |
+| Derived notifications | A notifications table drifts from reality and must be cleaned up |
+| Inline bilingual pairs for screen copy | The dictionary is for shared vocabulary; a screen's own sentence belongs next to it |

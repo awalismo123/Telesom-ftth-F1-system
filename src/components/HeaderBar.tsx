@@ -196,7 +196,7 @@ export function HeaderBar() {
                 {isSupervisor && activeGroupsList.length > 1 ? (
                   <div className="relative inline-flex items-center">
                     <select
-                      aria-label="Select Active Group"
+                      aria-label={t('selectActiveGroup')}
                       value={activeGroup?.id || ''}
                       onChange={(e) => setActiveGroupById(e.target.value)}
                       className="appearance-none bg-emerald-800/90 hover:bg-emerald-700 text-emerald-100 text-xs font-bold pl-2.5 pr-6 py-1 rounded-full border border-emerald-600 cursor-pointer focus:outline-none"
@@ -227,8 +227,8 @@ export function HeaderBar() {
               type="button"
               onClick={handleToggleLanguage}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-900/90 hover:bg-emerald-800 border border-emerald-700/80 text-xs font-semibold text-emerald-100 transition cursor-pointer"
-              title="Switch Language (Somali / English)"
-              aria-label="Switch Language (Somali / English)"
+              title={t('switchLanguage')}
+              aria-label={t('switchLanguage')}
             >
               <Globe className="w-3.5 h-3.5 text-emerald-300" />
               <span>{lang === 'so' ? 'SO' : 'EN'}</span>
@@ -310,8 +310,9 @@ export function HeaderBar() {
                 type="button"
                 onClick={() => setShowPinModal(false)}
                 className="p-1 rounded-lg text-slate-500 hover:text-slate-600 cursor-pointer"
+                aria-label={t('close')}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -324,7 +325,7 @@ export function HeaderBar() {
               {pinSuccess && (
                 <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>PIN updated successfully!</span>
+                  <span>{t('pinUpdated')}</span>
                 </div>
               )}
 
