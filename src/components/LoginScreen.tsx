@@ -192,7 +192,7 @@ export function LoginScreen() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-bold text-slate-700">{t('pinLabel')}</label>
-                <span className="text-[11px] font-medium text-slate-500">4–6 digits</span>
+                <span className="text-[11px] font-medium text-slate-500">{t('pinHint')}</span>
               </div>
               <input
                 type="password"
@@ -286,7 +286,7 @@ export function LoginScreen() {
               ))}
             </div>
             <p className="mt-2 text-[10px] text-slate-500 text-center">
-              Dev build only · not shipped to production
+              {t('devBuildNote')}
             </p>
           </div>
           )}
@@ -295,7 +295,7 @@ export function LoginScreen() {
 
       {/* Footer */}
       <div className="text-center text-[11px] text-emerald-300/80 pb-1">
-        Telesom Fixed Broadband Department • Group F1 Field System
+        {t('deptFooter')}
       </div>
     </div>
   );

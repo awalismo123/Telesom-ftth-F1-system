@@ -866,3 +866,34 @@ stating plainly rather than hiding.
 
 The programme is complete at F. Every batch the user approved is merged and
 live; the only unbuilt work is the one they explicitly deferred.
+
+### §10.9 Follow-up — what the live page caught that the test did not
+
+Batch F was merged, deployed, and then I opened production and read it like a
+user instead of reading it like a diff. Three strings on the login screen were
+still English in the Somali build:
+
+| Where | What | Why the lint missed it |
+| :--- | :--- | :--- |
+| PIN label row | `4–6 digits` | starts with a digit, so the "at least two words" rule did not match |
+| Login footer | `Telesom Fixed Broadband Department • Group F1 Field System` | the sentence is on its own line, wrapped between tags on other lines |
+| Dev-build card | `Dev build only · not shipped to production` | same multi-line reason (dev-only, but the same defect) |
+
+The root cause was the lint working line by line, and only trusting sentences
+that begin with a capital letter. Both are artefacts of convenience, not of the
+rule the app actually has.
+
+The lint now strips comments from the whole file and scans `>…<` across line
+breaks, judging a candidate by its shape rather than its first character. It was
+proved by mutation: putting the English footer back makes the suite fail with
+the offending line named, and removing it makes the suite pass.
+
+The same pass found a copy inconsistency that no test could catch: the PIN label
+said **"4-Digit Security PIN"** while the hint beside it said **"4–6 digits"**.
+The label is now `Security PIN` / `PIN-ka Sirta ah`, and the range lives in one
+place, `pinHint`.
+
+Files: `src/lib/i18n.tsx` (`pinHint`, `deptFooter`, `devBuildNote`),
+`LoginScreen.tsx`, `ConfigErrorScreen.tsx`, `tests/i18n.test.ts`.
+`BILINGUAL_BY_DESIGN` has exactly one entry — the crash card, which prints its
+sentence in both languages on purpose — and states why.
