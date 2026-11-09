@@ -25,6 +25,8 @@ track live timers, blockers, optical `dBm` readings and cablebox history.
 | :--- | :--- |
 | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Day-to-day operation: add a technician, reset a PIN, add a group, fix a mistake, recover |
 | [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) | **If you are presenting this to management:** what is done, what failed a review and was fixed, and what it costs to run |
+| [`docs/HANDOVER.md`](docs/HANDOVER.md) | The technician card, the 30-minute training run, the one-page data policy, release notes |
+| [`docs/MANAGEMENT_DECK.md`](docs/MANAGEMENT_DECK.md) | Eight slides for the meeting, with the answers to the questions that will be asked |
 | [`docs/KNOWN_LIMITS.md`](docs/KNOWN_LIMITS.md) | What this deliberately does not do, and why |
 | [`docs/ARCHITECTURE_AND_PLAN.md`](docs/ARCHITECTURE_AND_PLAN.md) | Data model, RPCs, module map |
 | [`docs/PERFECTION_PLAN.md`](docs/PERFECTION_PLAN.md) | The audit and the six hardening batches, with measurements |

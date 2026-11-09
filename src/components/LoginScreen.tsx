@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth, type SessionNotice } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
+import { BUILD_LABEL } from '../lib/version';
 import { describeError } from '../lib/useErrorMessage';
 import { Button } from './ui/Button';
 import { Input } from './ui/Field';
@@ -293,9 +294,12 @@ export function LoginScreen() {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="text-center text-[11px] text-emerald-300/80 pb-1">
-        {t('deptFooter')}
+      {/* Footer — the version is here because this is the one screen everyone
+          sees, signed in or not, and "which version?" is the first question
+          when something looks different from what was approved. */}
+      <div className="text-center text-[11px] text-emerald-300/80 pb-1 space-y-0.5">
+        <div>{t('deptFooter')}</div>
+        <div className="text-emerald-400/70 tabular-nums">{BUILD_LABEL}</div>
       </div>
     </div>
   );
