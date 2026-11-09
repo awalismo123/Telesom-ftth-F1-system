@@ -132,6 +132,26 @@ every group's jobs, customer names, phone numbers, notes and completion photos.
 
 ---
 
+## 7c. Everyone can still sign in with the PIN in the README
+
+`must_change_pin` exists (Batch B) and is set whenever a supervisor resets a
+PIN, but nothing ever set it on the accounts that already existed — so the five
+seeded accounts (and the demo manager) still sign in with a published PIN.
+**Measured on the live project, 09/11/2026: 6 of 6 accounts, `must_change_pin =
+false`.** The condition is shown on the Team screen and fixed in one press
+(**Flag all of them**, `flag_department_pins`), which makes every active member of
+the group choose their own PIN at next sign-in.
+
+It is a button rather than an automatic flag because pressing it during a
+demonstration replaces the screen with a PIN change for whoever is holding the
+phone. **Press it in the last hour of the last day of the pilot, not before.**
+After it, this limit is closed for good: a reset PIN can never stay in place.
+
+Not covered by it: manager accounts, which are created by SQL (`RUNBOOK` §10a)
+and should be given a PIN the manager changes on first use.
+
+---
+
 ## 8. iPhone specifics
 
 - Installable via Safari → *Share* → *Add to Home Screen*; it runs full-screen with

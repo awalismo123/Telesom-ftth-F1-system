@@ -206,7 +206,7 @@ except the demo purge, which is only a demo purge.
 | # | Step | How |
 | :--- | :--- | :--- |
 | 1 | Clear the demo set | Insights → **Remove demo data**. The banner disappears and the numbers become real. |
-| 2 | Replace every PIN | *Team & Crews* → edit each member → new PIN. Each person is then forced to choose their own. |
+| 2 | Replace every PIN | *Team & Crews* → the amber **Department PINs still in use** banner → **Flag all of them**. Every active member (including you) then chooses their own PIN at next sign-in. Doing it member by member also works. |
 | 3 | Delete or deactivate the demo accounts | Demo technicians and their phones are in `Team`. Deactivate rather than delete, so no audit trail is lost. |
 | 4 | Confirm the seed functions cannot run | `seed_demo_data` is supervisor-only and needs a token; do not call it again in production. |
 | 5 | Take a backup | Supabase → Database → Backups, or `pg_dump` to a file you keep. **Do this before step 1**, not after. |
