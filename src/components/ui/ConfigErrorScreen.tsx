@@ -175,7 +175,9 @@ export function ConfigErrorScreen({
         </div>
 
         <p className="text-center text-[11px] text-emerald-300/80 mt-4">
-          Telesom Fixed Broadband Department • Group F1 Field System
+          {lang === 'so'
+            ? 'Waaxda Internet-ka ee Telesom • Nidaamka Goobta Kooxda F1'
+            : 'Telesom Fixed Broadband Department • Group F1 Field System'}
         </p>
       </div>
     </div>

@@ -152,34 +152,70 @@ const COPY_ATTR = /\b(placeholder|alt|label|hint|description|heading|aria-descri
 /** Title and aria-label are frequently set from variables; only literals count. */
 const ARIA_ATTR = /\b(title|aria-label)\s*=\s*"([^"]{3,})"/g;
 
-/** JSX text: `>Two or more words<`, excluding class-name soup and code. */
-const JSX_TEXT = />\s*([A-Z][A-Za-z][^<>{}\n]{4,80}?)\s*</g;
+/**
+ * JSX text, scanned over the *whole file* rather than line by line: a sentence
+ * wrapped across two lines is still one sentence, and the first version of this
+ * lint missed a visible English footer for exactly that reason.
+ */
+const JSX_TEXT = />\s*([^<>{}]+?)\s*</g;
+
+/**
+ * What a piece of visible copy looks like. Deliberately narrow — letters,
+ * digits, spaces and the punctuation we actually use in sentences — so that
+ * `groupId ? readCache(...)` between two tags is not mistaken for copy.
+ */
+const COPY_SHAPE = /^[A-Za-z0-9][A-Za-z0-9 .,·•—–'’!%+\-]{3,119}$/;
+
+/**
+ * Files that show both languages at once on purpose, so neither line is
+ * "copy in only one language". One entry, with a reason; not a general escape.
+ */
+const BILINGUAL_BY_DESIGN = new Set([
+  // The crash card is read by whoever is looking at the screen, in whichever
+  // language they read, so it always prints the sentence twice.
+  'components/ui/ErrorBoundary.tsx',
+]);
+
+const stripComments = (source: string) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
 function englishOnlyLiterals(file: string): string[] {
-  const source = read(file);
+  const raw = read(file);
+  const source = stripComments(raw);
   const found: string[] = [];
 
-  source.split('\n').forEach((line) => {
-    // A line that offers both languages is, by definition, translated.
-    if (/\bso\s*\?|lang === |i18n\b/.test(line)) return;
-    // Code and comments that mention words are not copy.
-    if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
-    if (/\bimport\b|from '|Promise<|Record<|interface |type /.test(line)) return;
-
-    for (const pattern of [COPY_ATTR, ARIA_ATTR, JSX_TEXT]) {
-      for (const match of line.matchAll(pattern)) {
-        const value = (match[2] ?? match[1] ?? '').trim();
-        if (!value) continue;
-        if (COPY_ALLOWLIST.has(value)) continue;
-        // Needs at least two real words to be a sentence rather than a token.
-        if (!/[A-Za-z]{3,}[\s,·—]/.test(value)) continue;
-        if (/^(className|style|type|role|aria-|data-)/.test(value)) continue;
-        found.push(`${file}: ${value}`);
-      }
+  // Line lookup by offset, so a match can be judged against its own line.
+  const starts = [0];
+  for (let i = 0; i < raw.length; i += 1) if (raw[i] === '\n') starts.push(i + 1);
+  const lineAt = (index: number) => {
+    let low = 0;
+    let high = starts.length - 1;
+    while (low < high) {
+      const mid = (low + high + 1) >> 1;
+      if (starts[mid] <= index) low = mid;
+      else high = mid - 1;
     }
-  });
+    const end = raw.indexOf('\n', starts[low]);
+    return raw.slice(starts[low], end === -1 ? raw.length : end);
+  };
 
-  return found;
+  const consider = (value: string, index: number) => {
+    const text = value.replace(/\s+/g, ' ').trim();
+    if (!text || COPY_ALLOWLIST.has(text)) return;
+    // A line that offers both languages is, by definition, translated.
+    if (/\bso\s*\?|lang === 'so'|lang === "so"|i18n\b/.test(lineAt(index))) return;
+    if (!COPY_SHAPE.test(text)) return;
+    // Needs at least two real words to be a sentence rather than a token.
+    if (!/[A-Za-z]{2,}[\s,·•—–]/.test(text)) return;
+    found.push(`${file}: ${text}`);
+  };
+
+  for (const pattern of [COPY_ATTR, ARIA_ATTR]) {
+    for (const match of source.matchAll(pattern)) consider(match[2] ?? '', match.index ?? 0);
+  }
+  for (const match of source.matchAll(JSX_TEXT)) consider(match[1] ?? '', match.index ?? 0);
+
+  return [...new Set(found)];
 }
 
 test('no screen ships copy in only one language', () => {
@@ -188,6 +224,7 @@ test('no screen ships copy in only one language', () => {
   for (const file of sourceFiles) {
     const relative = file.slice(root.length + 1);
     if (relative === 'lib/i18n.tsx') continue;
+    if (BILINGUAL_BY_DESIGN.has(relative)) continue;
     offenders.push(...englishOnlyLiterals(relative));
   }
 
