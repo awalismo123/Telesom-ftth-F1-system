@@ -94,7 +94,8 @@ export function ActivityLog({ scope = 'group' }: { scope?: 'group' | 'manager' }
 
   const load = useCallback(
     async (silent = false) => {
-      if (!token || !groupId) return;
+      // A manager's feed is not scoped to one group, so it does not need one.
+      if (!token || (scope === 'group' && !groupId)) return;
       if (!silent) setLoading(true);
       try {
         const rows =

@@ -80,8 +80,6 @@ export function Portfolio() {
   const summary = useMemo(() => summarisePortfolio(data?.groups ?? []), [data]);
   const agrees = data ? portfolioAgrees(data) : true;
 
-  const openGroup = groups.find((group) => group.id === openGroupId) ?? null;
-
   const toggleGroup = async (groupId: string) => {
     if (openGroupId === groupId) {
       setOpenGroupId(null);
@@ -372,13 +370,11 @@ export function Portfolio() {
             />
           )}
 
-          {openGroup && (
-            <p className="text-[10px] text-slate-500 text-center">
-              {so
-                ? `Guud ahaan ${formatNumber(summary.openJobs)} shaqo furan oo dhammaan kooxaha ah.`
-                : `${formatNumber(summary.openJobs)} open jobs across every group.`}
-            </p>
-          )}
+          <p className="text-[10px] text-slate-500 text-center">
+            {so
+              ? `Guud ahaan ${formatNumber(summary.openJobs)} shaqo furan oo dhammaan kooxaha ah · ${windowLabel(days, lang)}.`
+              : `${formatNumber(summary.openJobs)} open jobs across every group · ${windowLabel(days, lang)} completed window.`}
+          </p>
         </>
       )}
     </div>

@@ -1344,7 +1344,7 @@ the period, because "we completed 34" is a weaker sentence than "we completed 34
 * **Storage headroom is a decision, not a detail.** ~4 MB a day at 40 photographed
   jobs. On the Free plan (500 MB) that is roughly four months of proof. Recorded
   in `KNOWN_LIMITS` §7.
-* **A read-only manager role (H3) is still not built.** Two roles remain.
+* **A read-only manager role (H3) is still not built at this point** — it lands as §14, immediately after this section.
 
 ## §14 Batch H — the manager (part 3, 09/11/2026)
 

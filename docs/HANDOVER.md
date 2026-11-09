@@ -83,6 +83,25 @@ And the same card in English, for the supervisor's copy:
 └─────────────────────────────────────────────┘
 ```
 
+**Photo proof (optional, and worth taking)**
+
+When a technician completes a job the completion form offers **Take a photo**.
+It opens the camera, shrinks the picture on the phone (640 px, roughly 40–120 kB,
+so it does not eat their data), and attaches it to the finished job. A supervisor
+sees a green *Photo* chip on that completion in the record, and on the job sheet.
+
+Two sentences to say with it:
+
+* "The photo is how the department proves the joint was made — take it of the
+  work, not of the customer."
+* "If it will not upload, the job is still finished. Press retry; do not
+  photograph it twice."
+
+It is **not** mandatory, on purpose: a phone with a dead camera must not stop a
+job from being closed.
+
+---
+
 **Three things to say out loud when handing a phone over**
 
 1. "The timer is your record, not a stopwatch. It is how the department knows
@@ -127,6 +146,8 @@ technician's hand.
 | Customer name, phone, address, line number | Database | Any signed-in member of Group F1 |
 | The sheet photo an import came from | Private table | Any signed-in member of Group F1, through the app |
 | Technician timings, dBm readings, notes | Database | Any signed-in member of Group F1 |
+| Completion photos (0–3 per job) | Private table | Any signed-in member of Group F1, through the app |
+| The record of who changed what, when | Database, read-only | Group F1 members, and a manager |
 | PINs | Hashed (bcrypt), never readable | Nobody — not even a developer |
 | Session tokens | The technician's own browser + the database | That person |
 
@@ -144,6 +165,10 @@ technician's hand.
   work, register a box, or see another group.
 * A **supervisor** sees all of Group F1 and can assign, cancel, reopen, register
   boxes and manage people.
+* A **manager** sees every group, including every group's customer names, phone
+  numbers, notes and photos — and can change nothing: the database refuses every
+  write from a manager session. Nothing records which manager looked at which
+  group; say that out loud before granting the role.
 * **Nobody** can read data without signing in — the database returns nothing at
   all to an anonymous request. This is enforced by the database, not by the
   screen.
@@ -162,7 +187,41 @@ Supabase dashboard can end sessions.
 
 ---
 
-## 4. Release notes — v1.0.0 (09/11/2026)
+## 4. Release notes — v1.1.0 (09/11/2026)
+
+The manager pack. Nothing a technician does changes; four things are added.
+
+* **A record.** A new *Record* tab shows every change in the group — who
+  assigned, started, blocked, completed or cancelled what, and when — with
+  filters and a CSV. Until now the audit trail existed in the database and
+  nowhere a person could see it.
+* **Photo proof.** A technician can attach up to three photos when completing a
+  job. They are resized on the phone, stored privately, and visible on the
+  completion in the record and on the job sheet.
+* **A period report.** From Analytics: pick a week, a month or any two dates and
+  get a one-page report — arrivals, completions, cancellations, still open,
+  waiting past the promise, average time and signal, per technician, per
+  cablebox, day by day. **Print / PDF** uses the browser's own print dialogue,
+  so no PDF library ships; **Download CSV** gives the same numbers to a
+  spreadsheet.
+* **The 3-day promise, on the board.** Every open job shows how long the
+  customer has been waiting: amber on day three, rose after. Completed and
+  cancelled jobs drop out of the count.
+* **A read-only manager** who can see every group (§6).
+
+Two things were also found and fixed while building it, and both were live: four
+internal database functions were executable by anyone with the public key (one
+could create a cablebox in any group, another could read any user's name and
+phone), and the period report's "open at end" and "waiting over 3 days" figures
+were measured from the wrong moment. Details in `docs/PERFECTION_PLAN.md` §14–15.
+
+**Known limits** — online-only; the camera path has not yet been exercised on a
+physical phone; photos add about 4 MB a day at 40 photographed jobs, which is a
+plan decision before the pilot. See `KNOWN_LIMITS.md`.
+
+---
+
+## 4b. Release notes — v1.0.0 (09/11/2026)
 
 The first version that may be used with real customer data.
 
@@ -199,3 +258,35 @@ maintains.
 | Group F1 supervisor | | | Daily operation, PINs, team |
 | Technical contact | | | Deploys, database, this app |
 | Supabase account holder | | | Billing, backups, the project itself |
+
+---
+
+## 6. The manager
+
+A third account type exists for the department head: **read-only, every group**.
+It is not the supervisor's app with buttons hidden — it is a separate, smaller
+app, and the database refuses every write from it.
+
+**What they see**
+
+| Tab | What is on it |
+| :--- | :--- |
+| Groups | One card per group — open, blocked, late, completed, staff, last activity — with that group's open jobs behind a disclosure |
+| Record | Every change in every group: who, when, which line, with the photo where one exists |
+| Report | A printable one-pager for any date range, with a *By group* table |
+
+**What they cannot do:** assign, cancel, complete, import, edit a port, edit the
+team. Not in the app, and not by calling the database directly — a manager
+session's writes raise *A manager account is read-only*.
+
+**How to create one:** `RUNBOOK.md` §10a. Deliberately a SQL step, not a button:
+a group supervisor who could create a manager could read the other groups.
+
+**Before showing it:** sign in once on the phone or laptop they will use, confirm
+the chip says *Manager · read only*, and confirm the Groups tab lists every
+group — including the ones marked *Not live yet*, which is the truth until F2
+and F3 have staff.
+
+**The three numbers to point at:** *Over 3 days* (the promise), *Blocked* (work
+waiting on something), and *Completed* in the window they chose. Everything else
+on the screen is context for those three.

@@ -11,9 +11,16 @@
  * bundle for a label would be a poor trade.
  */
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 
-/** The date this build was published — the day Batch B shipped. */
+/**
+ * The date this build was published.
+ *
+ * 1.0.0 was the batch that closed the security hole; 1.1.0 is the manager pack —
+ * the record, photo proof and the read-only manager. Both are on the sign-in
+ * screen and on the printed report, because a report that a head manager files
+ * is worth nothing if nobody can tell which build produced it.
+ */
 export const BUILD_DATE = '2026-11-09';
 
 export const BUILD_LABEL = `v${APP_VERSION} · ${BUILD_DATE}`;

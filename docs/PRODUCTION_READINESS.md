@@ -1,8 +1,9 @@
 # Production readiness — what is done, what is missing, what to say
 
-> Written 09/11/2026, after Batch F. Every claim below was checked against the
-> live system, not against the plan. Where something is a judgement call it says
-> so. Where a number is measured, the number is here.
+> Written 09/11/2026, after Batch F, and revised the same day after Batch H. Every
+> claim below was checked against the live system, not against the plan. Where
+> something is a judgement call it says so. Where a number is measured, the
+> number is here.
 
 ---
 
@@ -11,7 +12,7 @@
 **The system is functionally complete and it is live.** All five modules your
 managers asked for exist and work: sheet photos in, only F1 rows kept,
 dispatch by area and cablebox, a technician route with a live timer, dBm
-completion, box health and a daily report. It is bilingual, it has 137 tests,
+completion, box health and a daily report. It is bilingual, it has 197 tests,
 and it installs on a phone.
 
 **It is now safe to put real customer data into it.** The hole described in the
@@ -26,8 +27,10 @@ gaps are operational, not structural:
    alert, no browser tests, and hosting on a plan that pauses a quiet project
    and keeps one day of logs.
 2. **The questions managers ask next** — an audit screen, photo proof, period
-   reports, a read-only manager view. The data for the audit screen already
-   exists; only the screen is missing.
+   reports, a read-only manager view. **These were built in Batch H** (§4 below
+   is now a list of answers rather than a list of gaps). One item from that batch
+   cannot be proven by a test: the camera path has not been exercised on a
+   physical phone.
 
 Everything else — the features, the language, the documentation, the design —
 is genuinely in the state you would show people. Detail below.
@@ -39,17 +42,18 @@ is genuinely in the state you would show people. Detail below.
 | Area | State | What it means in a meeting |
 | :--- | :--- | :--- |
 | Functional scope (5 modules) | ✅ complete | Nothing on the brief is missing |
+| **Manager pack** | ✅ built in Batch H | Record, photo proof, printable period report, 3-day aging badge, read-only manager across groups |
 | Bilingual EN/SO | ✅ enforced by test | Cannot drift back to English-only |
 | Offline tolerance | ⚠️ online-only by your decision | Drafts survive a failed submit, nothing queues |
-| **Access control** | ✅ fixed in Batch B | Anonymous read of customer data now returns nothing |
-| **File storage** | ✅ fixed in Batch B | Private; no public URL exists for a sheet photo |
+| **Access control** | ✅ fixed in Batch B, tightened in H | Anonymous read of customer data returns nothing; four internal functions that were callable without a session are closed |
+| **File storage** | ✅ fixed in Batch B | Private; no public URL exists for a sheet photo, and completion photos are private too |
 | **Brute-force resistance** | ✅ fixed in Batch B | 5 attempts, then a 15-minute lock; supervisor-issued PINs must be replaced |
 | Backups / disaster recovery | ❌ none on current plan | A bad delete is unrecoverable |
 | Error monitoring | ❌ none | You learn about crashes by phone call |
 | Uptime / alerting | ❌ none | Nobody is told when it goes down |
-| Test coverage | ⚠️ 137 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
+| Test coverage | ⚠️ 197 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
 | Mobile / PWA | ✅ installable, safe-area aware | Not yet held in a real technician's hand |
-| Docs (runbook, limits) | ✅ good | But no technician-facing guide |
+| Docs (runbook, limits) | ✅ good | Technician card, manager page and runbook all written |
 | Cost / licensing | ⚠️ free tiers | Needs ~$25–65/month to be legitimate |
 
 ---

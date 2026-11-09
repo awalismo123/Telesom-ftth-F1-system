@@ -220,6 +220,10 @@ export function HeaderBar() {
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-emerald-300 absolute right-1.5 pointer-events-none" />
                   </div>
+                ) : isManager ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 shrink-0">
+                    {lang === 'so' ? 'Dhammaan kooxaha' : 'All groups'}
+                  </span>
                 ) : (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
                     Group {activeGroup?.code || 'F1'}
