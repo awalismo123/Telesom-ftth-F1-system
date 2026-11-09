@@ -195,7 +195,7 @@ screens render; the logic is pure and covered by `tests/`.
 
 `npm run verify` = `tsc -b` → `node --test tests/*` → `vite build` → bundle budget.
 
-- **203 tests**, no browser: pure logic, server-side rendering of the real
+- **204 tests**, no browser: pure logic, server-side rendering of the real
   component tree, and source-level lint (design system, i18n, realtime, OCR).
 - **Performance budget**: first load ≤ 200 kB gzip; currently **≈191 kB**.
 - **Accessibility lint**: no text below 10 px, contrast ≥ 4.5:1, every icon-only

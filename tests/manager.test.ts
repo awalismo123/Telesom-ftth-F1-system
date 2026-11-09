@@ -220,3 +220,15 @@ test('manager: the app opens the manager shell for a manager session', () => {
   assert.match(app, /manager \? \(/);
   assert.match(app, /<ManagerShell \/>/);
 });
+
+test('manager: a manager is not listed as one of the supervisor\'s staff', () => {
+  const sql = read('supabase/migrations/017_batch_h_manager_not_staff.sql');
+
+  // Same shape as 011 — the filter is the only change, and it must be the only one.
+  assert.match(sql, /AND u\.role IN \('supervisor', 'technician'\)/);
+  for (const key of ['members', 'crews', 'crew_members', 'cableboxes', 'counts']) {
+    assert.ok(sql.includes(`'${key}'`), `group_overview must still return ${key}`);
+  }
+  assert.match(sql, /'open_tasks'/);
+  assert.match(sql, /'unassigned'/);
+});
