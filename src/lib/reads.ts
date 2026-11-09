@@ -338,3 +338,101 @@ export async function fetchTaskPhoto(token: string, photoId: string): Promise<Ta
     p_photo_id: photoId,
   })) as TaskPhoto;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Manager — every group, read-only (Batch H)                                  */
+/* -------------------------------------------------------------------------- */
+
+export interface ManagerGroupRow {
+  id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  members: number;
+  technicians: number;
+  unassigned: number;
+  active: number;
+  blocked: number;
+  urgent: number;
+  waiting_over_sla: number;
+  completed: number;
+  photos: number;
+  avg_minutes: number;
+  last_activity_at: string | null;
+}
+
+export interface ManagerPortfolio {
+  window_days: number;
+  generated_at: string;
+  groups: ManagerGroupRow[];
+  totals: {
+    members: number;
+    technicians: number;
+    unassigned: number;
+    active: number;
+    blocked: number;
+    urgent: number;
+    waiting_over_sla: number;
+    completed: number;
+    photos: number;
+    groups: number;
+    live_groups: number;
+  };
+}
+
+export interface ManagerActivityEvent extends ActivityEvent {
+  group_code: string;
+  group_id: string;
+}
+
+export interface ManagerReport extends PeriodReport {
+  scope: 'manager';
+  groups: { id: string; code: string; name: string; totals: PeriodReportTotals }[];
+}
+
+/** Every group with its load — the manager's first screen. */
+export async function fetchManagerPortfolio(token: string, days = 30): Promise<ManagerPortfolio> {
+  return (await rpcRead<ManagerPortfolio>('manager_portfolio', {
+    p_token: token,
+    p_days: days,
+  })) as ManagerPortfolio;
+}
+
+/** The record across groups, optionally narrowed to one. */
+export async function fetchManagerActivity(
+  token: string,
+  days = 7,
+  groupId: string | null = null,
+  limit = 300,
+): Promise<ManagerActivityEvent[]> {
+  const data = await rpcRead<ManagerActivityEvent[] | null>('manager_activity', {
+    p_token: token,
+    p_days: days,
+    p_group_id: groupId,
+    p_limit: limit,
+  });
+  return data ?? [];
+}
+
+/** One period across groups, with a row per group. */
+export async function fetchManagerReport(
+  token: string,
+  from: string,
+  to: string,
+  groupId: string | null = null,
+): Promise<ManagerReport> {
+  return (await rpcRead<ManagerReport>('manager_report', {
+    p_token: token,
+    p_from: from,
+    p_to: to,
+    p_group_id: groupId,
+  })) as ManagerReport;
+}
+
+/** The open jobs of one group — read-only, no assignment controls. */
+export async function fetchManagerTasks(token: string, groupId: string): Promise<Task[]> {
+  return (await rpcRead<Task[]>('manager_tasks', {
+    p_token: token,
+    p_group_id: groupId,
+  })) as Task[];
+}

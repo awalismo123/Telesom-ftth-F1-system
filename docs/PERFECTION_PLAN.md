@@ -1345,3 +1345,123 @@ the period, because "we completed 34" is a weaker sentence than "we completed 34
   jobs. On the Free plan (500 MB) that is roughly four months of proof. Recorded
   in `KNOWN_LIMITS` §7.
 * **A read-only manager role (H3) is still not built.** Two roles remain.
+
+## §14 Batch H — the manager (part 3, 09/11/2026)
+
+The last question in `PRODUCTION_READINESS.md` §4 was *"can a manager see it
+without changing anything?"* — and the one above it, *"show me F2 and F3 too"*.
+They turned out to be the same feature: a third role.
+
+### 14.1 A separate app, not a supervisor app with buttons hidden
+
+A hidden button is a promise made by CSS. The manager gets:
+
+* a **third role** (`manager`) in the `users` check constraint;
+* **four read functions of their own** — `manager_portfolio`, `manager_activity`,
+  `manager_report`, `manager_tasks` — each token-first and each refusing anyone
+  whose role is not `manager`;
+* a **separate shell** (`components/manager/`), lazily loaded, that imports no
+  dispatch, execution, import or registry service;
+* and, because a token and the anon key are all a determined person needs, a
+  **database-level refusal** underneath all of it (§14.2).
+
+The supervisor's functions were left untouched: they still refuse a non-member,
+so a manager cannot reach them by calling one directly.
+
+### 14.2 Read-only, enforced where it cannot be argued with
+
+`get_session_user` now stamps the caller's role into a transaction-local setting
+(`app.actor_role`), and a `BEFORE INSERT OR UPDATE OR DELETE` trigger on twelve
+operational tables raises `A manager account is read-only` when it is `manager`:
+
+```
+tasks · task_work_logs · task_photos · dispatch_log · import_batches
+cableboxes · cablebox_ports · cablebox_logs · sheet_images
+crews · crew_members · groups
+```
+
+`users`, `user_credentials` and `user_sessions` are deliberately **not** guarded:
+a manager must still be able to change their own PIN and sign out.
+
+This matters because four functions a plain group member may legitimately call
+(`set_port_status`, `upload_sheet_image`, `log_dispatch`, `ensure_cablebox`) check
+membership rather than role. The first probe caught it: a manager session could
+mark a port damaged. With the trigger, all four refuse — and so will the next
+membership-only write anybody adds.
+
+### 14.3 What the manager sees
+
+* **Groups** — one card per group: code, name, staff, open, blocked, late and
+  completed, a late-share bar, the last activity, and a *read-only* list of that
+  group's open jobs behind a disclosure. Groups that have not launched say so
+  instead of showing four zeroes as if they were failing.
+* **Record** — the same feed the supervisor reads, across every group, with the
+  group code on each row and in the CSV.
+* **Report** — the same printable sheet, with an extra *By group* table and a
+  per-group CSV export.
+
+The headline tiles are computed **twice** — once by the database and once by
+`summarisePortfolio` in the browser — and the screen shows a warning if the two
+disagree. A manager is the last person who should be shown a number nobody
+checked.
+
+### 14.4 What the probes showed
+
+| Probe | Result |
+| :--- | :--- |
+| Manager signs in (`maamule` / 1111) | token issued, role `manager`, payload correct |
+| Supervisor calls the four manager functions | all four refused by name |
+| Manager calls the four manager functions | all four allowed |
+| Portfolio | **5 groups** (F1 live; F2/F3/F5/GA not launched), totals: 5 open, 5 late, 33 completed/30 d, 4 technicians |
+| Manager report, 30 days | identical totals to the supervisor report for F1: 44 created, 34 completed, 5 open at end, 5 late |
+| Manager `set_port_status` | `A manager account is read-only` |
+| Manager `upload_sheet_image` | `A manager account is read-only` |
+| Manager `log_dispatch` | `A manager account is read-only` |
+| Supervisor `set_port_status` | still allowed (the revokes did not break the definer chain) |
+| Manager `upsert_team_member` | `Only supervisors can manage team members` |
+| Supervisor creating a `manager` | `A manager account is created by the administrator, not from a group screen` |
+
+### 14.5 The two unauthenticated helpers this exposed
+
+See §15 — found by listing every `public` function that does not take a token.
+
+### 14.6 Not verified, stated plainly
+
+* **The manager portal has not been clicked in a browser.** There is no browser
+  in the build environment; the shell renders under `renderToString`, the modules
+  compile and serve, and every function behind them was exercised against live
+  data — but "it looks right" is still owed before a manager sees it.
+* **Only F1 has data.** F2/F3/F5/GA exist and are marked not live; the
+  cross-group screens show them as empty, which is the truth, but they have not
+  been seen with real second-group traffic.
+* **A manager cannot be created from the app**, only by SQL (`015` §2). That is
+  the privilege-escalation guard; it is also an operational step in `RUNBOOK`.
+
+## §15 Batch H — the security follow-up (09/11/2026)
+
+Not planned. Found while listing functions that do not take a token, to prove the
+manager role was complete.
+
+| Function | Exposed to `anon` | What it did |
+| :--- | :--- | :--- |
+| `ensure_cablebox(p_group_id, code, xaafada, olt_path)` | yes | **created or renamed a cablebox in any group, with no session** |
+| `ensure_box_ports(p_box_id)` | yes | wrote port rows for any box |
+| `recompute_box_state(p_box_id)` | yes | recalculated and wrote a box's health |
+| `build_auth_payload(p_user_id, p_token)` | yes | returned any user's name, phone, role and group; it never looked at the token |
+
+All four are internal helpers — the browser calls none of them (`grep src/` finds
+zero references) — so they are now `REVOKE`d from `PUBLIC`, `anon` and
+`authenticated`, and reached only from the `SECURITY DEFINER` functions that
+already check a token.
+
+**The part worth recording** is how the first fix failed. `REVOKE … FROM anon`
+reported success and changed nothing, because Postgres grants `EXECUTE` to
+`PUBLIC` by default and Supabase's default privileges *also* grant it to `anon`
+and `authenticated` explicitly. The migration succeeding proved nothing; the
+`has_function_privilege('anon', …)` probe is what showed `true` after the revoke.
+The second attempt revoked from all three and the probe returned `false`.
+
+Verification after the fix: supervisor, technician and manager logins all still
+issued tokens; `technician_route` still returned a route; `set_port_status` still
+worked for a supervisor (it calls two of the revoked helpers internally, as the
+owner). Nothing in the app lost a function.

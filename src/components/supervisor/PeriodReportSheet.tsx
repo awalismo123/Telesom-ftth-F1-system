@@ -7,7 +7,12 @@ import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
 import { describeError } from '../../lib/useErrorMessage';
-import { fetchPeriodReport, type PeriodReport } from '../../lib/reads';
+import {
+  fetchManagerReport,
+  fetchPeriodReport,
+  type ManagerReport,
+  type PeriodReport,
+} from '../../lib/reads';
 import { formatDate, formatDbm, formatDuration, formatNumber, todayKey } from '../../lib/format';
 import { BUILD_LABEL } from '../../lib/version';
 import { downloadCsv } from '../../lib/registry';
@@ -36,7 +41,16 @@ const PRESETS: { id: string; days: number | 'month' | 'lastMonth'; en: string; s
   { id: 'last', days: 'lastMonth', en: 'Last month', so: 'Bishii hore' },
 ];
 
-export function PeriodReportSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function PeriodReportSheet({
+  open,
+  onClose,
+  scope = 'group',
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** `manager` renders every group and adds a per-group table. */
+  scope?: 'group' | 'manager';
+}) {
   const { session, activeGroup } = useAuth();
   const { lang } = useLanguage();
   const so = lang === 'so';
@@ -48,15 +62,19 @@ export function PeriodReportSheet({ open, onClose }: { open: boolean; onClose: (
   const [from, setFrom] = useState(() => isoDaysAgo(6));
   const [to, setTo] = useState(() => todayKey());
   const [preset, setPreset] = useState<string>('week');
-  const [report, setReport] = useState<PeriodReport | null>(null);
+  const [report, setReport] = useState<PeriodReport | ManagerReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!token || !groupId) return;
+    if (!token) return;
+    if (scope === 'group' && !groupId) return;
     setLoading(true);
     try {
-      const payload = await fetchPeriodReport(token, groupId, from, to);
+      const payload =
+        scope === 'manager'
+          ? await fetchManagerReport(token, from, to)
+          : await fetchPeriodReport(token, groupId, from, to);
       setReport(payload);
       setError(null);
     } catch (err) {
@@ -64,7 +82,7 @@ export function PeriodReportSheet({ open, onClose }: { open: boolean; onClose: (
     } finally {
       setLoading(false);
     }
-  }, [token, groupId, from, to, lang]);
+  }, [token, groupId, from, to, lang, scope]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,8 +152,24 @@ export function PeriodReportSheet({ open, onClose }: { open: boolean; onClose: (
       ...(report.boxes ?? []).map((box) => [box.box_code, box.faults, box.damaged_ports]),
     ];
 
+    // A manager's export starts with the comparison, because that is the reason
+    // they asked for it.
+    const groupRows = (report as ManagerReport).groups;
+    if (scope === 'manager' && Array.isArray(groupRows)) {
+      rows.splice(2, 0,
+        [so ? 'Koox' : 'Group', so ? 'Cusub' : 'New', so ? 'Dhammaatay' : 'Done', so ? 'Daahday' : 'Late'],
+        ...groupRows.map((group) => [
+          group.code,
+          group.totals.created,
+          group.totals.completed,
+          group.totals.waiting_over_sla,
+        ]),
+        [],
+      );
+    }
+
     downloadCsv(
-      `telesom-${activeGroup?.code ?? 'F1'}-report-${report.from}_${report.to}.csv`,
+      `telesom-${scope === 'manager' ? 'all-groups' : activeGroup?.code ?? 'F1'}-report-${report.from}_${report.to}.csv`,
       rows.map((row) => row.map((cell) => String(cell ?? '')).join(',')).join('\n'),
     );
     toast.success(so ? 'Warbixinta waa la soo dejiyay' : 'Report exported');
@@ -259,8 +293,13 @@ export function PeriodReportSheet({ open, onClose }: { open: boolean; onClose: (
                     {so ? 'Warbixinta Xilliga' : 'Period Report'}
                   </h1>
                   <div className="text-xs font-semibold text-slate-600 mt-0.5">
-                    {so ? 'Kooxda' : 'Group'} {activeGroup?.code ?? 'F1'}
-                    {activeGroup?.name ? ` · ${activeGroup.name}` : ''}
+                    {scope === 'manager'
+                      ? so
+                        ? 'Dhammaan kooxaha'
+                        : 'All groups'
+                      : `${so ? 'Kooxda' : 'Group'} ${activeGroup?.code ?? 'F1'}${
+                          activeGroup?.name ? ` · ${activeGroup.name}` : ''
+                        }`}
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-slate-600 leading-relaxed">
@@ -336,6 +375,42 @@ export function PeriodReportSheet({ open, onClose }: { open: boolean; onClose: (
                   ? `${formatNumber(totals.photos)} sawir caddayn ah ayaa lagu daray shaqooyinka la dhammeeyay.`
                   : `${formatNumber(totals.photos)} photo proofs were attached to completed jobs.`}
               </p>
+
+              {scope === 'manager' && Array.isArray((report as ManagerReport).groups) && (
+                <section className="print-block">
+                  <h2 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">
+                    {so ? 'Koox kasta' : 'By group'}
+                  </h2>
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="text-left text-slate-500 border-b border-slate-300">
+                        <th className="py-1 font-bold">{so ? 'Koox' : 'Group'}</th>
+                        <th className="py-1 font-bold text-right">{so ? 'Cusub' : 'New'}</th>
+                        <th className="py-1 font-bold text-right">{so ? 'Dhammaatay' : 'Done'}</th>
+                        <th className="py-1 font-bold text-right">{so ? 'Daahday' : 'Late'}</th>
+                        <th className="py-1 font-bold text-right">{so ? 'Sawir' : 'Photos'}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(report as ManagerReport).groups.map((group) => (
+                        <tr key={group.id} className="border-b border-slate-100">
+                          <td className="py-1 font-extrabold text-slate-900">{group.code}</td>
+                          <td className="py-1 text-right tabular-nums">{formatNumber(group.totals.created)}</td>
+                          <td className="py-1 text-right tabular-nums">{formatNumber(group.totals.completed)}</td>
+                          <td
+                            className={`py-1 text-right tabular-nums ${
+                              group.totals.waiting_over_sla > 0 ? 'text-rose-700 font-bold' : ''
+                            }`}
+                          >
+                            {formatNumber(group.totals.waiting_over_sla)}
+                          </td>
+                          <td className="py-1 text-right tabular-nums">{formatNumber(group.totals.photos)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
 
               {/* daily trend */}
               <section className="print-block">

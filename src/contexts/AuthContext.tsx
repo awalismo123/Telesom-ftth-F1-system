@@ -42,7 +42,7 @@ interface AuthContextValue {
   session: AuthSession | null;
   loading: boolean;
   /** which app the current session opens; null while signed out */
-  portal: 'supervisor' | 'technician' | null;
+  portal: 'supervisor' | 'technician' | 'manager' | null;
   /** set when a session ended without the person asking */
   sessionNotice: SessionNotice | null;
   clearSessionNotice: () => void;

@@ -187,8 +187,8 @@ These are not defects — they are the questions that come after "it looks good"
 | "What did we do last month?" | **Built (Batch H)** — period picker + one-page printable report + CSV | — | ✅ |
 | "Which jobs have been waiting too long?" | **Built (Batch H)** — amber at 3 days, rose after, from the reported date | — | ✅ |
 | "Tell the technician when work arrives" | They must open the app | In-app badge exists (notifications bell); real push needs a service worker or WhatsApp send | 2–3 days |
-| "Show me F2 and F3 too" | `upsert_group` exists; supervisor is scoped to one group | A manager role that sees all groups, read-only | 2–3 days |
-| "Can a manager see it without changing anything?" | Two roles only: supervisor, technician | Read-only manager role | 1 day |
+| "Show me F2 and F3 too" | **Built (Batch H)** — manager portfolio lists every group, including the ones not yet live | — | ✅ |
+| "Can a manager see it without changing anything?" | **Built (Batch H)** — third role, write-refused in the database, separate app | — | ✅ |
 | "Is this version the one I approved?" | No version number anywhere | Version + build date in the footer of the login and the hub | 2 hours |
 | "What happens when the network is down?" | Online-only, by your decision | Offline queue, or an explicit written acceptance of the risk | 3–5 days / 0 |
 | "Who is allowed to see customer numbers?" | Everyone with the URL | **That is 3.1** — fix before asking | — |
@@ -231,7 +231,7 @@ Four batches. **B is done** — the gate before real customer data is open.
 | :--- | :--- | :--- | :--- |
 | **B — Access control** ✅ **done** | Token-scoped reads, private sheet archive, PIN attempt limits, forced first-login change, security headers, dependency audit | Turns "demo" into "deployable" | 3–4 days |
 | **G — Operational trust** | Supabase Pro (backups, no pause), uptime monitor with an alert to a real phone, error capture (own table or Sentry), a browser smoke test of the three critical paths on every deploy, restore drill performed and recorded | You can hand it over without being the only person who can fix it | 3 days |
-| **H — Manager pack** | Audit screen, photo proof on completion, period reports + PDF, aging/SLA badge, read-only manager role | Answers the questions in §4 | 5–7 days |
+| **H — Manager pack** | Audit screen, photo proof, period reports + PDF, aging badge, read-only manager across groups | Answers the questions in §4 | **built** |
 | **I — Handover** ✅ **done** | `docs/HANDOVER.md`: the bilingual technician card, the 30-minute training run, a one-page data policy, release notes; version stamp on the sign-in screen | The part that makes it *the department's* system rather than yours | 2 days |
 
 Suggested order: **G → H.** G because without it a single bad night undoes months

@@ -1,6 +1,6 @@
 export type Language = 'so' | 'en';
 
-export type UserRole = 'supervisor' | 'technician';
+export type UserRole = 'supervisor' | 'technician' | 'manager';
 
 export type TaskType = 'installation' | 'cilada';
 

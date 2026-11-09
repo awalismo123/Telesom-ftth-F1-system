@@ -25,7 +25,7 @@ export const SESSION_STORAGE_KEY = 'telesom_f1_session_v2';
 export const LEGACY_SESSION_TOKEN_KEY = 'telesom_f1_session_token';
 export const ACTIVE_GROUP_STORAGE_KEY = 'telesom_f1_active_group_id';
 
-export type SessionRole = 'supervisor' | 'technician';
+export type SessionRole = 'supervisor' | 'technician' | 'manager';
 
 export interface StoredSession {
   token: string;
@@ -46,7 +46,7 @@ export function isUuid(value: unknown): value is string {
 }
 
 export function isSessionRole(value: unknown): value is SessionRole {
-  return value === 'supervisor' || value === 'technician';
+  return value === 'supervisor' || value === 'technician' || value === 'manager';
 }
 
 /** Build the record that goes into storage after a successful PIN login. */
@@ -130,9 +130,18 @@ export function diffSession(
   return 'none';
 }
 
-/** Which screen a session opens. One function, so no screen can disagree. */
-export function portalForRole(role: string | null | undefined): 'supervisor' | 'technician' {
-  return role === 'supervisor' ? 'supervisor' : 'technician';
+/**
+ * Which screen a session opens. One function, so no screen can disagree.
+ *
+ * A technician is the default: an unknown role gets the smaller app, never the
+ * bigger one.
+ */
+export function portalForRole(
+  role: string | null | undefined,
+): 'supervisor' | 'technician' | 'manager' {
+  if (role === 'supervisor') return 'supervisor';
+  if (role === 'manager') return 'manager';
+  return 'technician';
 }
 
 /** `Cabdiraxmaan Xasan` → `CX`, for the avatar in the header. */

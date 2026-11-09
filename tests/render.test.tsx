@@ -145,3 +145,26 @@ test('the period report draws nothing until it is opened', async () => {
   assert.equal(closed, empty, 'a closed sheet must not paint');
   assert.doesNotMatch(closed, /Telesom · Fixed Broadband/, 'no letterhead before the sheet opens');
 });
+
+test('the manager shell opens on a read-only portfolio', async () => {
+  const { LanguageProvider } = await import('../src/lib/i18n');
+  const { AuthProvider } = await import('../src/contexts/AuthContext');
+  const { ToastProvider } = await import('../src/components/ui/Toast');
+  const { ManagerShell } = await import('../src/components/manager/ManagerShell');
+
+  const html = renderToString(
+    React.createElement(
+      ToastProvider,
+      null,
+      React.createElement(
+        LanguageProvider,
+        null,
+        React.createElement(AuthProvider, null, React.createElement(ManagerShell)),
+      ),
+    ),
+  );
+
+  assert.ok(html.length > 200, 'expected the manager shell to render');
+  assert.match(html, /akhris kaliya|read only/i, 'the read-only promise must be on the screen');
+  assert.doesNotMatch(html, /Qoondee|Assign to/, 'a manager must not be offered an assign control');
+});

@@ -113,6 +113,25 @@ Limits that are deliberate:
 
 ---
 
+## 7b. A manager can see every group's customer data
+
+By design, and it is the widest read permission in the system: a manager sees
+every group's jobs, customer names, phone numbers, notes and completion photos.
+
+- It is **read-only**: writes from a manager session raise
+  `A manager account is read-only` (trigger, migration 014), and no manager
+  function contains an `INSERT`, `UPDATE` or `DELETE`.
+- It is **not audited**: nothing records which manager opened which group's jobs.
+  An access log per manager is a sensible next step if the role leaves the
+  department.
+- A **supervisor cannot create** a manager — that would let one group's
+  supervisor mint an account that reads the others. Manager accounts are created
+  by SQL; see `RUNBOOK`.
+- Managers have no search box and no notifications: both would lead into screens
+  built for actions the account cannot take.
+
+---
+
 ## 8. iPhone specifics
 
 - Installable via Safari → *Share* → *Add to Home Screen*; it runs full-screen with

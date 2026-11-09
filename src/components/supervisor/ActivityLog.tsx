@@ -25,7 +25,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Input } from '../ui/Field';
 import { SkeletonCard } from '../ui/Skeleton';
 import { describeError } from '../../lib/useErrorMessage';
-import { fetchActivity } from '../../lib/reads';
+import { fetchActivity, fetchManagerActivity } from '../../lib/reads';
 import {
   activityDetail,
   activityLabel,
@@ -73,7 +73,7 @@ const TONES: Record<string, string> = {
  * exportable, because "show me last Tuesday" is a question that arrives in a
  * meeting and not in the app.
  */
-export function ActivityLog() {
+export function ActivityLog({ scope = 'group' }: { scope?: 'group' | 'manager' } = {}) {
   const { session, activeGroup } = useAuth();
   const { lang } = useLanguage();
   const so = lang === 'so';
@@ -97,7 +97,10 @@ export function ActivityLog() {
       if (!token || !groupId) return;
       if (!silent) setLoading(true);
       try {
-        const rows = await fetchActivity(token, groupId, days, 300);
+        const rows =
+          scope === 'manager'
+            ? await fetchManagerActivity(token, days, null, 300)
+            : await fetchActivity(token, groupId, days, 300);
         setEvents(rows);
         setError(null);
       } catch (err) {
@@ -106,7 +109,7 @@ export function ActivityLog() {
         if (!silent) setLoading(false);
       }
     },
-    [token, groupId, days, lang],
+    [token, groupId, days, lang, scope],
   );
 
   useEffect(() => {
@@ -141,8 +144,8 @@ export function ActivityLog() {
     }
     const stamp = new Date().toISOString().slice(0, 10);
     downloadCsv(
-      `telesom-${activeGroup?.code ?? 'F1'}-activity-${stamp}.csv`,
-      buildActivityCsv(filtered, lang),
+      `telesom-${scope === 'manager' ? 'all-groups' : activeGroup?.code ?? 'F1'}-activity-${stamp}.csv`,
+      buildActivityCsv(filtered, lang, scope === 'manager'),
     );
     toast.success(so ? 'Diiwaanka waa la soo dejiyay' : 'Activity exported', {
       description: `${filtered.length} ${so ? 'dhacdo' : 'events'}`,
@@ -159,9 +162,13 @@ export function ActivityLog() {
             {so ? 'Diiwaanka shaqada' : 'Activity record'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            {so
-              ? 'Yaa sameeyay, goorma, iyo shaqo tee — mid kasta oo ka mid ah dhaqdhaqaaqa kooxda.'
-              : 'Who did what, when, and to which job — every change in the group.'}
+            {scope === 'manager'
+              ? so
+                ? 'Dhaqdhaqaaqa dhammaan kooxaha — yaa sameeyay, goorma, iyo shaqo tee.'
+                : 'Every group in one feed — who did what, when, and to which job.'
+              : so
+                ? 'Yaa sameeyay, goorma, iyo shaqo tee — mid kasta oo ka mid ah dhaqdhaqaaqa kooxda.'
+                : 'Who did what, when, and to which job — every change in the group.'}
           </p>
         </div>
 
@@ -352,6 +359,11 @@ export function ActivityLog() {
                       <span className="text-xs font-extrabold text-slate-900">
                         {activityLabel(event.kind, lang)}
                       </span>
+                      {'group_code' in event && (event as { group_code?: string }).group_code && (
+                        <span className="font-mono text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                          {(event as { group_code?: string }).group_code}
+                        </span>
+                      )}
                       {event.line_number && (
                         <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
                           {event.line_number}

@@ -82,6 +82,7 @@ test('the server must confirm the same person and the same role', () => {
 test('the portal always follows the role', () => {
   assert.equal(portalForRole('supervisor'), 'supervisor');
   assert.equal(portalForRole('technician'), 'technician');
+  assert.equal(portalForRole('manager'), 'manager');
   assert.equal(portalForRole(null), 'technician');
   assert.equal(portalForRole('something-else'), 'technician');
 });

@@ -211,6 +211,45 @@ except the demo purge, which is only a demo purge.
 | 4 | Confirm the seed functions cannot run | `seed_demo_data` is supervisor-only and needs a token; do not call it again in production. |
 | 5 | Take a backup | Supabase → Database → Backups, or `pg_dump` to a file you keep. **Do this before step 1**, not after. |
 | 6 | Note the numbers | Record open jobs, box count, technician count. If anything looks wrong later, this is the reference. |
+| 7 | Remove the demo manager | `delete from public.users where username = 'maamule';` — the read-only manager seeded for the pilot. Recreate it per §10a, with its own PIN. |
+| 8 | Give the manager a real account | §10a, below. Never reuse the seeded PIN. |
+
+### 10a. Creating a manager account
+
+A manager reads every group and writes nothing. The role cannot be created from
+the app on purpose: a group supervisor who could create one could read the other
+groups (see `KNOWN_LIMITS` §7b). Run this once per manager, in the SQL editor,
+with a PIN the manager will change on first sign-in:
+
+```sql
+with new_user as (
+  insert into public.users (group_id, username, full_name, phone, role, is_active, must_change_pin)
+  values (
+    (select id from public.groups where code = 'F1'),
+    'maamule2',
+    'Manager name here',
+    '634000010',
+    'manager',
+    true,
+    true                      -- forces their own PIN on first sign-in
+  )
+  returning id
+)
+insert into public.user_credentials (user_id, pin_hash)
+select id, extensions.crypt('123456', extensions.gen_salt('bf')) from new_user;
+```
+
+To give someone read-only access temporarily, deactivate the account rather than
+changing its role: `update public.users set is_active = false where username = '…';`
+
+**Verify before telling them it works:** sign in once, confirm the header says
+*Manager · read only*, confirm the Groups tab lists every group, and confirm the
+database refuses a write from that session:
+
+```sql
+select public.set_port_status('<manager token>', '<box id>', 1, 'damaged', 'probe');
+-- ERROR: A manager account is read-only
+```
 
 ---
 

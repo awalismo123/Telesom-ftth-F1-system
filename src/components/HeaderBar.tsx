@@ -30,11 +30,18 @@ import { useNavigation } from '../lib/navigation';
  */
 function IdentityChip({ compact = false }: { compact?: boolean }) {
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   if (!session) return null;
 
   const supervisor = session.user.role === 'supervisor';
-  const roleLabel = supervisor ? t('supervisorRole') : session.crews[0]?.name || t('technicianRole');
+  const manager = session.user.role === 'manager';
+  const roleLabel = supervisor
+    ? t('supervisorRole')
+    : manager
+      ? lang === 'so'
+        ? 'Maamule · akhris kaliya'
+        : 'Manager · read only'
+      : session.crews[0]?.name || t('technicianRole');
 
   return (
     <div
@@ -54,7 +61,7 @@ function IdentityChip({ compact = false }: { compact?: boolean }) {
           {session.user.full_name}
         </div>
         <div className="text-[10px] md:text-[10px] text-emerald-300/90 truncate max-w-[104px] md:max-w-[150px] flex items-center gap-1">
-          {supervisor ? (
+          {supervisor || manager ? (
             <ShieldCheck className="w-3 h-3 text-amber-300 shrink-0" />
           ) : (
             <Wrench className="w-3 h-3 text-emerald-300 shrink-0" />
@@ -69,6 +76,9 @@ function IdentityChip({ compact = false }: { compact?: boolean }) {
 export function HeaderBar() {
   const { session, activeGroup, availableGroups, setActiveGroupById, signOut, changeOwnPin } =
     useAuth();
+  // A manager's search results would open a dispatch board or a job sheet full of
+  // actions the account cannot perform, so the door is not shown at all.
+  const isManager = session?.user.role === 'manager';
   const { lang, setLang, t } = useLanguage();
   const toast = useToast();
 
@@ -93,13 +103,14 @@ export function HeaderBar() {
         target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        if (isManager) return;
         event.preventDefault();
         setSearchOpen((current) => !current);
         return;
       }
 
       // "/" is the other habit, but only when the person is not already typing.
-      if (event.key === '/' && !typing && !showPinModal) {
+      if (event.key === '/' && !typing && !showPinModal && !isManager) {
         event.preventDefault();
         setSearchOpen(true);
       }
@@ -107,7 +118,7 @@ export function HeaderBar() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [showPinModal]);
+  }, [showPinModal, isManager]);
 
   if (!session) return null;
 
@@ -234,23 +245,27 @@ export function HeaderBar() {
               <span>{lang === 'so' ? 'SO' : 'EN'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100 hover:bg-emerald-800 transition cursor-pointer"
-              title={lang === 'so' ? 'Raadi (⌘K)' : 'Search (⌘K)'}
-              aria-label={lang === 'so' ? 'Raadi' : 'Search'}
-            >
-              <Search className="w-4 h-4" />
-              <span className="hidden lg:inline text-[11px] font-semibold">
-                {lang === 'so' ? 'Raadi' : 'Search'}
-              </span>
-              <kbd className="hidden lg:inline text-[10px] font-bold text-emerald-300/70 border border-emerald-700 rounded px-1">
-                ⌘K
-              </kbd>
-            </button>
+            {!isManager && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100 hover:bg-emerald-800 transition cursor-pointer"
+                  title={lang === 'so' ? 'Raadi (⌘K)' : 'Search (⌘K)'}
+                  aria-label={lang === 'so' ? 'Raadi' : 'Search'}
+                >
+                  <Search className="w-4 h-4" />
+                  <span className="hidden lg:inline text-[11px] font-semibold">
+                    {lang === 'so' ? 'Raadi' : 'Search'}
+                  </span>
+                  <kbd className="hidden lg:inline text-[10px] font-bold text-emerald-300/70 border border-emerald-700 rounded px-1">
+                    ⌘K
+                  </kbd>
+                </button>
 
-            <NotificationsBell onNavigate={navigate} />
+                <NotificationsBell onNavigate={navigate} />
+              </>
+            )}
 
             <div className="hidden md:flex items-center gap-2">
               <IdentityChip />
@@ -268,15 +283,19 @@ export function HeaderBar() {
           <div className="px-3 h-12 flex items-center justify-between gap-2">
             <IdentityChip compact />
             <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setSearchOpen(true)}
-                className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100"
-                aria-label={lang === 'so' ? 'Raadi' : 'Search'}
-              >
-                <Search className="w-4 h-4" />
-              </button>
-              <NotificationsBell onNavigate={navigate} />
+              {!isManager && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100"
+                    aria-label={lang === 'so' ? 'Raadi' : 'Search'}
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                  <NotificationsBell onNavigate={navigate} />
+                </>
+              )}
               {pinButton}
               {signOutButton(true)}
             </div>
@@ -284,6 +303,7 @@ export function HeaderBar() {
         </div>
       </header>
 
+      {!isManager && (
       <SearchPalette
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
@@ -296,6 +316,7 @@ export function HeaderBar() {
         }
         onPickBox={(boxId) => navigate({ to: 'boxes', boxId })}
       />
+      )}
 
       {/* Change PIN Modal */}
       {showPinModal && (

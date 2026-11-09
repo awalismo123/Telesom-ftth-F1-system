@@ -207,20 +207,36 @@ function csvCell(value: unknown): string {
  * The feed as a spreadsheet. Header in the language of the export, because the
  * person opening it is the person who pressed the button.
  */
-export function buildActivityCsv(events: ActivityEvent[], lang: Language): string {
-  const headers =
+export function buildActivityCsv(
+  events: ActivityEvent[],
+  lang: Language,
+  withGroup = false,
+): string {
+  const base =
     lang === 'so'
       ? ['Waqti', 'Ficil', 'Khad', 'Macmiil', 'Qofka', 'Faahfaahin']
       : ['When', 'Action', 'Line', 'Customer', 'Who', 'Detail'];
+  const headers = withGroup
+    ? [...base.slice(0, 2), lang === 'so' ? 'Koox' : 'Group', ...base.slice(2)]
+    : base;
 
-  const rows = events.map((event) => [
-    event.at,
-    activityLabel(event.kind, lang),
-    event.line_number ?? '',
-    event.customer_name ?? '',
-    event.actor,
-    activityDetail(event, lang) ?? '',
-  ]);
+  const rows = events.map((event) => {
+    const cells = [
+      event.at,
+      activityLabel(event.kind, lang),
+      event.line_number ?? '',
+      event.customer_name ?? '',
+      event.actor,
+      activityDetail(event, lang) ?? '',
+    ];
+
+    if (!withGroup) return cells;
+
+    // Manager export: the group code sits with the action, where a manager
+    // scanning a spreadsheet looks first.
+    const groupCode = (event as { group_code?: string }).group_code ?? '';
+    return [...cells.slice(0, 2), groupCode, ...cells.slice(2)];
+  });
 
   return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
 }

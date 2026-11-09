@@ -65,7 +65,7 @@ A technician, in the field:
 | **Phase 3** | Xaafada & Cablebox route clustering, bulk assignment, 1-click WhatsApp / Telegram dispatch summary | ✅ **Live** |
 | **Phase 4** | Technician mobile route, `tel:` click-to-call, live timer, blockers, optical `dBm` capture | ✅ **Live** |
 | **Phase 5** | Cablebox port & fault history registry, supervisor analytics, CSV + WhatsApp daily report | ✅ **Live** |
-| **Batch H** | Audit trail (**Record** tab), printable period report, 3-day aging badge, **photo proof on completion** | ✅ **Live** |
+| **Batch H** | Audit trail (**Record** tab), printable period report, 3-day aging badge, **photo proof on completion**, **read-only manager** across every group | ✅ **Live** |
 
 ---
 
@@ -202,6 +202,25 @@ The interface is defensive by design:
 
 ---
 
+## The manager view
+
+A third role, `manager`, sees **every group** and changes nothing.
+
+* **Groups** — one card per group: open, blocked, late, completed, staff, and the
+  last activity, with the group's open jobs behind a disclosure. It is a
+  comparison screen, not a dispatch board.
+* **Record** — the same feed as the supervisor's, across all groups, with the
+  group code on every row and in the CSV.
+* **Report** — the same printable period report, plus a *By group* table and a
+  per-group CSV.
+
+Read-only is enforced in the database, not by hiding buttons: every write to an
+operational table raises `A manager account is read-only` when the session's role
+is `manager` (migration 014). A manager's own PIN and session stay writable.
+Managers are created by an administrator, not from a group screen.
+
+---
+
 ## Sign-in Accounts (seeded)
 
 | Role | Username | Phone | PIN |
@@ -211,6 +230,7 @@ The interface is defensive by design:
 | Technician (Crew A) | `xasan` | `634100102` | `1111` |
 | Technician (Crew B) | `maxamed` | `634100103` | `1111` |
 | Technician (Crew B) | `mustafe` | `634100104` | `1111` |
+| **Manager** (read-only, all groups) | `maamule` | `634000009` | `1111` |
 
 *Login accepts either the username or the Telesom phone number. Every user can change their own PIN from the header menu.*
 
