@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Ban,
   CalendarClock,
+  Camera,
   MapPin,
   RotateCcw,
   Server,
@@ -25,6 +26,9 @@ import { Sheet } from '../../ui/Sheet';
 import { Skeleton } from '../../ui/Skeleton';
 import { useToast } from '../../ui/Toast';
 import { countLabel, formatDate } from '../../../lib/format';
+import { fetchTaskPhotos, type TaskPhotoMeta } from '../../../lib/reads';
+import { photoSizeLabel } from '../../../lib/photo';
+import { PhotoViewer } from '../../ui/PhotoViewer';
 
 /**
  * Everything a supervisor can do to one job, in one place.
@@ -65,6 +69,8 @@ export function JobActionsSheet({
   const [cancelNote, setCancelNote] = useState('');
   const [reopenNote, setReopenNote] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [photos, setPhotos] = useState<TaskPhotoMeta[]>([]);
+  const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -76,6 +82,13 @@ export function JobActionsSheet({
     setCancelNote('');
     setReopenNote('');
     setTargetKey('');
+
+    setPhotos([]);
+    void fetchTaskPhotos(token, taskId)
+      .then((rows) => !cancelled && setPhotos(rows))
+      .catch(() => {
+        /* a missing photo list must never block the actions */
+      });
 
     void fetchTask(token, taskId)
       .then((row) => {
@@ -253,6 +266,36 @@ export function JobActionsSheet({
             </Alert>
           )}
 
+          {photos.length > 0 && (
+            <section className="space-y-2">
+              <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5" aria-hidden="true" />
+                {so ? 'Caddaynta sawirka' : 'Photo proof'}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {photos.map((photo, index) => (
+                  <button
+                    key={photo.id}
+                    type="button"
+                    onClick={() => setOpenPhotoId(photo.id)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-bold text-emerald-800 cursor-pointer"
+                  >
+                    <Camera className="w-3.5 h-3.5" aria-hidden="true" />
+                    {so ? 'Sawir' : 'Photo'} {index + 1}
+                    <span className="font-mono text-[10px] font-normal text-emerald-700">
+                      {photoSizeLabel(photo.byte_size)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-500">
+                {so
+                  ? 'Waxaa qaatay farsamayaqaanka markuu shaqada dhammeeyay.'
+                  : 'Taken by the technician when the job was completed.'}
+              </p>
+            </section>
+          )}
+
           {open_ && (
             <>
               <section className="space-y-2">
@@ -397,6 +440,15 @@ export function JobActionsSheet({
             </p>
           )}
         </div>
+      )}
+
+      {openPhotoId && task && (
+        <PhotoViewer
+          token={token}
+          photoId={openPhotoId}
+          caption={`${task.line_number} — ${task.customer_name}`}
+          onClose={() => setOpenPhotoId(null)}
+        />
       )}
     </Sheet>
   );

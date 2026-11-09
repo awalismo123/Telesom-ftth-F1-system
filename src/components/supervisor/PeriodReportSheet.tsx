@@ -330,6 +330,13 @@ export function PeriodReportSheet({ open, onClose }: { open: boolean; onClose: (
                 </div>
               </div>
 
+              {/* Evidence: the question after "how many did you finish". */}
+              <p className="text-[10px] text-slate-600 print-block">
+                {so
+                  ? `${formatNumber(totals.photos)} sawir caddayn ah ayaa lagu daray shaqooyinka la dhammeeyay.`
+                  : `${formatNumber(totals.photos)} photo proofs were attached to completed jobs.`}
+              </p>
+
               {/* daily trend */}
               <section className="print-block">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">

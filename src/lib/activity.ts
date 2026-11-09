@@ -42,6 +42,8 @@ export interface ActivityEvent {
   notes: string | null;
   channel: string | null;
   task_count: number | null;
+  /** Set when the job carries photographic proof (Batch H). */
+  photo_id?: string | null;
 }
 
 /**

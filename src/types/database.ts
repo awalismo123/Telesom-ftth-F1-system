@@ -144,6 +144,8 @@ export interface Task {
   cancel_reason: string | null;
   reopened_count: number;
   last_reopened_at: string | null;
+  /** The latest completion photo, or null when the job has no proof yet. */
+  proof_photo_id?: string | null;
   scheduled_date: string;
   last_seen_on_sheet_date?: string | null;
   created_at: string;

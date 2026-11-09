@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Camera,
   Check,
   CheckCheck,
   Clock,
@@ -28,12 +29,14 @@ import {
 } from '../../lib/execution';
 import type { CompleteResult, WorkLogRow } from '../../lib/executionService';
 import {
+  addTaskPhoto,
   blockTask,
   completeTask,
   fetchWorkLog,
   resumeTask,
   startTask,
 } from '../../lib/executionService';
+import { preparePhoto, photoSizeLabel, type PreparedPhoto } from '../../lib/photo';
 import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
 import { BoxSheet } from '../registry/BoxSheet';
 import { useToast } from '../ui/Toast';
@@ -112,6 +115,12 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
   const [completionNotes, setCompletionNotes] = useState('');
   const [portInput, setPortInput] = useState('');
   const [done, setDone] = useState<CompleteResult | null>(null);
+
+  // proof photo (Batch H): prepared on the phone, uploaded after the job closes
+  const [photo, setPhoto] = useState<PreparedPhoto | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoState, setPhotoState] = useState<'none' | 'sending' | 'sent' | 'failed'>('none');
 
   // confirm-start list
   const [otherRunning, setOtherRunning] = useState<
@@ -241,6 +250,48 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
     }
   };
 
+  /** Read the camera file, shrink it, and keep it in memory until the job closes. */
+  const onPhotoPicked = async (file: File | undefined, uploadTo?: string) => {
+    if (!file) return;
+    setPhotoBusy(true);
+    setPhotoError(null);
+    try {
+      const prepared = await preparePhoto(file);
+      setPhoto(prepared);
+      setPhotoState('none');
+      if (uploadTo) {
+        await sendPhoto(prepared, uploadTo);
+      }
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Could not read the photo');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  /**
+   * Send the photograph for a job that is already complete.
+   *
+   * A failed upload never un-completes anything: the job is done, the evidence
+   * is not. The technician gets the bytes kept in memory and a retry button,
+   * because making them photograph the joint a second time is not acceptable.
+   */
+  const sendPhoto = async (prepared: PreparedPhoto, taskId: string) => {
+    setPhotoState('sending');
+    setPhotoError(null);
+    try {
+      await addTaskPhoto({ token, taskId, base64: prepared.base64, mime: prepared.mime });
+      setPhotoState('sent');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'The photo could not be uploaded';
+      setPhotoState('failed');
+      setPhotoError(message);
+      toast.error(so ? 'Sawirka lama dirin' : 'Photo not uploaded', {
+        description: so ? 'Shaqadu waa dhammaatay. Riix "Dib u dir".' : 'The job is complete. Tap Retry to send it.',
+      });
+    }
+  };
+
   const doComplete = async () => {
     if (dbmCheck.value === null) {
       setError(dbmCheck.error ?? (so ? 'Geli cabbirka dBm.' : 'Enter the dBm reading.'));
@@ -270,6 +321,10 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
       toast.success(so ? 'Shaqadu waa dhammaatay' : 'Job completed', {
         description: `${formatClock(result.duration_seconds)} · ${result.optical_dbm.toFixed(2)} dBm`,
       });
+
+      // The job is closed; the photograph is a second, separate promise.
+      if (photo) await sendPhoto(photo, result.task_id);
+
       await refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not complete the job';
@@ -463,6 +518,50 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                 {so ? 'Waqti' : 'Duration'} {formatClock(done.duration_seconds)} ·{' '}
                 {done.optical_dbm.toFixed(2)} dBm
               </div>
+
+              {photoState === 'sent' && (
+                <div className="text-[11px] font-bold text-white inline-flex items-center gap-1">
+                  <Camera className="w-3.5 h-3.5" aria-hidden="true" />
+                  {so ? 'Sawirka caddaynta waa la diray' : 'Photo proof sent'}
+                </div>
+              )}
+
+              {photoState === 'failed' && (
+                <div className="rounded-xl bg-white/10 border border-white/20 px-2 py-1.5 text-[10px] text-white">
+                  <div className="font-bold">
+                    {so ? 'Sawirka lama dirin — shaqadu way dhammaatay.' : 'Photo not uploaded — the job is still complete.'}
+                  </div>
+                  {photoError && <div className="mt-0.5 text-emerald-100">{photoError}</div>}
+                  {photo && (
+                    <button
+                      type="button"
+                      onClick={() => void sendPhoto(photo, done.task_id)}
+                      disabled={photoBusy}
+                      className="mt-1 h-8 px-2 rounded-lg bg-white text-emerald-800 text-[10px] font-extrabold cursor-pointer"
+                    >
+                      {so ? 'Dib u dir sawirka' : 'Retry the photo'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {photoState === 'none' && (
+                <label className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-100 underline cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = '';
+                      void onPhotoPicked(file, done.task_id);
+                    }}
+                  />
+                  <Camera className="w-3 h-3" aria-hidden="true" />
+                  {so ? 'Ku dar sawir hadda' : 'Add a photo now'}
+                </label>
+              )}
             </div>
           )}
 
@@ -714,6 +813,76 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                   }
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1">
+                    <Camera className="w-3.5 h-3.5" aria-hidden="true" />
+                    {so ? 'Sawir caddayn (ikhtiyaari)' : 'Photo proof (optional)'}
+                  </span>
+                  {photo && (
+                    <span className="font-mono text-[10px] font-normal text-slate-500">
+                      {photo.width}×{photo.height} · {photoSizeLabel(photo.bytes)}
+                    </span>
+                  )}
+                </label>
+
+                {photo ? (
+                  <div className="mt-1 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5">
+                    <img
+                      src={photo.preview}
+                      alt={so ? 'Sawirka la qaatay' : 'The photo you took'}
+                      className="w-14 h-14 rounded-lg object-cover bg-slate-100"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-bold text-slate-800">
+                        {so ? 'Waa diyaar' : 'Ready to attach'}
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {so ? 'Waxaa lagu dari doonaa marka shaqadu dhammaato.' : 'It is attached when you complete the job.'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPhoto(null)}
+                      className="h-9 px-2 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold cursor-pointer"
+                    >
+                      {so ? 'Tirtir' : 'Remove'}
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    className={`mt-1 flex items-center justify-center gap-1.5 h-11 rounded-xl border border-dashed border-slate-300 bg-white text-[11px] font-bold text-slate-600 cursor-pointer ${
+                      photoBusy ? 'opacity-60' : ''
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="sr-only"
+                      disabled={photoBusy}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = '';
+                        void onPhotoPicked(file);
+                      }}
+                    />
+                    {photoBusy ? (
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Camera className="w-4 h-4" aria-hidden="true" />
+                    )}
+                    {photoBusy ? (so ? 'Sawirka la yareynayaa…' : 'Preparing the photo…') : so ? 'Qaad sawir' : 'Take a photo'}
+                  </label>
+                )}
+
+                <p className="mt-1 text-[10px] text-slate-500">
+                  {so
+                    ? 'Waxaa arki kara farsamayaqaanka iyo kormeeraha oo keliya. Sawirku wuu yaraanayaa 640px.'
+                    : 'Only the technician and the supervisor can see it. Photos are resized to 640 px.'}
+                </p>
               </div>
 
               <div className="flex gap-2">

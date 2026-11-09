@@ -97,6 +97,27 @@ export async function completeTask(params: {
   });
 }
 
+/**
+ * Attach proof to a job that is already completed.
+ *
+ * Deliberately a separate call from `completeTask`: a photograph that fails to
+ * upload must never hold a finished job hostage, and a job that is completed
+ * must never be reported as failed because the camera could not upload.
+ */
+export async function addTaskPhoto(params: {
+  token: string;
+  taskId: string;
+  base64: string;
+  mime: string;
+}): Promise<{ id: string; byte_size: number; created_at: string }> {
+  return rpc<{ id: string; byte_size: number; created_at: string }>('add_task_photo', {
+    p_token: params.token,
+    p_task_id: params.taskId,
+    p_mime: params.mime,
+    p_base64: params.base64,
+  });
+}
+
 export interface WorkLogRow {
   id: string;
   action: string;

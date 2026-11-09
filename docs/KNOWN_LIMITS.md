@@ -85,9 +85,31 @@ ever written on raw work logs — no report currently does.
 
 ## 7. Photos, attachments and signatures
 
-Not implemented. The app is text and numbers. A photograph of a finished
-installation is not stored (the input sheet photo is used for OCR and is not
-retained server-side either).
+**Completion photos exist since Batch H; attachments and signatures do not.**
+
+A technician can take **one to three photographs** when a job is completed. They
+are resized on the phone to 640 px / JPEG 0.6 (typically 40–120 kB), stored in a
+private table (`task_photos`), and reachable only through a function that checks
+the caller's group. A supervisor sees a *Photo* button on the completion in the
+Record feed and on the job sheet.
+
+Limits that are deliberate:
+
+- **Not mandatory.** A phone with a dead camera must not stop a job from being
+  closed. dBm is mandatory; the photo is evidence, not the completion.
+- **Upload is a second call.** The job closes first, then the photo is sent. If
+  the upload fails, the job stays complete and the technician gets a retry button
+  — the bytes are kept in memory, not re-taken.
+- **`bytea` in Postgres, not object storage.** Same reasoning as sheet photos in
+  Batch B: one storage discipline, one access rule. The cost is that photos count
+  against the 500 MB Free-plan database.
+- **Storage will fill before anything else.** At 40 completed jobs a day, every
+  one photographed at ~100 kB, that is about **4 MB a day / 120 MB a month**. The
+  Free plan is 500 MB shared with the data. Either raise the plan, lower the
+  quality (`PHOTO_QUALITY` in `src/lib/photo.ts`), or accept that proof is only
+  kept for the recent past — **decide before the pilot, not after it fills**.
+- **No bulk export of photos.** One at a time, by a signed-in person, on purpose.
+- **Attachments other than photos and a signature capture remain unbuilt.**
 
 ---
 

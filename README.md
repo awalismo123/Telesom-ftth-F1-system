@@ -65,7 +65,7 @@ A technician, in the field:
 | **Phase 3** | Xaafada & Cablebox route clustering, bulk assignment, 1-click WhatsApp / Telegram dispatch summary | ✅ **Live** |
 | **Phase 4** | Technician mobile route, `tel:` click-to-call, live timer, blockers, optical `dBm` capture | ✅ **Live** |
 | **Phase 5** | Cablebox port & fault history registry, supervisor analytics, CSV + WhatsApp daily report | ✅ **Live** |
-| **Batch H** | Audit trail (**Record** tab), printable period report, 3-day aging badge | ✅ **Live** |
+| **Batch H** | Audit trail (**Record** tab), printable period report, 3-day aging badge, **photo proof on completion** | ✅ **Live** |
 
 ---
 
@@ -124,6 +124,14 @@ supervisor can read it without a SQL console.
 A report for a past period is computed as of that period's end, not as of now:
 closing a job today does not rewrite last month.
 
+**Photo proof.** When a technician completes a job they can take up to three
+photographs. Each is resized on the phone to 640 px (usually 40–120 kB) before it
+is sent, stored privately, and shown as a green *Photo* chip on the completion in
+the Record feed and in a *Photo proof* section on the job sheet. The photo is
+optional by design — a dead camera must never stop a job from closing — and it is
+sent *after* the completion, so a failed upload never reports a finished job as
+failed.
+
 ## Working the day (Phase 4)
 
 Open the app on a phone and sign in with the technician PIN — the route is already there.
@@ -179,7 +187,7 @@ npm run verify       # all four, in order
 ```
 
 **Performance budget.** The first visit — entry chunk, React, Supabase, icons and
-CSS, gzipped — must stay under **200 kB** (currently ~189 kB). Every screen
+CSS, gzipped — must stay under **200 kB** (currently ~191 kB). Every screen
 behind a tab is a separate chunk loaded on intent, so opening the app to read a
 route never downloads the OCR wizard or the analytics charts. `bundle:check`
 fails the build if the budget is exceeded; raise the code split, not the number.

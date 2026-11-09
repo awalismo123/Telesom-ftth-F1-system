@@ -182,10 +182,10 @@ These are not defects — they are the questions that come after "it looks good"
 
 | Their question | Today's answer | What to build | Effort |
 | :--- | :--- | :--- | :--- |
-| "Show me who changed this job and when" | Data exists (`dispatch_log`, `task_work_logs`, `cancelled_by`), **no screen** | Activity / audit screen, filterable by job, person, day; exportable | 2 days |
-| "Prove the technician was actually there" | dBm + notes + timestamps | Optional photo on completion (camera, in-browser, same storage discipline), stored per job | 1–2 days |
-| "What did we do last month?" | 30-day analytics + today's CSV | Period picker (this week / month / custom) and a one-page PDF | 2 days |
-| "Which jobs have been waiting too long?" | Board is ordered by date, no aging badge | "Waiting 3 days" badge + an SLA target per job type | 1 day |
+| "Show me who changed this job and when" | **Built (Batch H)** — Record tab: one feed, filters by day / action / person / text, CSV | — | ✅ |
+| "Prove the technician was actually there" | **Built (Batch H)** — optional 1–3 photos per completed job, resized on the phone, private, visible in the record and on the job sheet | — | ✅ |
+| "What did we do last month?" | **Built (Batch H)** — period picker + one-page printable report + CSV | — | ✅ |
+| "Which jobs have been waiting too long?" | **Built (Batch H)** — amber at 3 days, rose after, from the reported date | — | ✅ |
 | "Tell the technician when work arrives" | They must open the app | In-app badge exists (notifications bell); real push needs a service worker or WhatsApp send | 2–3 days |
 | "Show me F2 and F3 too" | `upsert_group` exists; supervisor is scoped to one group | A manager role that sees all groups, read-only | 2–3 days |
 | "Can a manager see it without changing anything?" | Two roles only: supervisor, technician | Read-only manager role | 1 day |

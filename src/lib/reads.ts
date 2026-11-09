@@ -249,6 +249,8 @@ export interface PeriodReportTotals {
   avg_dbm: number | null;
   repeat_faults: number;
   dispatches: number;
+  /** Completion photos attached in the period (Batch H). */
+  photos: number;
 }
 
 export interface PeriodReport {
@@ -299,4 +301,40 @@ export async function fetchPeriodReport(
     p_from: from,
     p_to: to,
   })) as PeriodReport;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Photo proof (Batch H)                                                       */
+/* -------------------------------------------------------------------------- */
+
+export interface TaskPhotoMeta {
+  id: string;
+  mime: string;
+  byte_size: number;
+  created_at: string;
+  uploaded_by_name: string;
+  uploaded_by_role: string;
+}
+
+export interface TaskPhoto extends TaskPhotoMeta {
+  task_id: string;
+  /** The JPEG itself, base64. Never logged, never cached. */
+  base64: string;
+}
+
+/** Which photos a completed job has. Thumbnails are fetched one at a time. */
+export async function fetchTaskPhotos(token: string, taskId: string): Promise<TaskPhotoMeta[]> {
+  const data = await rpcRead<TaskPhotoMeta[] | null>('list_task_photos', {
+    p_token: token,
+    p_task_id: taskId,
+  });
+  return data ?? [];
+}
+
+/** One photo, bytes included. The group check happens on the server. */
+export async function fetchTaskPhoto(token: string, photoId: string): Promise<TaskPhoto> {
+  return (await rpcRead<TaskPhoto>('get_task_photo', {
+    p_token: token,
+    p_photo_id: photoId,
+  })) as TaskPhoto;
 }

@@ -160,6 +160,7 @@ returns an empty array, because the tables have no anonymous read policy.
 | Registry | `box_directory`, `box_detail`, `set_port_status`, `upsert_cablebox`, `ops_analytics`, `report_jobs` |
 | Corrections | `create_manual_task`, `cancel_task`, `reopen_task` |
 | Search | `global_search` |
+| **Proof (Batch H)** | `add_task_photo`, `list_task_photos`, `get_task_photo` — private `task_photos` table, no policies, worker-or-supervisor only |
 | **Record (Batch H)** | `group_activity` (job + dispatch + cancel + phone-in events in one feed), `period_report` (created / completed / cancelled / open at end / waiting past the promise, per tech, per box, per day) |
 | **Reads (Batch B)** | `list_groups`, `group_overview`, `list_open_tasks`, `get_task`, `list_work_logs`, `list_live_moves`, `list_resumed_since`, `list_import_batches`, `my_team`, `upload_sheet_image`, `get_sheet_image` |
 | Demo | `seed_demo_data`, `clear_demo_data` |
@@ -192,9 +193,9 @@ screens render; the logic is pure and covered by `tests/`.
 
 `npm run verify` = `tsc -b` → `node --test tests/*` → `vite build` → bundle budget.
 
-- **170 tests**, no browser: pure logic, server-side rendering of the real
+- **182 tests**, no browser: pure logic, server-side rendering of the real
   component tree, and source-level lint (design system, i18n, realtime, OCR).
-- **Performance budget**: first load ≤ 200 kB gzip; currently **≈189 kB**.
+- **Performance budget**: first load ≤ 200 kB gzip; currently **≈191 kB**.
 - **Accessibility lint**: no text below 10 px, contrast ≥ 4.5:1, every icon-only
   button named.
 - **Language lint**: every dictionary key in both languages, no dead keys, no

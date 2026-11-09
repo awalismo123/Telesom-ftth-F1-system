@@ -14,6 +14,7 @@ import {
   PauseCircle,
   Search,
   AlertTriangle,
+  Camera,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
@@ -36,6 +37,7 @@ import {
   type ActivityEvent,
   type ActivityKind,
 } from '../../lib/activity';
+import { PhotoViewer } from '../ui/PhotoViewer';
 import { formatDateTime } from '../../lib/format';
 import { downloadCsv } from '../../lib/registry';
 
@@ -88,6 +90,7 @@ export function ActivityLog() {
   const [kind, setKind] = useState<ActivityKind | 'all'>('all');
   const [actor, setActor] = useState<string>('all');
   const [query, setQuery] = useState('');
+  const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
 
   const load = useCallback(
     async (silent = false) => {
@@ -359,6 +362,20 @@ export function ActivityLog() {
                           {event.customer_name}
                         </span>
                       )}
+
+                      {/* Proof is only shown on the completion that produced it,
+                          not on every other event of the same job. */}
+                      {event.kind === 'completed' && event.photo_id && (
+                        <button
+                          type="button"
+                          onClick={() => setOpenPhotoId(event.photo_id ?? null)}
+                          aria-label={so ? 'Fur sawirka caddaynta' : 'Open the photo proof'}
+                          className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800 cursor-pointer"
+                        >
+                          <Camera className="w-3 h-3" aria-hidden="true" />
+                          {so ? 'Sawir' : 'Photo'}
+                        </button>
+                      )}
                     </div>
 
                     <div className="mt-0.5 flex items-center gap-1.5 flex-wrap text-[11px] text-slate-500">
@@ -386,6 +403,10 @@ export function ActivityLog() {
             ? `${filtered.length} dhacdo oo la muujiyay · ${events.length} guud ahaan`
             : `${filtered.length} shown · ${events.length} in this window`}
         </p>
+      )}
+
+      {openPhotoId && (
+        <PhotoViewer token={token} photoId={openPhotoId} onClose={() => setOpenPhotoId(null)} />
       )}
     </div>
   );

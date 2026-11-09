@@ -1220,3 +1220,128 @@ it means.
   a batch of its own, not an afternoon's edit.
 * **Editing the feed.** There is no delete and no amend, by design. A record that
   can be rewritten is not a record.
+
+## §13 Batch H — proof (part 2, 09/11/2026)
+
+The manager question from `PRODUCTION_READINESS.md` was *"prove the technician was
+actually there"*. dBm and notes are what a technician types; a photograph of the
+joint is what they had to stand in front of.
+
+### 13.1 The three rules, and why each one exists
+
+| Rule | Reason |
+| :--- | :--- |
+| A photo belongs to a **completed** job | A photo of unfinished work would let the camera imply completion, which is the one thing this app refuses to fake |
+| Only the **worker or the supervisor** may attach one | Proof that anyone can add is not proof |
+| Photos live in a **private table**, never a bucket | Batch B found sheet photos in a public bucket; the same bytes of a customer's wall get the same discipline |
+
+`task_photos` has RLS enabled and **no policies at all** — the table is reachable
+only through `add_task_photo`, `list_task_photos` and `get_task_photo`, each of
+which takes `p_token` first and proves the caller's group. A fourth rule is a
+backstop rather than a feature: at most **three photos per job**, **2 MB each**.
+
+### 13.2 The photograph is not the completion
+
+The completion and the photo are two calls, in that order:
+
+```
+complete_task(...)            → the job is closed, the timer stops, the dBm is stored
+add_task_photo(...)           → the evidence, on a completed job
+```
+
+If the upload fails — no signal in a basement, the database at its limit — the job
+is **still complete**, the technician sees *"Photo not uploaded — the job is still
+complete"* with a retry button, and the already-compressed bytes are kept in
+memory rather than asking them to photograph the joint again.
+
+The image never leaves the phone at full size. `src/lib/photo.ts` resizes to
+**640 px** on the long edge at **JPEG quality 0.6**, applying EXIF rotation first
+(a portrait photo is not uploaded sideways). A typical 4 MB shot becomes 40–120 kB.
+
+### 13.3 What the live probe proved
+
+Applied to the live project, then exercised inside a rolled-back transaction
+against the real group:
+
+```
+add_task_photo(supervisor, completed job, 300-byte JPEG)
+  → {"id": …, "byte_size": 300}
+  tasks.proof_photo_id → set
+  list_task_photos     → [{mime: image/jpeg, byte_size: 300,
+                           uploaded_by_name: "F1 Supervisor (Kormeeraha F1)",
+                           uploaded_by_role: supervisor}]
+  get_task_photo       → base64, 405 chars for 300 bytes
+```
+
+Each refusal was provoked rather than assumed:
+
+| Attempt | Answer |
+| :--- | :--- |
+| Photo on an `assigned` job | `A proof photo belongs to a completed job` |
+| A fourth photo | `This job already has three photos` |
+| 3 MB payload | `The photo is larger than 2 MB` |
+| `image/gif` | `Only JPEG and PNG photos can be stored` |
+| Empty body | `The photo is empty` |
+| A technician who does not work the job | `Only the technician on this job, or the supervisor, can attach a photo` |
+
+That last line was not a designed test: the first probe picked the newest session
+token in the table and happened to be *Cabdiraxmaan Maxamed's*. The refusal was
+the correct answer, and it is now part of the record.
+
+### 13.4 Two definitions in §12 that were wrong
+
+Writing the report screen's description exposed two mistakes in the SQL from
+part 1, both of which would have produced a report that **looked right**:
+
+* `open_at_end` used *today's* status. A job completed this morning disappeared
+  from last month's report. It now asks the historical question: did the job
+  exist by the end of the range, and was it still open then?
+* `waiting_over_sla` counted from `created_at`, while the aging badge counts from
+  `reported_date` — the date the customer uses. Board and report would have
+  disagreed by a day or more. They now measure the same thing.
+
+The corrected function also returns `photos`, the number of proofs attached in
+the period, because "we completed 34" is a weaker sentence than "we completed 34,
+29 of them with a photograph".
+
+### 13.5 Where a person sees it
+
+* **Technician** — inside the completion form: *Take a photo* opens the camera
+  directly (`capture="environment"`), shows a thumbnail with `640×480 · 84 kB`
+  and a *Remove*. The job is completed, then the photo is sent.
+* **After completion** — *Add a photo now*, for the technician who took the shot
+  a minute too late; it uploads immediately to the finished job.
+* **Record feed** — a green **Photo** chip on the completion row (never on the
+  other events of the same job), opening the photograph full screen with who took
+  it and when.
+* **Job sheet** — a *Photo proof* section listing up to three, with sizes, each
+  opening the viewer.
+* **Period report** — one line under the tiles: *"29 photo proofs were attached to
+  completed jobs."*
+
+### 13.6 Verification
+
+| Check | Result |
+| :--- | :--- |
+| Live upload / read / list | 300 bytes in, 300 bytes out, base64 405 chars |
+| Refusals | 6 / 6 provoked and answered by name |
+| `group_activity` carries `photo_id` | 8 events on a job with proof |
+| `period_report` totals | `photos` present; `completed` 34 (30-day window), 33 (29-day) |
+| `tsc -b` | clean |
+| `npm test` | **182 / 182** (was 170; +12 in `tests/photo.test.ts`) |
+| `bundle:check` | **190.6 kB / 200 kB** |
+| Dev server | `PhotoViewer`, `photo.ts`, `ExecutionSheet` all serve 200 |
+
+### 13.7 What is not verified, stated plainly
+
+* **The camera path has not been exercised on a physical phone.** Resizing,
+  EXIF rotation and `toDataURL` are browser APIs; the maths is unit-tested and the
+  upload is proven against the live database, but the first real device test is
+  still owed before the pilot. This is the one item in Batch H that a test cannot
+  stand in for.
+* **Nothing has been photographed in production yet.** The live probe wrote and
+  rolled back; `task_photos` is empty.
+* **Storage headroom is a decision, not a detail.** ~4 MB a day at 40 photographed
+  jobs. On the Free plan (500 MB) that is roughly four months of proof. Recorded
+  in `KNOWN_LIMITS` §7.
+* **A read-only manager role (H3) is still not built.** Two roles remain.
