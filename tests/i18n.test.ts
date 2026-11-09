@@ -142,6 +142,9 @@ const COPY_ALLOWLIST = new Set([
   'FAT 48',
   'F1 - Crew A',
   'Gaadhi 01',
+  // A masked phone number: a format, not a sentence. Written this way so no real
+  // subscriber number ships in the bundle (see scripts/check-credentials.mjs).
+  '63X XXX XXX',
   // Crash-card labels are paired with a bilingual sentence inside the card.
   'Telesom FTTH',
   'Header',

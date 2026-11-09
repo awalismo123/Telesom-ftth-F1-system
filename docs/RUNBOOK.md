@@ -51,6 +51,39 @@ is deliberate: a PIN the supervisor knows is a shared password, and it makes the
 work log a record of "somebody" rather than of a person. Tell them the temporary
 PIN and let them change it.
 
+### Reset a manager's PIN
+
+Managers are not on *Team & Crews* (they are not group staff — migration 017),
+so a manager who forgets their PIN is reset in the SQL editor, not in the app:
+
+```sql
+update public.user_credentials c
+   set pin_hash = extensions.crypt('482913', extensions.gen_salt('bf')),
+       failed_attempts = 0,
+       locked_until = null,
+       updated_at = now()
+  from public.users u
+ where u.id = c.user_id and u.username = 'maamule';
+
+update public.users set must_change_pin = true where username = 'maamule';
+```
+
+They sign in once with the temporary PIN and are forced to choose their own.
+
+### Everyone is locked out (after migration 018)
+
+Migration 018 deletes every published PIN by rotating the hash to a random value
+nobody knows. Anyone who had not yet chosen their own PIN therefore cannot sign
+in, and **cannot reset themselves** — `change_own_pin` needs the PIN they no
+longer have.
+
+The supervisor fixes this from *Team & Crews* → edit member → new PIN → save,
+which clears the lock and forces a change at first sign-in. Do this for one
+person at a time and hand the temporary PIN over in person.
+
+For a manager, or if the supervisor's own account is the one that is stuck, use
+the SQL in *Reset a manager's PIN* above (swap the username).
+
 ### Change your own PIN
 
 Header → key icon → current PIN + new PIN. This is the only way that requires the

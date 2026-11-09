@@ -221,18 +221,23 @@ Managers are created by an administrator, not from a group screen.
 
 ---
 
-## Sign-in Accounts (seeded)
+## Sign-in Accounts
 
-| Role | Username | Phone | PIN |
-| :--- | :--- | :--- | :--- |
-| Supervisor | `supervisor` | `634000001` | `1234` |
-| Technician (Crew A) | `cabdi` | `634100101` | `1111` |
-| Technician (Crew A) | `xasan` | `634100102` | `1111` |
-| Technician (Crew B) | `maxamed` | `634100103` | `1111` |
-| Technician (Crew B) | `mustafe` | `634100104` | `1111` |
-| **Manager** (read-only, all groups) | `maamule` | `634000009` | `1111` |
+This repository does **not** publish credentials, and neither the source nor the
+built bundle carries a PIN.
 
-*Login accepts either the username or the Telesom phone number. Every user can change their own PIN from the header menu.*
+Accounts are created by a supervisor on the team screen, or by an administrator
+for a manager. Each person sets their own PIN the first time they sign in — a
+freshly created or reset account is flagged `must_change_pin`, and the
+PIN-change screen cannot be dismissed until it is done.
+
+*Login accepts either the username or the Telesom phone number.*
+
+**If a PIN is ever published** (chat, a screenshot, a README, a demo build),
+treat the account as compromised: rotate it, and revoke its sessions from
+Supabase (`delete from user_sessions where user_id = '…'`). The audit that
+prompted this section found six seeded accounts signing in with `1234`/`1111`
+from a public repository.
 
 ---
 

@@ -715,7 +715,7 @@ export function TeamAndCrewManager() {
                     type="tel"
                     value={mPhone}
                     onChange={(e) => setMPhone(e.target.value)}
-                    placeholder="634100101"
+                    placeholder="63X XXX XXX"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
