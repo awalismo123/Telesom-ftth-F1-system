@@ -897,3 +897,31 @@ Files: `src/lib/i18n.tsx` (`pinHint`, `deptFooter`, `devBuildNote`),
 `LoginScreen.tsx`, `ConfigErrorScreen.tsx`, `tests/i18n.test.ts`.
 `BILINGUAL_BY_DESIGN` has exactly one entry — the crash card, which prints its
 sentence in both languages on purpose — and states why.
+
+### §10.10 Follow-up 2 — a claim the input contradicted
+
+The same read of production turned up a factual mismatch in the copy, not just a
+language one:
+
+> **"4-Digit Security PIN"** beside an input that accepts **4 to 6**, and a hint
+> that says `4–6`.
+
+Eight strings repeated the claim — login subtitle, the change-PIN sheet, the
+supervisor's reset form, the technician account sheet, in both languages. The
+code has always allowed 4 to 6 (`min 4`, `maxLength 6`, and the error message
+"A PIN must be 4 to 6 digits"), so the copy was simply wrong, and wrong in the
+way that makes a person think their PIN was rejected for the wrong reason.
+
+All eight now say **4–6**, and a ninth bug surfaced on the way: eight fallbacks
+in `TechnicianShell` of the shape `t('changePinHint') || 'Use …4-digit PIN.'` —
+dead code, because `t()` always returns a string, which is how one of the stale
+strings survived the sweep. Those fallbacks are deleted, not updated: keeping a
+second copy of copy is how the two drift apart.
+
+A new test (`PIN copy agrees with what the inputs accept`) fails on any
+`4-digit` / `4 Lambar` claim anywhere in `src` and asserts that `pinHint`
+carries the range in both languages. 137 tests.
+
+The Somali login placeholder also read `Username ama Lambarka Tel` — English
+noun, Somali sentence. It now reads `Magaca isticmaalaha ama Lambarka Tel`,
+matching the hint above it.

@@ -106,7 +106,7 @@ export function TechnicianShell() {
           <Truck className="w-5 h-5" />
         </div>
         <div className="min-w-0">
-          <div className="text-[11px] text-slate-500 font-semibold">{t('assignedCrew') || 'Assigned crew'}</div>
+          <div className="text-[11px] text-slate-500 font-semibold">{t('assignedCrew')}</div>
           <div className="text-sm font-extrabold text-slate-900 truncate">
             {activeCrew ? activeCrew.name : t('noCrewAssigned')}
           </div>
@@ -119,7 +119,7 @@ export function TechnicianShell() {
       {teammates.length > 0 ? (
         <div className="pt-3 border-t border-slate-100 space-y-2">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            {t('crewPartner') || 'Crew partner'}
+            {t('crewPartner')}
           </div>
           {teammates.map((partner) => (
             <div
@@ -136,7 +136,7 @@ export function TechnicianShell() {
                   className="shrink-0 inline-flex items-center gap-1 min-h-9 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold"
                 >
                   <Phone className="w-3.5 h-3.5" aria-hidden="true" />
-                  <span>{t('call') || 'Call'}</span>
+                  <span>{t('call')}</span>
                 </a>
               )}
             </div>
@@ -144,7 +144,7 @@ export function TechnicianShell() {
         </div>
       ) : (
         <p className="text-[11px] text-slate-500 border-t border-slate-100 pt-3">
-          {t('noCrewPartner') || 'Working solo today.'}
+          {t('noCrewPartner')}
         </p>
       )}
     </Card>
@@ -211,20 +211,20 @@ export function TechnicianShell() {
 
               <Card padding="md">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                  {t('myAccount') || 'My account'}
+                  {t('myAccount')}
                 </div>
                 <dl className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <dt className="text-slate-500">{t('identifierLabelShort') || 'Username'}</dt>
+                    <dt className="text-slate-500">{t('identifierLabelShort')}</dt>
                     <dd className="font-bold text-slate-900 truncate">{session.user.username}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500">{t('phoneLabel') || 'Phone'}</dt>
+                    <dt className="text-slate-500">{t('phoneLabel')}</dt>
                     <dd className="font-bold text-slate-900 truncate">{session.user.phone || '—'}</dd>
                   </div>
                 </dl>
                 <p className="mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-                  {t('changePinHint') || 'Use “Change PIN” in the header to update your 4-digit PIN.'}
+                  {t('changePinHint')}
                 </p>
               </Card>
             </div>
