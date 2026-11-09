@@ -1465,3 +1465,44 @@ Verification after the fix: supervisor, technician and manager logins all still
 issued tokens; `technician_route` still returned a route; `set_port_status` still
 worked for a supervisor (it calls two of the revoked helpers internally, as the
 owner). Nothing in the app lost a function.
+
+## §16 Batch H — the PIN rule that was never applied (09/11/2026)
+
+Found while checking whether Batch H had broken anything, by asking a question
+nobody had asked: *which accounts are still on a PIN the department chose?*
+
+```sql
+select username, role, must_change_pin from public.users;
+→ 6 rows, every one of them false
+```
+
+Batch B had built the rule properly — `must_change_pin`, a forced-change screen
+that cannot be skipped, and an `upsert_team_member` that sets the flag whenever a
+supervisor resets somebody's PIN. It protected nobody, because it only ever
+applied to people created *after* the migration. The five seeded accounts, whose
+PINs are printed in `README.md`, and the manager created this afternoon, could all
+sign in with a PIN that is in the repository.
+
+The fix is small on purpose:
+
+* **`flag_department_pins(token)`** — supervisor only, flags every active
+  supervisor and technician in their own group, returns how many. It is a
+  function rather than a one-off `UPDATE` so it can be pressed again after a
+  new person is added on a known PIN.
+* **A banner on the Team screen** — *"5 people can still sign in with the PIN the
+  department set"* — with the consequence in the same sentence and one button.
+  Each affected member also carries a *PIN not changed yet* chip.
+* **It is a button, not an automatic flag.** Flipping the column by migration
+  would have put a PIN-change screen in front of a head manager mid-demonstration.
+  A supervisor chooses the moment; `RUNBOOK` §10 step 2 says the moment is the
+  end of the pilot.
+
+Probed live in a rolled-back transaction: a manager calling it is refused by
+name; a supervisor gets `{flagged: 5}` for the five active staff, and the
+manager's account is correctly outside the group's staff list.
+
+**What this says about the process**, recorded because it will happen again: the
+feature was built, tested, deployed, documented — and inert. The test it lacked
+was not a unit test of the flag, it was a question about the data. Two of Batch
+H's three findings came from that shape of question rather than from a failing
+assertion.

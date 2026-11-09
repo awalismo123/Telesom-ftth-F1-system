@@ -12,12 +12,16 @@ import {
   CheckCircle2,
   X,
   MapPin,
+  KeyRound,
+  RefreshCw,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import { useTableChanges } from '../../lib/realtime';
 import { fetchGroupOverview } from '../../lib/reads';
+import { flagDepartmentPins, flagPinsWarning, stalePinMembers, stalePinSentence } from '../../lib/pins';
+import { useToast } from '../ui/Toast';
 import type { Crew, Group, UserProfile, UserRole } from '../../types/database';
 
 interface CrewMemberRow {
@@ -62,6 +66,38 @@ export function TeamAndCrewManager() {
   const [gCode, setGCode] = useState('');
   const [gName, setGName] = useState('');
   const [gDesc, setGDesc] = useState('');
+
+  const toast = useToast();
+  const [flaggingPins, setFlaggingPins] = useState(false);
+
+  /**
+   * The department's PINs are printed in the README, and until Batch H nothing
+   * ever forced anyone to replace one. This is the switch that does, pressed by
+   * the supervisor the day before real customers arrive.
+   */
+  const flagPins = async () => {
+    if (!session?.token) return;
+    setFlaggingPins(true);
+    try {
+      const flagged = await flagDepartmentPins(session.token);
+      toast.success(
+        flagged === 0
+          ? lang === 'so' ? 'Qofna lama beddelin' : 'Nobody needed flagging'
+          : lang === 'so'
+            ? `${flagged} qof waa la calaamadeeyay`
+            : `${flagged} ${flagged === 1 ? 'account' : 'accounts'} flagged`,
+        { description: flagPinsWarning(lang) },
+      );
+      await loadData(true);
+    } catch (error) {
+      toast.error(
+        lang === 'so' ? 'Lama calaamadeyn karin' : 'Could not flag the PINs',
+        { description: describeError(error, lang) },
+      );
+    } finally {
+      setFlaggingPins(false);
+    }
+  };
 
   const loadData = useCallback(async (silent = false) => {
     if (!activeGroup?.id || !session?.token) return;
@@ -245,6 +281,7 @@ export function TeamAndCrewManager() {
   };
 
   const techniciansOnly = members.filter((m) => m.role === 'technician');
+  const staleCount = stalePinMembers(members).length;
 
   const getCrewsForUser = (userId: string) => {
     const cIds = crewLinks.filter((l) => l.user_id === userId).map((l) => l.crew_id);
@@ -355,6 +392,36 @@ export function TeamAndCrewManager() {
         </button>
       </div>
 
+      {/* Department PINs: the rule exists, but nothing ever set the flag on the
+          accounts that already had one. Say it, and fix it in one action. */}
+      {!loading && staleCount > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-start gap-2 min-w-0 flex-1">
+            <KeyRound className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <div className="text-xs font-extrabold text-amber-900">
+                {lang === 'so' ? 'PIN-yada waaxda' : 'Department PINs still in use'}
+              </div>
+              <div className="text-[11px] text-amber-800">{stalePinSentence(staleCount, lang)}</div>
+              <div className="text-[10px] text-amber-700 mt-0.5">{flagPinsWarning(lang)}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void flagPins()}
+            disabled={flaggingPins}
+            className="shrink-0 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-extrabold disabled:opacity-60 cursor-pointer"
+          >
+            {flaggingPins ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <KeyRound className="w-3.5 h-3.5" />
+            )}
+            {lang === 'so' ? 'Calaamadee dhammaan' : 'Flag all of them'}
+          </button>
+        </div>
+      )}
+
       {/* Tab Content */}
       {loading ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">
@@ -389,6 +456,12 @@ export function TeamAndCrewManager() {
                     <div className="min-w-0">
                       <h3 className="font-bold text-slate-900 text-sm truncate">{m.full_name}</h3>
                       <div className="text-xs text-slate-500 font-medium">@{m.username}</div>
+                      {m.must_change_pin && (
+                        <div className="mt-0.5 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                          <KeyRound className="w-3 h-3" aria-hidden="true" />
+                          {t('pinMustChange')}
+                        </div>
+                      )}
                     </div>
                   </div>
 

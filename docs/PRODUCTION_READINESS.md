@@ -12,7 +12,7 @@
 **The system is functionally complete and it is live.** All five modules your
 managers asked for exist and work: sheet photos in, only F1 rows kept,
 dispatch by area and cablebox, a technician route with a live timer, dBm
-completion, box health and a daily report. It is bilingual, it has 197 tests,
+completion, box health and a daily report. It is bilingual, it has 203 tests,
 and it installs on a phone.
 
 **It is now safe to put real customer data into it.** The hole described in the
@@ -51,7 +51,7 @@ is genuinely in the state you would show people. Detail below.
 | Backups / disaster recovery | ❌ none on current plan | A bad delete is unrecoverable |
 | Error monitoring | ❌ none | You learn about crashes by phone call |
 | Uptime / alerting | ❌ none | Nobody is told when it goes down |
-| Test coverage | ⚠️ 197 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
+| Test coverage | ⚠️ 203 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
 | Mobile / PWA | ✅ installable, safe-area aware | Not yet held in a real technician's hand |
 | Docs (runbook, limits) | ✅ good | Technician card, manager page and runbook all written |
 | Cost / licensing | ⚠️ free tiers | Needs ~$25–65/month to be legitimate |
