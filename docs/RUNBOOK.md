@@ -36,7 +36,7 @@ A technician opens the same URL, signs in with their PIN, and sees only their ro
 | Username | Login id, unique per group |
 | Phone | `63xxxxxxx` — this is also a login id |
 | Role | `technician` (supervisor access is deliberately rare) |
-| PIN | 4–6 digits |
+| PIN | 4–6 digits, chosen by the person at first sign-in |
 
 The PIN is hashed; nobody — including a developer — can read it back. It can only
 be replaced.
@@ -46,10 +46,24 @@ be replaced.
 *Team & Crews* → edit the member → **new PIN** → save. The old PIN stops working
 immediately; sessions already open stay valid until they expire.
 
+**The person is then asked to choose their own PIN before the app opens.** That
+is deliberate: a PIN the supervisor knows is a shared password, and it makes the
+work log a record of "somebody" rather than of a person. Tell them the temporary
+PIN and let them change it.
+
 ### Change your own PIN
 
 Header → key icon → current PIN + new PIN. This is the only way that requires the
 old PIN, so it is also the safe one to do on a borrowed phone.
+
+### "It says too many wrong PINs"
+
+Five wrong PINs lock the account for **15 minutes**, and the lock survives a
+page reload because it is stored with the account, not in the browser. Either
+wait, or reset the PIN (§2) — a reset clears the lock immediately.
+
+If someone reports being locked out without typing a wrong PIN, treat it as a
+question worth answering, not a nuisance: it means five attempts were made.
 
 ### Deactivate someone who left
 
@@ -181,3 +195,43 @@ and must be green.
 
 In production, the fastest health check is: the login screen loads, and the
 supervisor signs in and sees a non-zero pool.
+
+---
+
+## 10. Going live checklist
+
+Run this once, on the day real sheets start. Everything here is reversible
+except the demo purge, which is only a demo purge.
+
+| # | Step | How |
+| :--- | :--- | :--- |
+| 1 | Clear the demo set | Insights → **Remove demo data**. The banner disappears and the numbers become real. |
+| 2 | Replace every PIN | *Team & Crews* → edit each member → new PIN. Each person is then forced to choose their own. |
+| 3 | Delete or deactivate the demo accounts | Demo technicians and their phones are in `Team`. Deactivate rather than delete, so no audit trail is lost. |
+| 4 | Confirm the seed functions cannot run | `seed_demo_data` is supervisor-only and needs a token; do not call it again in production. |
+| 5 | Take a backup | Supabase → Database → Backups, or `pg_dump` to a file you keep. **Do this before step 1**, not after. |
+| 6 | Note the numbers | Record open jobs, box count, technician count. If anything looks wrong later, this is the reference. |
+
+---
+
+## 11. What is protected, and what is not
+
+Written down so nobody has to guess during an incident.
+
+**Protected**
+
+* Reading any table without a session — the database returns nothing.
+* Reading another group's data, even with a session for a different group.
+* Writing anything without a supervisor or owner token.
+* Guessing a PIN — five attempts, then fifteen minutes.
+* Finding a customer sheet photo by URL — no public URL exists.
+
+**Not protected**
+
+* A **shared phone** left signed in. The session persists for 30 days; use the
+  sign-out button, and change the PIN if a phone is lost.
+* **The database itself.** Supabase's service role can read everything; that key
+  is never in the app, and it should never be pasted into a browser console.
+* **Backups.** There are none on the current plan. A bad `DELETE` is permanent.
+
+---

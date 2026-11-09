@@ -104,8 +104,9 @@ export function RouteView({
    * Freshness without polling.
    *
    * A new assignment, a supervisor's reassignment or another crew member
-   * finishing a shared job all arrive as a Postgres change. The fallback poll
-   * is deliberately slow (3 min) and only runs while the tab is visible — the
+   * finishing a shared job all arrive as a change signal, and the route is
+   * then re-read through the token-checked function. The fallback poll is
+   * deliberately slow (3 min) and only runs while the tab is visible — the
    * old code polled every 60 s and kept a hidden tab awake.
    */
   useTableChanges({

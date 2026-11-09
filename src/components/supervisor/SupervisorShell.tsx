@@ -11,10 +11,10 @@ import {
   BarChart3,
   CheckCircle2,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
-import { OPEN_TASK_STATUSES, type Cablebox } from '../../types/database';
+import type { Cablebox } from '../../types/database';
+import { fetchGroupOverview } from '../../lib/reads';
 import { Tabs, type TabItem } from '../ui/Tabs';
 import { Stat } from '../ui/Stat';
 import { cx } from '../ui/cx';
@@ -56,7 +56,7 @@ const PRELOAD: Partial<Record<SupervisorTab, PreloadKey>> = {
 type SupervisorTab = 'overview' | 'ingest' | 'dispatch' | 'insights' | 'cableboxes' | 'team';
 
 export function SupervisorShell() {
-  const { activeGroup } = useAuth();
+  const { session, activeGroup } = useAuth();
   const { t, lang } = useLanguage();
   const so = lang === 'so';
 
@@ -93,38 +93,21 @@ export function SupervisorShell() {
   }, [intent, consume]);
 
   const loadSummary = useCallback(async () => {
-    if (!activeGroup?.id) return;
-    const [techRes, crewRes, taskRes, boxRes, poolRes] = await Promise.all([
-      supabase
-        .from('users')
-        .select('id', { count: 'exact', head: true })
-        .eq('group_id', activeGroup.id)
-        .eq('role', 'technician')
-        .eq('is_active', true),
-      supabase
-        .from('crews')
-        .select('id', { count: 'exact', head: true })
-        .eq('group_id', activeGroup.id)
-        .eq('is_active', true),
-      supabase
-        .from('tasks')
-        .select('id', { count: 'exact', head: true })
-        .eq('group_id', activeGroup.id)
-        .in('status', OPEN_TASK_STATUSES),
-      supabase.from('cableboxes').select('*').order('box_code', { ascending: true }),
-      supabase
-        .from('tasks')
-        .select('id', { count: 'exact', head: true })
-        .eq('group_id', activeGroup.id)
-        .eq('status', 'unassigned'),
-    ]);
-
-    setTechCount(techRes.count ?? 0);
-    setCrewCount(crewRes.count ?? 0);
-    setTaskCount(taskRes.count ?? 0);
-    setUnassignedCount(poolRes.count ?? 0);
-    if (boxRes.data) setCableboxes(boxRes.data as Cablebox[]);
-  }, [activeGroup?.id]);
+    if (!activeGroup?.id || !session?.token) return;
+    try {
+      // One token-checked call replaces five table reads. The database decides
+      // what this supervisor may see; the browser only names its own group.
+      const overview = await fetchGroupOverview(session.token, activeGroup.id);
+      setTechCount(overview.counts.technicians);
+      setCrewCount(overview.counts.crews);
+      setTaskCount(overview.counts.open_tasks);
+      setUnassignedCount(overview.counts.unassigned);
+      setCableboxes(overview.cableboxes);
+    } catch {
+      // A summary that cannot load must not blank the shell; the tabs inside
+      // load their own data and will show the real error if there is one.
+    }
+  }, [activeGroup?.id, session?.token]);
 
   useEffect(() => {
     void loadSummary();

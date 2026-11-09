@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { rpc, RpcError, SESSION_EXPIRED_EVENT } from '../lib/rpc';
+import { fetchGroups } from '../lib/reads';
 import type { AuthSession, Group, Language } from '../types/database';
 import { useLanguage } from '../lib/i18n';
 import {
@@ -31,6 +32,12 @@ import {
 
 export type SessionNotice = 'expired' | 'switched' | 'unavailable';
 
+/** The shape `authenticate_pin` answers with when it refuses. */
+interface AuthFailure {
+  ok?: boolean;
+  reason?: 'invalid' | 'locked';
+}
+
 interface AuthContextValue {
   session: AuthSession | null;
   loading: boolean;
@@ -42,7 +49,7 @@ interface AuthContextValue {
   activeGroup: { id: string; code: string; name: string } | null;
   availableGroups: Group[];
   setActiveGroupById: (groupId: string) => void;
-  refreshGroups: () => Promise<void>;
+  refreshGroups: (auth?: AuthSession | null) => Promise<void>;
   refreshSession: () => Promise<void>;
   signInWithPin: (identifier: string, pin: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -127,18 +134,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [setLang],
   );
 
-  const refreshGroups = useCallback(async () => {
+  /**
+   * The groups this person may switch to.
+   *
+   * `groups` is no longer world-readable (Batch B), so the list comes from a
+   * token-checked function and can only ever contain the caller's own group.
+   * Signed out, there is nothing to list.
+   */
+  const refreshGroups = useCallback(async (auth?: AuthSession | null) => {
+    const active = auth ?? sessionRef.current;
+    if (!active) {
+      setAvailableGroups([]);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
-        .from('groups')
-        .select('*')
-        .order('code', { ascending: true });
-      if (!error && data) {
-        setAvailableGroups(data as Group[]);
-      }
+      const groups = await fetchGroups(active.token);
+      setAvailableGroups(groups as unknown as Group[]);
     } catch {
       // A group list that cannot load is not worth blocking the app for: the
-      // session's own group stays active and the switcher simply stays empty.
+      // session's own group stays active and the switcher shows that one.
+      setAvailableGroups([active.group as unknown as Group]);
     }
   }, []);
 
@@ -200,13 +216,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const bootstrapped = useRef(false);
 
   useEffect(() => {
-    void refreshGroups();
     // Restore exactly once per mount: the callbacks change identity when the
-    // language toggles, and a re-restore would race the fresh session.
+    // language toggles, and a re-restore would race the fresh session. The
+    // group list needs a token, so it loads after the session is restored.
     if (bootstrapped.current) return;
     bootstrapped.current = true;
     void refreshSession();
-  }, [refreshGroups, refreshSession]);
+  }, [refreshSession]);
 
   /**
    * Any RPC can discover that the token died. Instead of each screen showing a
@@ -270,17 +286,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
     setSessionNotice(null);
 
-    const parsed = await rpc<AuthSession>(
+    const result = await rpc<AuthSession & AuthFailure>(
       'authenticate_pin',
       { p_identifier: identifier.trim(), p_pin: pin.trim() },
       { quiet: true },
     );
 
     if (generation.current !== epoch) return; // superseded by a newer attempt
-    if (!parsed) throw new Error('Invalid username/phone or PIN');
 
-    adoptSession(parsed);
-    await refreshGroups();
+    // The function answers instead of raising, because a raise would roll back
+    // the failed-attempt counter it just wrote — the lockout would never hold.
+    if (!result || result.ok === false) {
+      throw new Error(
+        result?.reason === 'locked'
+          ? 'Too many wrong PINs'
+          : 'Invalid username/phone or PIN',
+      );
+    }
+
+    adoptSession(result);
+    await refreshGroups(result);
   };
 
   const signOut = async () => {

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../lib/i18n';
-import { supabase } from '../lib/supabase';
+import { rpc } from '../lib/rpc';
 import { initials } from '../lib/session';
 import { useToast } from './ui/Toast';
 import { describeError } from '../lib/useErrorMessage';
@@ -118,7 +118,7 @@ export function HeaderBar() {
     const next = lang === 'so' ? 'en' : 'so';
     setLang(next);
     if (session?.token) {
-      await supabase.rpc('set_preferred_language', {
+      await rpc('set_preferred_language', {
         p_token: session.token,
         p_lang: next,
       });

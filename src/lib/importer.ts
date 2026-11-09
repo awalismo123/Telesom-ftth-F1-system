@@ -7,6 +7,7 @@
  */
 
 import { supabase } from './supabase';
+import { uploadSheetImage } from './reads';
 import type { Task } from '../types/database';
 import type { ExtractedRow } from './ocr/extract';
 import { normalizeDate } from './ocr/normalize';
@@ -272,23 +273,20 @@ export function toTaskPayload(plan: PlanRow, taskType: 'installation' | 'cilada'
   };
 }
 
-/** Upload the source picture so every import can be audited later. */
+/**
+ * Upload the source picture so every import can be audited later.
+ *
+ * It used to go to a public storage bucket, which meant every customer sheet
+ * the group had ever photographed was fetchable by URL with no authentication.
+ * Since Batch B it goes into a table that only a token-checked function can
+ * read back.
+ */
 export async function uploadSourceImage(
+  token: string,
   file: Blob,
   groupId: string,
 ): Promise<string | null> {
-  try {
-    const extension = file.type.includes('png') ? 'png' : 'jpg';
-    const path = `${groupId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${extension}`;
-    const { error } = await supabase.storage.from('sheet-images').upload(path, file, {
-      contentType: file.type || 'image/jpeg',
-      upsert: false,
-    });
-    if (error) return null;
-    return path;
-  } catch {
-    return null;
-  }
+  return uploadSheetImage(token, groupId, file);
 }
 
 export interface CommitResult {

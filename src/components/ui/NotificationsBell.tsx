@@ -92,7 +92,7 @@ export function NotificationsBell({
     setLoading(true);
     try {
       if (isSupervisor) {
-        const tasks = await fetchSupervisorNotifications(groupId);
+        const tasks = await fetchSupervisorNotifications(token, groupId);
         if (!mounted.current) return;
         setItems(buildSupervisorNotifications({ tasks, now: Date.now(), lang }));
       } else {
@@ -118,7 +118,7 @@ export function NotificationsBell({
     void load();
   }, [load]);
 
-  // New work is a Postgres change, not something to poll for.
+  // New work arrives as a change signal, not something to poll for.
   useTableChanges({ table: 'tasks', filter: groupId ? `group_id=eq.${groupId}` : undefined, enabled: Boolean(groupId), onChange: () => void load(), debounceMs: 1500 });
   useVisibleInterval(() => void load(), 180_000, Boolean(groupId));
 

@@ -7,6 +7,7 @@
  */
 
 import { supabase } from './supabase';
+import { fetchWorkLogs as readWorkLogs } from './reads';
 import { rpc, rpcRead } from './rpc';
 import { toAppError } from './errors';
 import type { BlockerReason, Task } from '../types/database';
@@ -107,16 +108,8 @@ export interface WorkLogRow {
 }
 
 /** The history of one job: who did what, when, and how long it took. */
-export async function fetchWorkLog(taskId: string): Promise<WorkLogRow[]> {
-  const { data, error } = await supabase
-    .from('task_work_logs')
-    .select('id, action, session_seconds, blocker_reason, optical_dbm, notes, created_at')
-    .eq('task_id', taskId)
-    .order('created_at', { ascending: true })
-    .limit(50);
-
-  if (error) throw new Error(toAppError(error).message);
-  return (data ?? []) as WorkLogRow[];
+export async function fetchWorkLog(token: string, taskId: string): Promise<WorkLogRow[]> {
+  return readWorkLogs(token, taskId) as Promise<WorkLogRow[]>;
 }
 
 /* -------------------------------------------------------------------------- */

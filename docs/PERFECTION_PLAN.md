@@ -925,3 +925,158 @@ carries the range in both languages. 137 tests.
 The Somali login placeholder also read `Username ama Lambarka Tel` — English
 noun, Somali sentence. It now reads `Magaca isticmaalaha ama Lambarka Tel`,
 matching the hint above it.
+
+---
+
+## §11 Batch B — the door was open, and now it is not (09/11/2026)
+
+Batch B was parked by the user's decision ("skip for now") and un-parked when
+`docs/PRODUCTION_READINESS.md` was written and the question became concrete:
+*can this be shown to a manager?* It could not, because of one line of SQL
+repeated eleven times.
+
+### 11.1 What was wrong
+
+```sql
+CREATE POLICY "Allow read tasks" ON public.tasks FOR SELECT USING (true);
+```
+
+Eleven of those — `tasks`, `users`, `crews`, `crew_members`, `cableboxes`,
+`cablebox_logs`, `cablebox_ports`, `import_batches`, `task_work_logs`,
+`dispatch_log`, `groups` — for the `anon` role, whose key ships inside the
+JavaScript bundle. One unauthenticated request returned the customer list:
+
+```
+GET /rest/v1/users?select=username,full_name,phone,role
+→ [{"username":"xasan","full_name":"Xasan Cali Nuur","phone":"634100102"}, …]
+```
+
+The write path was already sound: every mutation is a `SECURITY DEFINER`
+function that validates a session token. Only the reads were open — but the
+reads are the customer data.
+
+### 11.2 What was built (migration 011)
+
+**Reads became functions.** Eleven of them, each taking `p_token` first, each
+resolving the caller with `get_session_user`, each refusing a group the caller
+does not belong to:
+
+| Function | Replaced |
+| :--- | :--- |
+| `list_groups` | `select * from groups` |
+| `group_overview` | 6 queries: members, crews, crew links, boxes, 3 counts |
+| `list_open_tasks` | `select * from tasks where status in (…)` |
+| `get_task` | `select * from tasks where id = …` |
+| `list_work_logs` | `select * from task_work_logs where task_id = …` |
+| `list_live_moves` | blocked/in-progress jobs for the bell |
+| `list_resumed_since` | resumed work-log rows for the bell |
+| `list_import_batches` | the ingest history strip |
+| `my_team` | two reads in the technician's account sheet |
+| `upload_sheet_image` / `get_sheet_image` | the public storage bucket |
+
+Then every open policy was dropped. The same request now answers `[]`.
+
+**`src/` contains no table read at all.** `tests/access.test.ts` (11 tests)
+fails the build if `from('…')` appears in a source file, if a read function
+loses its token check, if a group-scoped function stops refusing another group,
+if an open policy comes back, or if the client grows a `getPublicUrl` again.
+
+**Realtime had to change with it.** `postgres_changes` obeys row-level security:
+with the policies gone the feed would go silently dead. A trigger now publishes
+`{ table }` — a table name and nothing else — on a broadcast channel, and the
+client refetches through a checked function. There is no second copy of the data
+on the socket, and a test asserts the payload never grows one.
+
+Two design changes fell out of that, both improvements:
+
+* one shared channel per topic instead of one per screen (broadcast topics
+  cannot be per-subscriber, and one socket subscription is cheaper on a phone);
+* the fan-out is tested directly — a simulated signal reaches two subscribers,
+  a signal for another table does not wake a screen, and the channel closes when
+  the last subscriber leaves.
+
+**Sheet photos left the public bucket.** They now live in `sheet_images`, a
+table with row-level security and no policies, written and read only through the
+two functions above. There is no URL for a customer sheet to be guessed.
+
+**PINs became credentials.** Five wrong attempts lock an account for fifteen
+minutes; the counter resets on success. A PIN created or reset by a supervisor
+sets `must_change_pin`, and the shell shows `ForcePinChange` — one screen, no
+skip — until the person chooses their own.
+
+**Headers.** `vercel.json` now sets CSP, HSTS, `X-Frame-Options: DENY`,
+`nosniff`, a referrer policy and a permissions policy. `npm audit --omit=dev`
+reports **0 vulnerabilities**.
+
+### 11.3 The bug the verification caught
+
+The lockout was written, deployed, and **did not work**. Five wrong PINs
+followed by the correct one still signed the person in.
+
+Cause: the function raised an exception on a wrong PIN, and a raise aborts the
+request's transaction — which rolled back the `failed_attempts` update it had
+just written. The counter never moved past zero.
+
+Found by probing the live database rather than by reading the diff:
+
+```sql
+-- inside a transaction, five wrong PINs then the correct one
+attempt 1 … 5 → "Invalid username/phone or PIN"
+attempt 6     → "ACCEPTED — correct PIN still works"     ← the lockout was a myth
+```
+
+The function now returns `{ ok: false, reason: 'locked' | 'invalid' }` instead of
+raising, so the write commits. Re-probed:
+
+```
+attempt 1 … 4 → invalid
+attempt 5     → locked (15m)
+attempt 6     → locked (15m)      ← correct PIN refused, as it must be
+```
+
+A test now forbids `RAISE` in `authenticate_pin`, with the reason attached.
+
+This is the whole argument for verification over declaration: the feature was
+complete, reviewed, deployed, and did nothing.
+
+### 11.4 Verification
+
+| Check | Result |
+| :--- | :--- |
+| Anonymous read of `users` / `tasks` | `[]` — was 5 names and phone numbers |
+| Anonymous read of any of the 11 tables | `[]` |
+| Token → `get_session_user` → `list_open_tasks` | supervisor resolved, 5 open jobs, 5 members, counts correct |
+| Bad token | `Invalid or expired session` |
+| Wrong PIN ×5 then correct | locked (15m), correct PIN refused |
+| `must_change_pin` flag in the auth payload | `true` when set, `false` after `change_own_pin` |
+| Sheet image upload → read back | stored, 500 bytes in, 500 bytes out |
+| `tsc -b` | clean |
+| `npm test` | **151 / 151** (was 137) |
+| `npm run build` | 3.8 s |
+| `bundle:check` | **183.0 kB / 200 kB** |
+| `npm audit --omit=dev` | 0 vulnerabilities |
+| Dev server | every changed module serves 200 |
+
+New tests: `tests/access.test.ts` (11) — no direct table reads, allowlisted
+database access, token-first signatures, group refusal, no open policies,
+private archive, lockout that answers instead of raising, forced PIN change,
+signal-not-data realtime, and no token in a URL or a console line.
+
+### 11.5 What this batch deliberately did not do
+
+* **A manager role.** B is about the door, not about who sits behind it. A
+  read-only manager view is Batch H.
+* **Rate limiting by IP.** The lockout is per account, which is what protects a
+  named person. A distributed guessing campaign across many usernames would
+  still be cheap — the answer is 5–6 digit PINs plus a longer lockout, or
+  Supabase Auth, and neither is worth doing before the pilot.
+* **Moving to Supabase Auth.** The custom token system works, is tested, and
+  replacing it would touch every screen. Re-read this decision when the system
+  leaves one group.
+
+### 11.6 New risk recorded
+
+`authenticate_pin` now distinguishes `invalid` from `locked`. That tells an
+attacker an account exists — which they could already infer from a successful
+lockout, and which is worth the trade for a person who needs to know why they
+cannot get in. Recorded rather than hidden.

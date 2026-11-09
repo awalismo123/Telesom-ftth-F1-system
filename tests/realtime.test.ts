@@ -89,12 +89,17 @@ class FakeChannel implements RealtimeChannelLike {
     this.log = log;
   }
 
-  on(event: 'postgres_changes', _config: Record<string, unknown>, _callback: () => void): FakeChannel {
+  on(
+    event: 'broadcast',
+    _config: { event: string },
+    callback: (message: { payload?: { table?: string } }) => void,
+  ): FakeChannel {
     // verbatim behaviour of @supabase/realtime-js RealtimeChannel.on()
     if (this.subscribed) {
       throw new Error(`cannot add \`${event}\` callbacks for ${this.topic} after \`subscribe()\`.`);
     }
     this.listeners.push(event);
+    this.callbacks.push(callback);
     this.log.push(`on:${this.topic}`);
     return this;
   }
@@ -104,6 +109,13 @@ class FakeChannel implements RealtimeChannelLike {
     this.log.push(`subscribe:${this.topic}`);
     return this;
   }
+
+  /** Deliver a broadcast the way the socket would. */
+  emit(payload: { table?: string }): void {
+    for (const callback of this.callbacks) callback({ payload });
+  }
+
+  callbacks: ((message: { payload?: { table?: string } }) => void)[] = [];
 }
 
 class FakeClient implements RealtimeClientLike {
@@ -151,23 +163,63 @@ test('every subscription gets its own channel topic', () => {
   assert.match(second, /:2$/);
 });
 
-test('two hooks watching the same table and group both subscribe (the dispatch tab)', () => {
+test('two hooks watching the same table and group both hear the signal (the dispatch tab)', () => {
   const client = new FakeClient();
   const filter = 'group_id=eq.218e78f7-4d18-4839-a061-5a03e6d3946e';
+  let boardCalls = 0;
+  let stripCalls = 0;
 
-  const board = subscribeTableChanges(client, { table: 'tasks', filter, onChange: () => {} });
-  const strip = subscribeTableChanges(client, { table: 'tasks', filter, onChange: () => {} });
+  const board = subscribeTableChanges(client, {
+    table: 'tasks',
+    filter,
+    onChange: () => {
+      boardCalls += 1;
+    },
+  });
+  const strip = subscribeTableChanges(client, {
+    table: 'tasks',
+    filter,
+    onChange: () => {
+      stripCalls += 1;
+    },
+  });
 
   assert.ok(board, 'the dispatch board should subscribe');
   assert.ok(strip, 'the live strip should subscribe');
-  assert.equal(client.channels.length, 2, 'each subscriber owns exactly one channel');
-  assert.notEqual(board.topic, strip.topic);
+  assert.equal(client.channels.length, 1, 'one broadcast channel serves every screen');
+  assert.notEqual(board.topic, strip.topic, 'each subscriber still has its own handle');
 
-  // Both are listening — no throw, no silently dead channel.
-  assert.deepEqual(
-    client.channels.map((channel) => channel.listeners.length),
-    [1, 1],
+  // Both are listening — no throw, no silently dead follower.
+  client.channels[0].emit({ table: 'tasks' });
+  assert.deepEqual([boardCalls, stripCalls], [1, 1]);
+});
+
+test('a signal for another table does not wake this screen', () => {
+  const client = new FakeClient();
+  let calls = 0;
+
+  subscribeTableChanges(client, { table: 'tasks', onChange: () => (calls += 1) });
+
+  client.channels[0].emit({ table: 'cableboxes' });
+  assert.equal(calls, 0, 'box changes are not job changes');
+
+  client.channels[0].emit({ table: 'tasks' });
+  assert.equal(calls, 1);
+});
+
+test('the feed carries a table name and nothing else', async () => {
+  // The trigger publishes `{ table }`. If it ever learned to publish rows, the
+  // read policies would be pointless: the data would travel on the socket.
+  const { readFileSync } = await import('node:fs');
+  const migration = readFileSync(
+    new URL('../supabase/migrations/011_batch_b_access_control.sql', import.meta.url),
+    'utf8',
   );
+
+  const send = migration.slice(migration.indexOf('PERFORM realtime.send('));
+  const payload = send.slice(0, send.indexOf('false'));
+  assert.match(payload, /jsonb_build_object\('table', TG_TABLE_NAME\)/);
+  assert.doesNotMatch(payload, /to_jsonb|NEW|OLD|row/i, 'the signal must not carry row data');
 });
 
 test('a callback is only ever added before subscribe()', () => {
@@ -182,16 +234,27 @@ test('a callback is only ever added before subscribe()', () => {
 test('unsubscribing one hook leaves its neighbour streaming', () => {
   const client = new FakeClient();
   const filter = 'group_id=eq.abc';
+  let survivorCalls = 0;
 
   const first = subscribeTableChanges(client, { table: 'tasks', filter, onChange: () => {} });
-  const second = subscribeTableChanges(client, { table: 'tasks', filter, onChange: () => {} });
+  const second = subscribeTableChanges(client, {
+    table: 'tasks',
+    filter,
+    onChange: () => (survivorCalls += 1),
+  });
   assert.ok(first && second);
 
   first.unsubscribe();
 
-  assert.equal(client.channels.length, 1, 'only the unsubscribed channel is removed');
-  assert.equal(client.channels[0].topic, second.topic);
+  assert.equal(client.channels.length, 1, 'the shared channel stays while anyone is listening');
   assert.equal(client.channels[0].subscribed, true, "the neighbour's stream must survive");
+
+  client.channels[0].emit({ table: 'tasks' });
+  assert.equal(survivorCalls, 1, 'the surviving subscriber still receives');
+
+  // …and when the last one leaves, the channel is closed rather than leaked.
+  second.unsubscribe();
+  assert.equal(client.channels.length, 0);
 });
 
 test('a subscription failure never reaches the screen', () => {

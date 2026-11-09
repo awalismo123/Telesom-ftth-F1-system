@@ -42,7 +42,7 @@ export function LiveStrip() {
     void load();
   }, [load]);
 
-  // A job starting or blocking arrives as a Postgres change, not on a timer.
+  // A job starting or blocking arrives as a change signal, not on a timer.
   useTableChanges({
     table: 'tasks',
     filter: groupId ? `group_id=eq.${groupId}` : undefined,

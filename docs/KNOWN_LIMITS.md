@@ -134,3 +134,28 @@ the singular after a numeral ("3 shaqo", not "3 shaqooyin") — see
 Arabic and Amharic are not in the dictionary. The `translations` object is typed, so
 adding a language is a compile-checked change: add the block, and TypeScript lists
 every missing key.
+
+---
+
+## Before this handles real customer data
+
+`docs/PRODUCTION_READINESS.md` is the full assessment written for a management
+audience. The short version:
+
+**Closed in Batch B (migration 011).**
+
+1. **Reads are authorised.** The 11 open `SELECT USING (true)` policies are
+   gone; every read goes through a token-checked function scoped to the caller's
+   group. An unauthenticated request now returns `[]`.
+2. **The sheet archive is private.** No public URL exists for a customer sheet.
+3. **PINs are limited.** Five wrong attempts lock an account for 15 minutes, and
+   a PIN issued by a supervisor must be replaced at first sign-in.
+
+**Still open — operations, not structure.**
+
+4. **No backups** on the current plan, and a Free project pauses when idle.
+   Batch G.
+5. **Demo and real data share a database.** Clearing the demo set is a go-live
+   step, written down in `RUNBOOK.md`.
+
+Anything in this file that is not in that list is a limitation, not a blocker.

@@ -9,8 +9,8 @@ import {
   Wrench,
 } from 'lucide-react';
 import { RunningPill } from './RunningPill';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { fetchMyTeam } from '../../lib/reads';
 import { useLanguage } from '../../lib/i18n';
 import type { UserProfile } from '../../types/database';
 import { Tabs, type TabItem } from '../ui/Tabs';
@@ -63,27 +63,20 @@ export function TechnicianShell() {
     const loadMobileContext = async () => {
       if (!session) return;
 
-      if (session.crews.length > 0) {
-        const crewIds = session.crews.map((c) => c.id);
-        const { data: links } = await supabase
-          .from('crew_members')
-          .select('user_id')
-          .in('crew_id', crewIds);
+      if (session.crews.length === 0) return;
 
-        const partnerIds = (links || [])
-          .map((r: { user_id: string }) => r.user_id)
-          .filter((uid: string) => uid !== session.user.id);
+      // One token-checked call returns the group's crew links and people; the
+      // pairing is done here so the database does not need to know who "my
+      // partner" is, only who is in the caller's group.
+      const { crew_members, members } = await fetchMyTeam(session.token);
+      const crewIds = new Set(session.crews.map((c) => c.id));
+      const partnerIds = new Set(
+        crew_members
+          .filter((link) => crewIds.has(link.crew_id) && link.user_id !== session.user.id)
+          .map((link) => link.user_id),
+      );
 
-        if (partnerIds.length > 0) {
-          const { data: usersData } = await supabase
-            .from('users')
-            .select('*')
-            .in('id', partnerIds);
-          if (usersData) setTeammates(usersData as UserProfile[]);
-        } else {
-          setTeammates([]);
-        }
-      }
+      setTeammates(members.filter((member) => partnerIds.has(member.id)));
     };
 
     void loadMobileContext();

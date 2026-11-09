@@ -40,6 +40,13 @@ export interface UserProfile {
   role: UserRole;
   preferred_lang: Language;
   is_active: boolean;
+  /**
+   * True while the account is still on a PIN the department set for it.
+   *
+   * The shell will not open until the person chooses their own — a PIN that
+   * several people know is not a credential.
+   */
+  must_change_pin?: boolean;
   created_at?: string;
 }
 
