@@ -212,11 +212,11 @@ on". The audit screen in particular is cheap: the data is already there.
 * **The work model is right.** A blocker pauses the timer and the job stays
   blocked and resumable; dBm is mandatory to complete; typed notes survive a
   failed submit; several timers are allowed with a confirmation.
-* **It is bilingual for real.** 137 tests fail the build if a string appears in
+* **It is bilingual for real.** 204 tests fail the build if a string appears in
   only one language, if a translation key dies, or if PIN copy contradicts the
   input. Somali takes the singular after a numeral (`4 shaqo`), dates are
   day-first, and "today" is the local day — not the UTC day.
-* **It is fast on a weak phone.** First load 181 kB gzipped, screens loaded on
+* **It is fast on a weak phone.** First load 191 kB gzipped, screens loaded on
   demand, OCR only downloaded when used, budget enforced in CI.
 * **Reads are authorised, not open.** Eleven token-checked functions replaced
   every direct table read, the sheet archive is private, five wrong PINs lock an
@@ -254,7 +254,7 @@ said rather than read, with the honest answer to every question in §9.
 | Supabase Pro | $25 / month | No pausing, daily backups 7-day retention. Free plan is not suitable for live work |
 | Vercel | $0–20 / month | The Hobby tier is for personal, non-commercial projects — confirm before running Telesom work on it, or move to Pro |
 | Domain (optional) | ~$12 / year | `f1.telesom.so` reads better than a vercel.app URL |
-| Phone data | existing | The app is deliberately light: 181 kB first load |
+| Phone data | existing | The app is deliberately light: 191 kB first load |
 
 **≈ $25–65 per month, all in.** Against one avoided repeat visit per week, that
 pays for itself immediately — that comparison is worth putting on the slide.
@@ -276,8 +276,8 @@ pays for itself immediately — that comparison is worth putting on the slide.
 **Three numbers:**
 
 1. Five modules, all built — sheets, dispatch, technician, execution, analytics.
-2. 181 kB first load: it opens on a weak phone and a weak connection.
-3. 137 automated tests, so the app cannot quietly break between releases.
+2. 191 kB first load: it opens on a weak phone and a weak connection.
+3. 204 automated tests, so the app cannot quietly break between releases.
 
 **The pilot, not the rollout:**
 
