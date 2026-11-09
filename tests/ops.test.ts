@@ -246,11 +246,24 @@ const repo = (path: string) => readFileSync(fileURLToPath(new URL(`../${path}`, 
 test('open-work queries ask for the open statuses explicitly', () => {
   // `.neq('status','completed')` was correct before 'cancelled' existed. It now
   // silently pulls cancelled jobs back into the dispatch pool and the KPI count.
+  //
+  // Since Batch B the status filter lives in the database — the client no
+  // longer issues the query at all — so the guard follows it there and also
+  // proves the client did not quietly grow its own filter back.
   assert.doesNotMatch(repo('src/lib/dispatchService.ts'), /neq\('status', 'completed'\)/);
   assert.doesNotMatch(repo('src/components/supervisor/SupervisorShell.tsx'), /neq\('status', 'completed'\)/);
 
-  assert.match(repo('src/lib/dispatchService.ts'), /\.in\('status', OPEN_TASK_STATUSES\)/);
-  assert.match(repo('src/components/supervisor/SupervisorShell.tsx'), /\.in\('status', OPEN_TASK_STATUSES\)/);
+  const migration = repo('supabase/migrations/011_batch_b_access_control.sql');
+  const openList = "status IN ('unassigned', 'assigned', 'in_progress', 'blocked')";
+  assert.ok(
+    migration.split(openList).length - 1 >= 2,
+    'list_open_tasks and the open-task count must both name the open statuses',
+  );
+  assert.doesNotMatch(migration, /status <> 'completed'|status != 'completed'/);
+
+  // Both screens read through the token-checked functions that hold the filter.
+  assert.match(repo('src/lib/dispatchService.ts'), /fetchOpenTasks\(token, groupId\)/);
+  assert.match(repo('src/components/supervisor/SupervisorShell.tsx'), /fetchGroupOverview/);
 });
 
 test('the importer does not treat a cancelled job as already open', () => {

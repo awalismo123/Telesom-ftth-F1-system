@@ -147,7 +147,9 @@ anywhere unless the caller is `reopen_task`.
 
 ## 5.3 RPC inventory
 
-Every write, and every read that needs a role check, is a function.
+Every write, **and every read**, is a function. Since Batch B there is no direct
+table access from the browser at all: an unauthenticated request to PostgREST
+returns an empty array, because the tables have no anonymous read policy.
 
 | Area | Functions |
 | :--- | :--- |
@@ -158,7 +160,13 @@ Every write, and every read that needs a role check, is a function.
 | Registry | `box_directory`, `box_detail`, `set_port_status`, `upsert_cablebox`, `ops_analytics`, `report_jobs` |
 | Corrections | `create_manual_task`, `cancel_task`, `reopen_task` |
 | Search | `global_search` |
+| **Reads (Batch B)** | `list_groups`, `group_overview`, `list_open_tasks`, `get_task`, `list_work_logs`, `list_live_moves`, `list_resumed_since`, `list_import_batches`, `my_team`, `upload_sheet_image`, `get_sheet_image` |
 | Demo | `seed_demo_data`, `clear_demo_data` |
+
+The read functions are the security boundary, so they have a shape that is not
+optional: `p_token uuid` is the first argument, the first statement resolves the
+caller with `get_session_user`, and anything taking a `p_group_id` also proves
+the caller belongs to that group. `tests/access.test.ts` enforces all three.
 
 ## 5.4 Modules and their one job
 
@@ -183,7 +191,7 @@ screens render; the logic is pure and covered by `tests/`.
 
 `npm run verify` = `tsc -b` → `node --test tests/*` → `vite build` → bundle budget.
 
-- **137 tests**, no browser: pure logic, server-side rendering of the real
+- **151 tests**, no browser: pure logic, server-side rendering of the real
   component tree, and source-level lint (design system, i18n, realtime, OCR).
 - **Performance budget**: first load ≤ 200 kB gzip; currently **≈181 kB**.
 - **Accessibility lint**: no text below 10 px, contrast ≥ 4.5:1, every icon-only
@@ -192,6 +200,9 @@ screens render; the logic is pure and covered by `tests/`.
   English-only copy — scanned across line breaks, since a footer wrapped between
   tags is still visible English. PIN copy is checked against what the inputs
   actually accept (4–6 digits).
+- **Access lint**: `src/` may not read a table directly, every read function must
+  take `p_token` first and resolve the caller, no open `SELECT USING (true)`
+  policy may exist, and the realtime signal may not carry row data.
 
 GitHub Actions does not execute on this account, so the local run is the gate;
 the Vercel check still runs and must be green.

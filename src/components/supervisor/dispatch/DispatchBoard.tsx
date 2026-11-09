@@ -13,7 +13,6 @@ import {
   User,
   Users,
 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
 import type { Task } from '../../../types/database';
@@ -95,7 +94,7 @@ export function DispatchBoard({
     setError(null);
     try {
       const [taskRows, loadData] = await Promise.all([
-        fetchDispatchTasks(groupId),
+        fetchDispatchTasks(token, groupId),
         fetchDispatchLoad(token, groupId),
       ]);
       setTasks(taskRows);
@@ -111,7 +110,7 @@ export function DispatchBoard({
     if (!token || !groupId) return;
     try {
       const [taskRows, loadData] = await Promise.all([
-        fetchDispatchTasks(groupId),
+        fetchDispatchTasks(token, groupId),
         fetchDispatchLoad(token, groupId),
       ]);
       setTasks(taskRows);

@@ -77,7 +77,7 @@ export function JobActionsSheet({
     setReopenNote('');
     setTargetKey('');
 
-    void fetchTask(taskId)
+    void fetchTask(token, taskId)
       .then((row) => {
         if (cancelled) return;
         setTask(row);

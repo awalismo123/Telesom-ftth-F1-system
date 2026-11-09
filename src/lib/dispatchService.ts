@@ -6,7 +6,8 @@
  */
 
 import { supabase } from './supabase';
-import { OPEN_TASK_STATUSES, type Task } from '../types/database';
+import { fetchOpenTasks } from './reads';
+import type { Task } from '../types/database';
 import type { DispatchTarget } from './dispatch';
 
 export interface LoadUser {
@@ -48,18 +49,12 @@ export interface AssignResult {
  * Every job that still needs attention. Finished jobs are not needed here —
  * the "done today" numbers come from the `dispatch_load` RPC — which keeps the
  * board fast and avoids a date filter that PostgreSQL would have to parse.
+ *
+ * Since Batch B this is a token-checked function: `tasks` has no anonymous read
+ * policy, so a direct `select` would silently return an empty board.
  */
-export async function fetchDispatchTasks(groupId: string): Promise<Task[]> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('group_id', groupId)
-    .in('status', OPEN_TASK_STATUSES)
-    .order('reported_date', { ascending: true })
-    .limit(600);
-
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Task[];
+export async function fetchDispatchTasks(token: string, groupId: string): Promise<Task[]> {
+  return fetchOpenTasks(token, groupId);
 }
 
 export async function fetchDispatchLoad(token: string, groupId: string): Promise<DispatchLoad> {

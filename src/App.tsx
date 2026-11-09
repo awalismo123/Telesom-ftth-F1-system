@@ -11,6 +11,7 @@ import { OfflineBanner } from './components/ui/OfflineBanner';
 import { Splash } from './components/ui/Splash';
 import { ConfigGate } from './components/ui/ConfigGate';
 import { NavigationProvider } from './lib/navigation';
+import { ForcePinChange } from './components/ui/ForcePinChange';
 
 function AppRouter() {
   const { session, loading, portal } = useAuth();
@@ -21,6 +22,13 @@ function AppRouter() {
 
   if (!session) {
     return <LoginScreen />;
+  }
+
+  // An account still on the department's PIN gets exactly one screen until it
+  // chooses its own. There is no skip: a shared PIN makes the work log a record
+  // of "somebody" rather than of a person.
+  if (session.user.must_change_pin) {
+    return <ForcePinChange />;
   }
 
   // Which shell opens is decided by the saved session's own role — never by

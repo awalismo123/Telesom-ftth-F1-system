@@ -21,6 +21,12 @@ import { supabase } from './supabase';
  *    the phone. When the tab is visible and we have not heard anything for a
  *    while, a single quiet refetch keeps the screen honest. Nothing polls while
  *    the tab is hidden.
+ *
+ * Since Batch B the feed carries **no row data**. `postgres_changes` obeys
+ * row-level security, and the tables now have no anonymous read policy — the
+ * old feed would either leak rows or deliver nothing. A trigger publishes
+ * `{ table }` on a broadcast channel instead; hearing it means "refetch through
+ * your token-checked function", which is where the data is actually authorised.
  */
 
 /**
@@ -30,8 +36,16 @@ import { supabase } from './supabase';
  * a fake client — the collision below is a library contract, and it deserves a
  * test that does not need a live socket.
  */
+export interface ChangeSignal {
+  table?: string;
+}
+
 export interface RealtimeChannelLike {
-  on(event: 'postgres_changes', config: Record<string, unknown>, callback: () => void): RealtimeChannelLike;
+  on(
+    event: 'broadcast',
+    config: { event: string },
+    callback: (message: { payload?: ChangeSignal }) => void,
+  ): RealtimeChannelLike;
   subscribe(): RealtimeChannelLike;
 }
 
@@ -71,6 +85,41 @@ export interface TableSubscription {
   unsubscribe: () => void;
 }
 
+/** The one broadcast channel the database trigger publishes on. */
+export const CHANGE_TOPIC = 'f1:changes';
+export const CHANGE_EVENT = 'change';
+
+/**
+ * One broadcast channel, many subscribers.
+ *
+ * `client.channel(name)` de-duplicates by name: asking twice returns the same
+ * object, and adding a callback after `subscribe()` throws. The old feed dodged
+ * that by giving every subscriber a unique channel name — which worked because
+ * each name was its own Postgres filter.
+ *
+ * A broadcast topic cannot work that way: the channel name *is* the topic. So
+ * the module keeps one channel per topic and fans the signal out to everyone
+ * who asked. That is also less work for the phone: one socket subscription
+ * instead of one per screen.
+ */
+type SignalHandler = (signal: ChangeSignal) => void;
+
+interface SharedChannel {
+  channel: RealtimeChannelLike;
+  handlers: Set<SignalHandler>;
+}
+
+const sharedChannels = new WeakMap<RealtimeClientLike, Map<string, SharedChannel>>();
+
+function channelRegistry(client: RealtimeClientLike): Map<string, SharedChannel> {
+  let registry = sharedChannels.get(client);
+  if (!registry) {
+    registry = new Map();
+    sharedChannels.set(client, registry);
+  }
+  return registry;
+}
+
 /**
  * Subscribe to a table, safely.
  *
@@ -90,28 +139,58 @@ export function subscribeTableChanges(
   },
 ): TableSubscription | null {
   const topic = tableChannelTopic(table, filter);
+  const registry = channelRegistry(client);
+  const existing = registry.get(CHANGE_TOPIC);
+
+  const handler: SignalHandler = (signal) => {
+    // The payload names the table and nothing else. A signal for another table
+    // is not this screen's business.
+    if (signal?.table && signal.table !== table) return;
+    onChange();
+  };
+
+  if (existing) {
+    existing.handlers.add(handler);
+    return { topic, unsubscribe: () => release(client, existing, handler) };
+  }
 
   try {
-    const channel = client
-      .channel(topic)
-      .on('postgres_changes', { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) }, onChange)
+    const shared: SharedChannel = {
+      channel: undefined as unknown as RealtimeChannelLike,
+      handlers: new Set([handler]),
+    };
+
+    shared.channel = client
+      .channel(CHANGE_TOPIC)
+      .on('broadcast', { event: CHANGE_EVENT }, (message) => {
+        for (const current of shared.handlers) current(message?.payload ?? {});
+      })
       .subscribe();
 
-    return {
-      topic,
-      unsubscribe: () => {
-        try {
-          void client.removeChannel(channel);
-        } catch {
-          // Already gone, or the socket was never opened. Nothing to clean up.
-        }
-      },
-    };
+    registry.set(CHANGE_TOPIC, shared);
+
+    return { topic, unsubscribe: () => release(client, shared, handler) };
   } catch (error) {
     // A live feed is an optimisation; it must never be a single point of
     // failure for a screen a technician is standing in front of.
     console.warn('[Telesom F1] realtime unavailable, falling back to polling:', error);
+    registry.delete(CHANGE_TOPIC);
     return null;
+  }
+}
+
+function release(client: RealtimeClientLike, shared: SharedChannel, handler: SignalHandler): void {
+  shared.handlers.delete(handler);
+  if (shared.handlers.size > 0) return;
+
+  // The last screen watching has gone: close the socket subscription.
+  const registry = channelRegistry(client);
+  if (registry.get(CHANGE_TOPIC) === shared) registry.delete(CHANGE_TOPIC);
+
+  try {
+    void client.removeChannel(shared.channel);
+  } catch {
+    // Already gone, or the socket was never opened. Nothing to clean up.
   }
 }
 

@@ -151,7 +151,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
 
   useEffect(() => {
     let cancelled = false;
-    void fetchWorkLog(task.id)
+    void fetchWorkLog(token, task.id)
       .then((rows) => {
         if (!cancelled) setHistory(rows);
       })

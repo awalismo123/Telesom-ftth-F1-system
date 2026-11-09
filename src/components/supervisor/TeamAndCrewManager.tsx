@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import { useTableChanges } from '../../lib/realtime';
+import { fetchGroupOverview } from '../../lib/reads';
 import type { Crew, Group, UserProfile, UserRole } from '../../types/database';
 
 interface CrewMemberRow {
@@ -44,6 +45,7 @@ export function TeamAndCrewManager() {
   const [mPin, setMPin] = useState('');
   const [mActive, setMActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Crew modal state
@@ -62,30 +64,21 @@ export function TeamAndCrewManager() {
   const [gDesc, setGDesc] = useState('');
 
   const loadData = useCallback(async (silent = false) => {
-    if (!activeGroup?.id) return;
+    if (!activeGroup?.id || !session?.token) return;
     // A background refresh (another supervisor added a technician) must not
     // replace the table with a skeleton under the reader's finger.
     if (!silent) setLoading(true);
-    const [usersRes, crewsRes, linksRes] = await Promise.all([
-      supabase
-        .from('users')
-        .select('*')
-        .eq('group_id', activeGroup.id)
-        .order('role', { ascending: true })
-        .order('full_name', { ascending: true }),
-      supabase
-        .from('crews')
-        .select('*')
-        .eq('group_id', activeGroup.id)
-        .order('name', { ascending: true }),
-      supabase.from('crew_members').select('*'),
-    ]);
-
-    if (usersRes.data) setMembers(usersRes.data as UserProfile[]);
-    if (crewsRes.data) setCrews(crewsRes.data as Crew[]);
-    if (linksRes.data) setCrewLinks(linksRes.data as CrewMemberRow[]);
-    setLoading(false);
-  }, [activeGroup?.id]);
+    try {
+      const overview = await fetchGroupOverview(session.token, activeGroup.id);
+      setMembers(overview.members);
+      setCrews(overview.crews);
+      setCrewLinks(overview.crew_members as CrewMemberRow[]);
+    } catch (error) {
+      if (!silent) setLoadError(describeError(error, lang));
+    } finally {
+      setLoading(false);
+    }
+  }, [activeGroup?.id, session?.token]);
 
   useEffect(() => {
     void loadData();
@@ -265,6 +258,12 @@ export function TeamAndCrewManager() {
 
   return (
     <div className="space-y-6">
+      {loadError && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
+          {loadError}
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

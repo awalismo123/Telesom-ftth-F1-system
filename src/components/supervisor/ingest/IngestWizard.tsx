@@ -19,7 +19,6 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
 import type { OcrProgress, OcrResult } from '../../../lib/ocr/engine';
@@ -38,6 +37,7 @@ import {
 import { ExtractionReview } from './ExtractionReview';
 import { ConflictPanel } from './ConflictPanel';
 import { formatDateTime } from '../../../lib/format';
+import { fetchImportBatches } from '../../../lib/reads';
 
 type Phase = 'source' | 'processing' | 'review' | 'conflicts' | 'done';
 
@@ -89,17 +89,15 @@ export function IngestWizard() {
     sheetType === 'galinta' ? GALINTA_TEMPLATE : sheetType === 'cilada' ? CILADA_TEMPLATE : undefined;
 
   const loadHistory = useCallback(async () => {
-    if (!activeGroup?.id) return;
-    const { data } = await supabase
-      .from('import_batches')
-      .select(
-        'id, sheet_category, source_type, file_name, print_date, total_rows_read, group_matched_rows, new_tasks_created, duplicates_skipped, carryovers_updated, status, created_at, source_image_path',
-      )
-      .eq('group_id', activeGroup.id)
-      .order('created_at', { ascending: false })
-      .limit(8);
-    if (data) setHistory(data as ImportBatchRow[]);
-  }, [activeGroup?.id]);
+    if (!activeGroup?.id || !session?.token) return;
+    try {
+      const rows = await fetchImportBatches(session.token, activeGroup.id, 8);
+      setHistory(rows as ImportBatchRow[]);
+    } catch {
+      // History is context, not the job: an unreachable archive must not stop
+      // a supervisor reading today's sheet.
+    }
+  }, [activeGroup?.id, session?.token]);
 
   useEffect(() => {
     void loadHistory();
@@ -235,7 +233,7 @@ export function IngestWizard() {
     try {
       let imagePath: string | null = null;
       if (sourceFile && sourceFile.type.startsWith('image/')) {
-        imagePath = await uploadSourceImage(sourceFile, activeGroup.id);
+        imagePath = await uploadSourceImage(session.token, sourceFile, activeGroup.id);
       }
 
       const committed = await commitImport({

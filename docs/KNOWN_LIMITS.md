@@ -140,13 +140,22 @@ every missing key.
 ## Before this handles real customer data
 
 `docs/PRODUCTION_READINESS.md` is the full assessment written for a management
-audience. The short version of what must change first:
+audience. The short version:
 
-1. **Reads are open.** All 11 operational tables are `SELECT USING (true)` for
-   the anonymous role, so the customer list can be read with no login. Batch B.
-2. **`sheet-images` is a public bucket** and allows anonymous upload. Batch B.
-3. **PINs have no attempt limit** and default PINs are still active. Batch B.
+**Closed in Batch B (migration 011).**
+
+1. **Reads are authorised.** The 11 open `SELECT USING (true)` policies are
+   gone; every read goes through a token-checked function scoped to the caller's
+   group. An unauthenticated request now returns `[]`.
+2. **The sheet archive is private.** No public URL exists for a customer sheet.
+3. **PINs are limited.** Five wrong attempts lock an account for 15 minutes, and
+   a PIN issued by a supervisor must be replaced at first sign-in.
+
+**Still open — operations, not structure.**
+
 4. **No backups** on the current plan, and a Free project pauses when idle.
    Batch G.
+5. **Demo and real data share a database.** Clearing the demo set is a go-live
+   step, written down in `RUNBOOK.md`.
 
 Anything in this file that is not in that list is a limitation, not a blocker.

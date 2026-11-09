@@ -89,6 +89,12 @@ const RULES: Rule[] = [
     so: 'Shaqo kale ayaa horey u socota.',
   },
   {
+    match: /too many wrong pins|account is locked/i,
+    kind: 'auth',
+    en: 'Too many wrong PINs. Wait 15 minutes, or ask a supervisor to reset the PIN.',
+    so: 'PIN khaldan aad u badan. Sug 15 daqiiqo, ama weydii kormeeraha in uu PIN-ka beddelo.',
+  },
+  {
     match: /pin must be 4 to 6 digits/i,
     kind: 'validation',
     en: 'A PIN must be 4 to 6 digits.',

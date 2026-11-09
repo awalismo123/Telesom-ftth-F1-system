@@ -6,8 +6,12 @@
  * cannot move" are enforced by the database rather than by a disabled button.
  */
 
-import { supabase } from './supabase';
 import { rpc, rpcRead } from './rpc';
+import {
+  fetchLiveMoves as readLiveMoves,
+  fetchResumedSince as readResumedSince,
+  fetchTask as readTask,
+} from './reads';
 import type { BoxDraft } from './ops';
 import type { SearchResponse, NotificationTask, ResumedLog } from './ops';
 import type { Task } from '../types/database';
@@ -126,10 +130,8 @@ export async function globalSearch(params: {
 }
 
 /** A single job, including ones the dispatch board no longer lists. */
-export async function fetchTask(taskId: string): Promise<Task> {
-  const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).single();
-  if (error) throw new Error(error.message);
-  return data as Task;
+export async function fetchTask(token: string, taskId: string): Promise<Task> {
+  return readTask(token, taskId);
 }
 
 /**
@@ -152,33 +154,20 @@ export async function fetchTechnicianNotifications(params: {
 
   if (ids.length === 0) return { tasks, resumed: [] };
 
-  const { data, error } = await supabase
-    .from('task_work_logs')
-    .select('task_id, created_at, notes')
-    .in('task_id', ids)
-    .eq('action', 'resumed')
-    .gte('created_at', new Date(params.seenAt).toISOString())
-    .order('created_at', { ascending: false })
-    .limit(20);
+  // Scoped server-side to the caller's group and to work they can see; the id
+  // list is only a hint, not the authorisation.
+  const resumed = await readResumedSince(params.token, new Date(params.seenAt).toISOString());
 
-  if (error) throw new Error(error.message);
-
-  return { tasks, resumed: (data ?? []) as ResumedLog[] };
+  return { tasks, resumed: resumed.filter((row) => ids.includes(row.task_id)) as ResumedLog[] };
 }
 
 /** Blocked or long-running work in the group, for the supervisor's bell. */
-export async function fetchSupervisorNotifications(groupId: string): Promise<NotificationTask[]> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select(
-      'id, line_number, customer_name, status, blocked_at, active_started_at, blocker_reason',
-    )
-    .eq('group_id', groupId)
-    .in('status', ['blocked', 'in_progress'])
-    .limit(100);
-
-  if (error) throw new Error(error.message);
-  return (data ?? []) as NotificationTask[];
+export async function fetchSupervisorNotifications(
+  token: string,
+  groupId: string,
+): Promise<NotificationTask[]> {
+  const rows = await readLiveMoves(token, groupId);
+  return rows as unknown as NotificationTask[];
 }
 
 export type { SearchResponse, NotificationTask, ResumedLog };

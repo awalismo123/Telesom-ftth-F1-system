@@ -1,0 +1,235 @@
+import { rpcRead, rpc } from './rpc';
+import type { Cablebox, Crew, Task, UserProfile } from '../types/database';
+
+/**
+ * Every read the app performs, in one place, through a token-checked function.
+ *
+ * Before Batch B the client talked to tables directly (`supabase.from('tasks')
+ * .select('*')`), which meant every table had to be readable by the anonymous
+ * role — and the anonymous key is published inside the bundle. Anyone who found
+ * the URL could read every customer name, phone number and address while signed
+ * out.
+ *
+ * Now the tables are closed. Each function below calls a `SECURITY DEFINER` RPC
+ * that takes the session token, resolves the caller, and returns only rows from
+ * the caller's own group. The anon key remains public — it is an identifier, not
+ * a secret — and it grants exactly what these functions allow.
+ *
+ * This is also the reason there is no `.from(` left in `src/`: a test enforces
+ * that, so a future shortcut cannot quietly reopen the hole.
+ */
+
+export interface CrewLink {
+  crew_id: string;
+  user_id: string;
+}
+
+export interface GroupCounts {
+  technicians: number;
+  crews: number;
+  open_tasks: number;
+  unassigned: number;
+}
+
+export interface GroupOverview {
+  members: UserProfile[];
+  crews: Crew[];
+  crew_members: CrewLink[];
+  cableboxes: Cablebox[];
+  counts: GroupCounts;
+}
+
+/** The caller's own group. `groups` is no longer world-readable. */
+export async function fetchGroups(token: string) {
+  const data = await rpcRead<{ id: string; code: string; name: string; description: string | null }[] | null>(
+    'list_groups',
+    { p_token: token },
+  );
+  return data ?? [];
+}
+
+/**
+ * The supervisor's shell in one round trip: people, crews, crew links, boxes,
+ * and the three counts. Six queries became one, and each piece is scoped to the
+ * group by the database rather than by a filter the browser could omit.
+ */
+export async function fetchGroupOverview(token: string, groupId: string): Promise<GroupOverview> {
+  const raw =
+    (await rpcRead<GroupOverview | null>('group_overview', {
+      p_token: token,
+      p_group_id: groupId,
+    })) ?? ({} as GroupOverview);
+
+  return {
+    members: (raw.members ?? []) as UserProfile[],
+    crews: (raw.crews ?? []) as Crew[],
+    crew_members: (raw.crew_members ?? []) as CrewLink[],
+    cableboxes: (raw.cableboxes ?? []) as Cablebox[],
+    counts: raw.counts ?? { technicians: 0, crews: 0, open_tasks: 0, unassigned: 0 },
+  };
+}
+
+/** Open work for the dispatch board. */
+export async function fetchOpenTasks(token: string, groupId: string): Promise<Task[]> {
+  const data = await rpcRead<Task[] | null>('list_open_tasks', {
+    p_token: token,
+    p_group_id: groupId,
+  });
+  return data ?? [];
+}
+
+/** One job, for a sheet that acts on it. */
+export async function fetchTask(token: string, taskId: string): Promise<Task> {
+  return (await rpcRead<Task>('get_task', { p_token: token, p_task_id: taskId })) as Task;
+}
+
+export interface WorkLogRow {
+  id: string;
+  action: string;
+  session_seconds: number | null;
+  blocker_reason: string | null;
+  optical_dbm: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export async function fetchWorkLogs(token: string, taskId: string): Promise<WorkLogRow[]> {
+  const data = await rpcRead<WorkLogRow[] | null>('list_work_logs', {
+    p_token: token,
+    p_task_id: taskId,
+  });
+  return data ?? [];
+}
+
+export interface LiveMoveTask {
+  id: string;
+  line_number: string;
+  customer_name: string;
+  status: string;
+  blocked_at: string | null;
+  active_started_at: string | null;
+  blocker_reason: string | null;
+}
+
+/** Blocked and in-progress jobs — what the notification bell counts. */
+export async function fetchLiveMoves(token: string, groupId: string): Promise<LiveMoveTask[]> {
+  const data = await rpcRead<LiveMoveTask[] | null>('list_live_moves', {
+    p_token: token,
+    p_group_id: groupId,
+  });
+  return data ?? [];
+}
+
+export interface ResumedLog {
+  task_id: string;
+  created_at: string;
+  notes: string | null;
+}
+
+/** Jobs that started moving again since a moment. */
+export async function fetchResumedSince(token: string, sinceIso: string): Promise<ResumedLog[]> {
+  const data = await rpcRead<ResumedLog[] | null>('list_resumed_since', {
+    p_token: token,
+    p_since: sinceIso,
+  });
+  return data ?? [];
+}
+
+export interface ImportBatchRow {
+  id: string;
+  sheet_category: string;
+  source_type: string;
+  file_name: string | null;
+  print_date: string | null;
+  total_rows_read: number;
+  group_matched_rows: number;
+  new_tasks_created: number;
+  duplicates_skipped: number;
+  carryovers_updated: number;
+  status: string;
+  created_at: string;
+  source_image_path: string | null;
+}
+
+export async function fetchImportBatches(
+  token: string,
+  groupId: string,
+  limit = 8,
+): Promise<ImportBatchRow[]> {
+  const data = await rpcRead<ImportBatchRow[] | null>('list_import_batches', {
+    p_token: token,
+    p_group_id: groupId,
+    p_limit: limit,
+  });
+  return data ?? [];
+}
+
+export interface MyTeam {
+  crew_members: CrewLink[];
+  members: UserProfile[];
+}
+
+/** A technician's own crew mates. Replaces two table reads in the account sheet. */
+export async function fetchMyTeam(token: string): Promise<MyTeam> {
+  const raw = (await rpcRead<MyTeam | null>('my_team', { p_token: token })) ?? ({} as MyTeam);
+  return {
+    crew_members: (raw.crew_members ?? []) as CrewLink[],
+    members: (raw.members ?? []) as UserProfile[],
+  };
+}
+
+/**
+ * Store the photograph a batch was read from.
+ *
+ * It used to go into a public storage bucket, which meant every customer sheet
+ * the group had ever posted was fetchable by URL with no authentication. It now
+ * goes into a table that only a token-checked function can read back.
+ *
+ * Returns `null` rather than throwing: the import is the job, the archived photo
+ * is the audit trail, and losing the audit trail must not lose the supervisor's
+ * work.
+ */
+export async function uploadSheetImage(
+  token: string,
+  groupId: string,
+  file: Blob,
+): Promise<string | null> {
+  try {
+    const base64 = await blobToBase64(file);
+    const data = await rpc<{ id: string } | null>(
+      'upload_sheet_image',
+      {
+        p_token: token,
+        p_group_id: groupId,
+        p_mime: file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+        p_base64: base64,
+      },
+      { timeoutMs: 60_000, quiet: true },
+    );
+    return data?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Read a stored sheet back, for the "where did these rows come from" view. */
+export async function fetchSheetImage(token: string, imageId: string) {
+  const raw = (await rpcRead<{ mime: string; base64: string; created_at: string }>(
+    'get_sheet_image',
+    { p_token: token, p_image_id: imageId },
+  )) as { mime: string; base64: string; created_at: string };
+  return { ...raw, dataUrl: `data:${raw.mime};base64,${raw.base64}` };
+}
+
+export function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('The image could not be read'));
+    reader.onload = () => {
+      const result = String(reader.result ?? '');
+      const comma = result.indexOf(',');
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
