@@ -232,11 +232,14 @@ Four batches. **B is done** — the gate before real customer data is open.
 | **B — Access control** ✅ **done** | Token-scoped reads, private sheet archive, PIN attempt limits, forced first-login change, security headers, dependency audit | Turns "demo" into "deployable" | 3–4 days |
 | **G — Operational trust** | Supabase Pro (backups, no pause), uptime monitor with an alert to a real phone, error capture (own table or Sentry), a browser smoke test of the three critical paths on every deploy, restore drill performed and recorded | You can hand it over without being the only person who can fix it | 3 days |
 | **H — Manager pack** | Audit screen, photo proof on completion, period reports + PDF, aging/SLA badge, read-only manager role | Answers the questions in §4 | 5–7 days |
-| **I — Handover** | One-page technician guide (WhatsApp-able, bilingual), a 30-minute training script, data policy one-pager, release notes + version number on screen | The part that makes it *the department's* system rather than yours | 2 days |
+| **I — Handover** ✅ **done** | `docs/HANDOVER.md`: the bilingual technician card, the 30-minute training run, a one-page data policy, release notes; version stamp on the sign-in screen | The part that makes it *the department's* system rather than yours | 2 days |
 
-Suggested order: **G → I → H.** G because without it a single bad night undoes
-months of work. I before H because adoption problems are more expensive than
-missing reports.
+Suggested order: **G → H.** G because without it a single bad night undoes months
+of work, and it needs your Supabase billing decision before anyone can start it.
+H because those are the questions that will be asked in the second meeting.
+
+The management deck is in `docs/MANAGEMENT_DECK.md` — eight slides, written to be
+said rather than read, with the honest answer to every question in §9.
 
 ---
 
