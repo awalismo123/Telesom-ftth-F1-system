@@ -1709,3 +1709,110 @@ is not worth that.
 
 A standing rule is now in 020: every new exposed function takes `p_token` first,
 calls `get_session_user`, and checks role or group before acting.
+
+---
+
+## 20. Batch I, phase 4 — the screen that answered a question nobody was asking
+
+### 20.1 What was in the best space on the screen
+
+The supervisor's landing tab opened with a dark emerald panel headed
+**"Step-by-Step Build Progress"**, containing five green ticks:
+
+```
+✓ Phase 1 Live: Supabase Cloud + PIN Auth + Bilingual UI + Team & 2-Tech Crews
+✓ Phase 2 Live: Group-chat picture OCR (Galinta & Cilada), Excel/CSV/paste …
+✓ Phase 3 (live): Cablebox & Xaafada route clustering, technician/crew dispatch
+✓ Phase 4 (live): technician mobile route, server-side live timer …
+✓ Phase 5 (live): cablebox port registry, full box history …
+```
+
+Every word of it true. It was also the answer to a question only the person who
+built the app was asking. A supervisor opening the app at 07:30 needs to know
+what is open, what is stuck and who is out; the screen told them what had
+already been shipped, which they knew, because they were using it.
+
+This is the failure mode worth naming, because it is comfortable: the roadmap
+was written when the app was being built, by the person building it, for the
+person paying for it. It never got removed because it was never wrong. Nothing
+decays faster in a working system than a status panel that stays true.
+
+### 20.2 The replacement, and why it is one sentence
+
+`today_summary` (022) returns the day's counts. The panel shows **one** sentence,
+chosen by priority:
+
+| Priority | Condition | Sentence |
+| ---: | :--- | :--- |
+| 1 | `blocked > 0` | *"2 jobs are blocked — someone is waiting on a decision."* |
+| 2 | `over_sla > 0` | *"3 jobs are past the 3-day promise."* |
+| 3 | `unassigned > 0` | *"4 jobs are still unassigned."* |
+| 4 | `open_now === 0` | *"No open jobs. 1 crew is out."* |
+| 5 | otherwise | *"4 open, none past the promise."* |
+
+A blocked job is a person standing still waiting for a decision. An overdue job
+is a customer the department has already failed. An unassigned job is a queue
+that can still be beaten. Those need three different actions, so displaying all
+three at equal weight produces a supervisor who does the easiest one first. One
+sentence forces the order; the five tiles underneath carry the rest.
+
+The order is pinned by tests, not by comment: `tests/today.test.ts` asserts that
+blocked outranks overdue outranks unassigned, in both languages, at singular and
+plural.
+
+### 20.3 The day boundary is the caller's
+
+The server is UTC. Hargeisa is UTC+3. The gap is exactly the three hours either
+side of midnight, which is when a night shift closes its last job and a morning
+shift asks how yesterday went — the moment the number has to be right.
+
+So `today_summary` takes `p_day date`, and the browser passes `todayKey()`, the
+same local-date helper the rest of the app uses. Passing null falls back to the
+server's UTC date, and the returned `day` says which was used, so a disagreement
+is visible rather than silent.
+
+### 20.4 The lint that could not see the bug it was written for
+
+`field ready` was one English sentence in the middle of a bilingual screen. It
+survived every batch since C because the i18n lint had two blind spots that
+happened to coincide with its shape:
+
+```tsx
+hint={`Group ${activeGroup?.code ?? 'F1'} field ready`}
+//    ^ `COPY_ATTR` needs a quote right after `=`   → no match
+//    ^ `JSX_TEXT` skips anything containing braces → no match
+```
+
+The lint now reads three more shapes — template-literal props (interpolations
+stripped before judging), single-quoted attributes, and bare `{'expr'}` strings —
+and, more importantly, **plants each one in a test**. A lint whose only evidence
+is a green tick over clean source has not been tested; it has been observed
+agreeing with itself.
+
+The first attempt at the template rule flagged 24 `className` template literals.
+Styling is not copy. The rule is restricted to the props that carry words
+(`placeholder`, `alt`, `label`, `hint`, `title`, `aria-label`, …), which is the
+difference between a lint people trust and one they allowlist into silence.
+
+### 20.5 The 32-pixel button
+
+The app's own design language says 44 px, and its `Button` component ships 44 px
+for `md` and `icon`. The technician screens did not follow it:
+
+| Control | Was | Now |
+| :--- | ---: | ---: |
+| Start / Resume / Finish on a route card | 40 px | 44 px |
+| Crew call button | 36 px | 44 px |
+| **"Retry the photo" after a failed upload** | **32 px** | 44 px |
+| Photo "Remove" chip | 36 px | 44 px |
+| Box-history shortcut | 40 px | 44 px |
+
+The 32 px one is the interesting one. It appears only after an upload has
+failed, on a phone, for a technician who is trying to finish a job and leave.
+That is the single worst place in the app for a target that needs two taps.
+
+`tests/a11y.test.ts` now scans every control in `components/technician/` for a
+fixed height under 44 px and for icon-only buttons with no accessible name, and
+reports the file and the offending class. Its limits are written into the file
+rather than implied: it judges a control's own `className`, so a short *inner*
+wrapper still escapes — verified by planting one and watching it pass.

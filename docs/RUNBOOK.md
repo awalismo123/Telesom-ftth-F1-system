@@ -12,13 +12,26 @@ what to expect, and what it looks like when it goes wrong.
 ## 1. Daily open
 
 1. **Supervisor signs in** — username `supervisor` or phone `634000001`, 4-digit PIN.
-2. **Upload the sheet** → *Daily Sheet Upload*. Photograph the Galinta or Cilada
+2. **Read the first screen.** It answers one question — *what needs me now* — and
+   leads with the most urgent thing, in this order: blocked, past the 3-day
+   promise, unassigned. If it says "nothing is blocked, none past the promise",
+   the day is under control and you can go straight to the sheet.
+3. **Upload the sheet** → *Daily Sheet Upload*. Photograph the Galinta or Cilada
    table, or paste/import the file. Confirm only the rows you want; duplicates are
    never imported without a tap.
-3. **Dispatch** → *Dispatch & clustering*. Tick jobs, choose a technician or crew,
+4. **Dispatch** → *Dispatch & clustering*. Tick jobs, choose a technician or crew,
    or press *Auto-cluster*, then **Copy full plan** into the group chat.
-4. **Watch the day** in the live strip: who is running, who is blocked, for how long.
-5. **Close the day** in *Insights* → download the CSV and copy the WhatsApp report.
+5. **Watch the day** in the live strip: who is running, who is blocked, for how long.
+6. **Close the day** in *Insights* → download the CSV and copy the WhatsApp report.
+
+**The five tiles under the headline** are blocked, over-3-days, unassigned,
+crews out (out of the total active crews), and jobs closed since midnight. The
+"today" figures use the phone's own date, not the server's — Hargeisa is UTC+3,
+and a job closed just after midnight must land on the day the shift happened.
+
+**If the dispatch pool says "this list stops at 600 jobs"**, there are more open
+jobs than the board loads. Filter by box or area rather than scrolling — the
+board is telling you it cannot show you everything.
 
 A technician opens the same URL, signs in with their PIN, and sees only their route.
 
@@ -107,6 +120,16 @@ Do **not** delete a person; deleting takes their jobs' audit trail with them.
 ---
 
 ## 3. Crews and vehicles
+
+**A crew is meant to be one or two people.** The app calls the second member a
+*partner* and the vehicle is a two-person vehicle, but nothing stops a crew
+having three members or none. Measured on the live project (09/11/2026): Crew A
+had **0 members**, Crew B had **3**.
+
+An empty crew still counts in "crews out of N", so the first screen can say
+"0/2" while three people are actually in the field. Fix the roster on *Team &
+Crews* before reading the crew numbers.
+
 
 *Team & Crews* → *2-Tech Crews* → **Add crew**: name, vehicle tag, zone focus,
 two members.

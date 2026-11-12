@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
+import { truncatedNotice, OPEN_TASK_CAP } from '../../../lib/lists';
 import type { Task } from '../../../types/database';
 import {
   assignTasks,
@@ -68,6 +69,9 @@ export function DispatchBoard({
   const so = lang === 'so';
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  // The board loads at most OPEN_TASK_CAP jobs; say so when it hits the cap
+  // rather than printing the cap as though it were the backlog.
+  const truncated = truncatedNotice(tasks.length, OPEN_TASK_CAP, lang);
   const [load, setLoad] = useState<DispatchLoad>({ users: [], crews: [] });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -403,6 +407,11 @@ export function DispatchBoard({
         {/* -------------------------------------------------------------- */}
         <section className="xl:col-span-2 space-y-3">
           <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2.5">
+            {truncated && (
+              <p className="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
+                {truncated}
+              </p>
+            )}
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">
                 {t('dispatchPool')} · {pool.length}

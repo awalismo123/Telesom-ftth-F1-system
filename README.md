@@ -187,7 +187,7 @@ npm run verify       # all four, in order
 ```
 
 **Performance budget.** The first visit — entry chunk, React, Supabase, icons and
-CSS, gzipped — must stay under **200 kB** (currently ~191 kB). Every screen
+CSS, gzipped — must stay under **200 kB** (currently ~192 kB). Every screen
 behind a tab is a separate chunk loaded on intent, so opening the app to read a
 route never downloads the OCR wizard or the analytics charts. `bundle:check`
 fails the build if the budget is exceeded; raise the code split, not the number.

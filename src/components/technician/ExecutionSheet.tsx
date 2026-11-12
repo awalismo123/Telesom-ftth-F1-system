@@ -446,7 +446,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
             <button
               type="button"
               onClick={() => setShowBox(true)}
-              className="w-full inline-flex items-center justify-between gap-2 px-3 h-10 rounded-2xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 active:scale-[0.99] transition cursor-pointer"
+              className="w-full inline-flex items-center justify-between gap-2 px-3 min-h-11 rounded-2xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 active:scale-[0.99] transition cursor-pointer"
             >
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-700" />
@@ -537,7 +537,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                       type="button"
                       onClick={() => void sendPhoto(photo, done.task_id)}
                       disabled={photoBusy}
-                      className="mt-1 h-8 px-2 rounded-lg bg-white text-emerald-800 text-[10px] font-extrabold cursor-pointer"
+                      className="mt-1 min-h-11 px-3 rounded-lg bg-white text-emerald-800 text-[10px] font-extrabold cursor-pointer"
                     >
                       {so ? 'Dib u dir sawirka' : 'Retry the photo'}
                     </button>
@@ -846,7 +846,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                     <button
                       type="button"
                       onClick={() => setPhoto(null)}
-                      className="h-9 px-2 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold cursor-pointer"
+                      className="min-h-11 px-3 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold cursor-pointer"
                     >
                       {so ? 'Tirtir' : 'Remove'}
                     </button>

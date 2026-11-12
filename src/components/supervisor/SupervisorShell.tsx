@@ -10,13 +10,15 @@ import {
   Truck,
   BarChart3,
   History,
-  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import type { Cablebox } from '../../types/database';
 import { ActivityLog } from './ActivityLog';
-import { fetchGroupOverview } from '../../lib/reads';
+import { fetchGroupOverview, fetchTodaySummary } from '../../lib/reads';
+import type { TodaySummary } from '../../lib/today';
+import { todayKey } from '../../lib/format';
+import { TodayPanel } from './TodayPanel';
 import { Tabs, type TabItem } from '../ui/Tabs';
 import { Stat } from '../ui/Stat';
 import { cx } from '../ui/cx';
@@ -68,6 +70,8 @@ export function SupervisorShell() {
   const [taskCount, setTaskCount] = useState(0);
   const [unassignedCount, setUnassignedCount] = useState(0);
   const [cableboxes, setCableboxes] = useState<Cablebox[]>([]);
+  const [today, setToday] = useState<TodaySummary | null>(null);
+  const [todayLoading, setTodayLoading] = useState(true);
   const [focusTask, setFocusTask] = useState<{ id: string; nonce: number } | null>(null);
   const [focusBox, setFocusBox] = useState<{ id: string; nonce: number } | null>(null);
   const { intent, consume } = useNavigation();
@@ -105,9 +109,15 @@ export function SupervisorShell() {
       setTaskCount(overview.counts.open_tasks);
       setUnassignedCount(overview.counts.unassigned);
       setCableboxes(overview.cableboxes);
+
+      // The day is the supervisor's own, not the server's: Hargeisa is UTC+3,
+      // so a job closed just after midnight would land in yesterday otherwise.
+      setToday(await fetchTodaySummary(session.token, activeGroup.id, todayKey()));
     } catch {
       // A summary that cannot load must not blank the shell; the tabs inside
       // load their own data and will show the real error if there is one.
+    } finally {
+      setTodayLoading(false);
     }
   }, [activeGroup?.id, session?.token]);
 
@@ -215,7 +225,7 @@ export function SupervisorShell() {
                     label={t('activeTechs')}
                     value={techCount}
                     icon={<Users className="w-4 h-4" />}
-                    hint={`Group ${activeGroup?.code ?? 'F1'} field ready`}
+                    hint={`${t('groupFieldReady')} ${activeGroup?.code ?? 'F1'}`}
                   />
                   <Stat
                     label={t('fieldCrews')}
@@ -241,38 +251,16 @@ export function SupervisorShell() {
                   />
                 </div>
 
-                <div className="rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-950 text-white p-5 sm:p-6 shadow-lg border border-emerald-800/50 print-block">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-white/10">
-                    <div>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold mb-2">
-                        <Wifi className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span>{so ? 'NIDAAMKA WAA FIRFIRCOON' : 'SYSTEM IS LIVE'}</span>
-                      </div>
-                      <h2 className="text-lg sm:text-xl font-extrabold">{t('roadmapTitle')}</h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('team')}
-                      className="self-start md:self-auto min-h-11 px-4 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-extrabold text-xs transition cursor-pointer print-keep"
-                    >
-                      {t('navTeam')} →
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5 text-xs">
-                    {[t('phase1Done'), t('phase2Done'), t('phase3Done'), t('phase4Done'), t('phase5Done')].map(
-                      (phase) => (
-                        <div
-                          key={phase}
-                          className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-start gap-3"
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
-                          <span className="font-semibold text-emerald-100">{phase}</span>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
+                {/*
+                  This space used to hold a five-line build-progress roadmap.
+                  It now holds the only thing a supervisor opening the app at
+                  07:30 needs: what is open, what is stuck, and who is out.
+                */}
+                <TodayPanel
+                  summary={today}
+                  loading={todayLoading}
+                  onNavigate={(tab) => setActiveTab(tab)}
+                />
               </div>
             )}
 

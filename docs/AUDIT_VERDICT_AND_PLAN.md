@@ -3,7 +3,7 @@
 **Subject:** Telesom FBB · Group F1 field system (`Telesom-ftth-F1-system`)
 **Audit under review:** 12-page external review, 09/11/2026
 **This review:** every material claim re-tested against source, the live Supabase project (`pjrzncnhhlfaxuvlcdse`, eu-west-1, Postgres 17.11) and production (`telesomftthfonesystem.vercel.app`)
-**Code state:** `main` = `349d87b` · 204/204 tests · tsc clean · 191.4 kB of a 200 kB budget
+**Code state:** `main` = `349d87b` · 204/204 tests · tsc clean · 191.4 kB of a 200 kB budget (as audited; today 240/240 at 191.9 kB)
 
 ---
 
@@ -340,7 +340,7 @@ included) and the manager portfolio. The Overview's open-job counters are
 unaffected in practice, because demo rows are seeded as *completed*; if that ever
 changes, the same `demo_summary` call is the label.
 
-### Phase 4 — Interface honesty (≈2 days)
+### Phase 4 — Interface honesty (≈2 days) — **DONE 09/11/2026**
 
 - Replace the roadmap panel with a **"today" dashboard**: jobs open, blocked, unassigned, crews out — operational content in the most valuable space on the screen.
 - Translate `field ready` (template literal → i18n key).
@@ -348,7 +348,56 @@ changes, the same `demo_summary` call is the label.
 - Pagination / "showing X of Y" on task lists.
 - Accessibility and small-screen pass on the technician view.
 
-**Acceptance:** i18n test fails when a hardcoded English template literal is introduced; roadmap panel gone; every visible string resolves through `t()` in both languages.
+**Outcome.**
+
+*The roadmap panel is gone.* It said "Phase 1 Live" through "Phase 5 Live" in
+five green ticks — every word true, and useless to a supervisor standing up a
+dispatch at 07:30 with crews waiting for work. In its place, `today_summary`
+(migration 022) and one sentence, chosen by priority rather than by size:
+
+> **2 jobs are blocked — someone is waiting on a decision.**
+> **3 jobs are past the 3-day promise.** · **4 jobs are still unassigned.**
+> **4 open, none past the promise.**
+
+Blocked outranks overdue, overdue outranks unassigned. Saying all three at once
+says nothing, so the screen says one and puts the rest in a five-tile strip
+(blocked, overdue, unassigned, crews out, closed today). Each tile only offers a
+tap when there is somewhere useful to go.
+
+*`field ready` is translated.* `hint={`Group ${…} field ready`}` is now
+`t('groupFieldReady')` in both languages.
+
+*The scanner can finally see it.* That string survived every review since Batch
+C because `COPY_ATTR` required a double quote immediately after the `=` and
+`JSX_TEXT` skipped anything containing braces — a template literal was invisible
+to both. The lint now reads template-literal props (with interpolations
+stripped), single-quoted attributes and bare `{'expr'}` strings, and **six tests
+plant each shape** and assert it is caught. Restricting the template scan to
+copy-carrying props was necessary: the first attempt flagged 24 `className`
+template literals, which are styling, not copy.
+
+*Lists say when they stop short.* `list_open_tasks` caps at 600 and the board
+printed `pool.length` as though it were the backlog. It now warns at the cap and
+tells the supervisor to filter. A test pins `OPEN_TASK_CAP` to the `LIMIT 600`
+in the SQL, so lowering one without the other fails the build.
+
+*The technician view can be hit with a thumb.* Nine controls were under the 44 px
+standard the rest of the app follows — Start/Resume/Finish at 40 px, the crew
+call button at 36 px, and "Retry the photo" at **32 px**, the button a technician
+presses after a failed upload in the field. All are 44 px now, and
+`tests/a11y.test.ts` scans every control in `components/technician/`.
+
+**Acceptance:** i18n test fails on a planted template literal — met, six ways;
+roadmap panel gone — met; every visible string through `t()` — met for the
+supervisor shell. The a11y test states its own limits in the file: it judges a
+control's own `className`, so a short *inner* wrapper still escapes it (verified
+by planting one).
+
+**A data finding, not a code one.** While verifying the crews-out count I found
+**Crew A with 0 members and Crew B with 3**. The UI calls a crew member a
+"partner" and the design is a 2-tech vehicle, but nothing enforces it. Not
+changed here — a roster is the supervisor's to fix — but recorded so it is not
+rediscovered as a bug in the crew view.
 
 ### Phase 5 — Pilot expansion (defer until 0–4 are closed)
 

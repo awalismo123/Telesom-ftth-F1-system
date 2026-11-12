@@ -144,12 +144,7 @@ const translations = {
     dispatchUnassignedShort: 'unassigned',
     dispatchInProgressShort: 'in progress',
     // Roadmap Banner
-    roadmapTitle: 'Step-by-Step Build Progress',
-    phase1Done: 'Phase 1 Live: Supabase Cloud + PIN Auth + Bilingual UI + Team & 2-Tech Crews',
-    phase2Done: 'Phase 2 Live: Group-chat picture OCR (Galinta & Cilada), Excel/CSV/paste, Group F1 filter, carry-over & repeat-fault decisions, undo',
-    phase3Done: 'Phase 3 (live): Cablebox & Xaafada route clustering, technician/crew dispatch, one-tap WhatsApp plan',
-    phase4Done: 'Phase 4 (live): technician mobile route, server-side live timer, standard blockers, mandatory dBm capture',
-    phase5Done: 'Phase 5 (live): cablebox port registry, full box history for the next technician, team & box analytics, CSV + WhatsApp report',
+    groupFieldReady: 'Field ready ·',
   },
   so: {
     appName: 'Nidaamka FTTH Telesom',
@@ -293,12 +288,7 @@ const translations = {
     dispatchInProgressShort: 'socda',
 
     // Roadmap Banner
-    roadmapTitle: 'Heerarka Dhismaha Nidaamka (Mid-Mid)',
-    phase1Done: 'Qaybta 1aad (Shaqaynaysa): Supabase Cloud + PIN Auth + Af-Soomaali/English + Maamulka Shaqaalaha & Crews',
-    phase2Done: 'Qaybta 2aad (Shaqaynaysa): Sawirka Kooxda (OCR) — Galinta & Cilada, Excel/CSV, shaandhaynta F1, go\'aamadaha Baaqi & Cilad-soo-noqod, Undo',
-    phase3Done: 'Qaybta 3aad (Shaqaynaysa): Isku-xidhka Cablebox & Xaafadaha, qaybinta shaqaalaha, fariinta WhatsApp-ka hal guji',
-    phase4Done: 'Qaybta 4aad (Shaqaynaysa): Mobile-ka farsamayaqaanka, saacadda server-ka, caqabadaha, cabbirka dBm ee qasabka ah',
-    phase5Done: 'Qaybta 5aad (Shaqaynaysa): Diiwaanka port-yada cablebox, taariikhda buuxda farsamayaqaanka xiga, falanqaynta kooxda & sanduuqa, CSV + warbixinta WhatsApp',
+    groupFieldReady: 'Goobta diyaar ·',
   },
 } as const;
 
