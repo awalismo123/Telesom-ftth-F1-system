@@ -150,8 +150,9 @@ Migration 018 changed the hashes, not just the flags. Every account on a
 published PIN was rotated to a random one, flagged for a forced change, and all
 sessions were deleted. Measured afterwards: **0 of 6 accounts accept a published
 PIN**; 12 live session tokens were revoked. Temporary PINs were issued in person,
-and the supervisor has since chosen their own — the flag clears by itself when
-that happens, which is why the live count of `must_change_pin` is 0.
+and people clear their flag by choosing their own PIN at first sign-in. The count
+of `must_change_pin` therefore moves every time somebody signs in — it is a
+progress bar, not a status, and is not quoted here as a figure.
 
 The regression guard is now a build step: `scripts/check-credentials.mjs` fails
 the build if a PIN pair, a seeded identifier or a real subscriber number appears

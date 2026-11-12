@@ -291,7 +291,17 @@ select
 ```
 
 Measured 09/11/2026: **8 jobs · 0 demo · 3 completed · 0 photos · 2 cableboxes ·
-2 import batches · 6 active people · 0 must change PIN.**
+2 import batches · 6 active people.**
+
+**`must_change_pin` is deliberately not quoted as a fixed number.** It was 6
+after the PIN rotation, read 0 an hour later, and is 3 as this is written —
+because it falls every time somebody signs in and chooses their own PIN, and
+rises whenever a supervisor resets one. It is a progress bar, not a status.
+Quoting it as a figure is how this document got into trouble in the first place:
+a number that was true on Tuesday, printed on Wednesday, quoted on Thursday.
+
+Every other figure above is stable unless somebody imports, completes or deletes
+work — which is exactly the kind of number worth writing down.
 
 **The report's arithmetic reconciles with the rows.** Run on the 8 real jobs:
 created 8, completed 3, cancelled 4, open at end 1, over SLA 1, average dBm
@@ -303,11 +313,6 @@ because a single job carries 45.7 hours of accumulated timer. Remove it and the
 average is 1.9 minutes. The number is correct; it is simply one runaway timer
 away from meaningless, which is why `KNOWN_LIMITS` §7d says to quote counts and
 per-job durations rather than the average until there is enough real work.
-
-That last one changed during this work and is worth explaining: after Batch I
-rotated the published PINs, all six accounts were flagged. The supervisor has
-since signed in and chosen their own PIN, which cleared their flag — exactly the
-path the design intended — so it reads 0 rather than 6.
 
 ## 4. What managers will ask for that does not exist yet
 
