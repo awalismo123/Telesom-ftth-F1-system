@@ -48,7 +48,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
     <div
       className={`rounded-2xl border bg-white overflow-hidden transition ${
         running
-          ? 'border-emerald-400 ring-2 ring-emerald-200'
+          ? 'border-brand-400 ring-2 ring-brand-200'
           : blocked
             ? 'border-rose-200'
             : done
@@ -58,7 +58,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
     >
       {/* status strip */}
       {running && (
-        <div className="bg-emerald-600 text-white px-3 py-1.5 flex items-center justify-between">
+        <div className="bg-brand-700 text-white px-3 py-1.5 flex items-center justify-between">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wide">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             {so ? 'Socda' : 'Running'}
@@ -74,7 +74,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
         </div>
       )}
       {done && (
-        <div className="bg-emerald-50 text-emerald-800 px-3 py-1.5 flex items-center gap-1.5 text-[11px] font-bold border-b border-emerald-100">
+        <div className="bg-brand-50 text-brand-800 px-3 py-1.5 flex items-center gap-1.5 text-[11px] font-bold border-b border-brand-100">
           <Check className="w-3.5 h-3.5" />
           {so ? 'Dhammaaday' : 'Completed'}
           <span className="ml-auto font-mono">{formatClock(elapsed)}</span>
@@ -166,7 +166,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
           {phone && (
             <a
               href={tel ? `tel:${tel}` : undefined}
-              className="inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-extrabold active:scale-95 transition"
+              className="inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl bg-brand-50 text-brand-800 border border-brand-200 text-xs font-extrabold active:scale-95 transition"
             >
               <Phone className="w-4 h-4" />
               {phone}
@@ -177,7 +177,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
             <button
               type="button"
               onClick={() => onQuickStart(task)}
-              className="ml-auto inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl bg-emerald-700 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
+              className="ml-auto inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl bg-brand-700 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
             >
               <Play className="w-4 h-4" />
               {so ? 'Bilow' : 'Start'}

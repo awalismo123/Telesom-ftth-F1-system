@@ -150,14 +150,14 @@ export function SupervisorShell() {
           the thumb never has to reach for the far edge of a wide screen.
         */}
         <aside className="hidden lg:block w-60 shrink-0 lg:sticky lg:top-20">
-          <div className="rounded-2xl bg-emerald-950 border border-emerald-800/60 p-3 text-white shadow-sm">
+          <div className="rounded-2xl bg-brand-950 border border-brand-800/60 p-3 text-white shadow-sm">
             <div className="flex items-center gap-2 px-2 pt-1 pb-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-400 flex items-center justify-center">
-                <Wifi className="w-4 h-4 text-emerald-950 stroke-[2.5]" aria-hidden="true" />
+              <div className="w-8 h-8 rounded-lg bg-brand-400 flex items-center justify-center">
+                <Wifi className="w-4 h-4 text-brand-950 stroke-[2.5]" aria-hidden="true" />
               </div>
               <div className="leading-tight">
                 <div className="text-xs font-extrabold">Group F1</div>
-                <div className="text-[10px] text-emerald-300/80">{t('supervisorRole')}</div>
+                <div className="text-[10px] text-brand-300/80">{t('supervisorRole')}</div>
               </div>
             </div>
 
@@ -175,8 +175,8 @@ export function SupervisorShell() {
                     className={cx(
                       'w-full min-h-11 flex items-center gap-2.5 px-2.5 rounded-xl text-xs font-bold text-left transition cursor-pointer',
                       active
-                        ? 'bg-emerald-400 text-emerald-950'
-                        : 'text-emerald-100/85 hover:bg-emerald-900 hover:text-white',
+                        ? 'bg-brand-400 text-brand-950'
+                        : 'text-brand-100/85 hover:bg-brand-900 hover:text-white',
                     )}
                   >
                     <span aria-hidden="true">{item.icon}</span>
@@ -185,7 +185,7 @@ export function SupervisorShell() {
                       <span
                         className={cx(
                           'text-[10px] font-extrabold px-1.5 py-0.5 rounded-md',
-                          active ? 'bg-emerald-950/15 text-emerald-950' : 'bg-emerald-900 text-emerald-200',
+                          active ? 'bg-brand-950/15 text-brand-950' : 'bg-brand-900 text-brand-200',
                         )}
                       >
                         {item.badge}
@@ -196,7 +196,7 @@ export function SupervisorShell() {
               })}
             </nav>
 
-            <div className="mt-3 pt-3 border-t border-emerald-800/60 px-2 pb-1 text-[10px] text-emerald-300/60">
+            <div className="mt-3 pt-3 border-t border-brand-800/60 px-2 pb-1 text-[10px] text-brand-300/60">
               {t('deptSubtitle')}
             </div>
           </div>

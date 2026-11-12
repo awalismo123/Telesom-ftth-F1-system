@@ -29,7 +29,7 @@ test('dBm bands follow the field rule (healthy −27 … −8)', () => {
   assert.equal(dbmBand(null), 'none');
   assert.equal(formatDbm(-21.456), '-21.46 dBm');
   assert.equal(formatDbm(null), '—');
-  assert.equal(dbmTone(-20), 'text-emerald-700');
+  assert.equal(dbmTone(-20), 'text-brand-700');
   assert.equal(dbmTone(-30), 'text-amber-700');
 });
 

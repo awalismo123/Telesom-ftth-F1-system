@@ -67,7 +67,7 @@ export function PhotoViewer({
     >
       <div className="bg-white rounded-2xl w-full sm:max-w-lg overflow-hidden max-h-[92vh] flex flex-col">
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100">
-          <Camera className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+          <Camera className="w-4 h-4 text-brand-700" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <div className="text-xs font-extrabold text-slate-900">
               {so ? 'Caddaynta sawirka' : 'Photo proof'}

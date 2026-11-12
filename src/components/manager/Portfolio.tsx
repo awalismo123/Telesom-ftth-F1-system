@@ -40,7 +40,7 @@ const TONE_RING: Record<string, string> = {
 const STATUS_STYLE: Record<string, string> = {
   unassigned: 'bg-slate-100 text-slate-700 border-slate-200',
   assigned: 'bg-sky-50 text-sky-700 border-sky-200',
-  in_progress: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  in_progress: 'bg-brand-50 text-brand-700 border-brand-200',
   blocked: 'bg-amber-50 text-amber-800 border-amber-200',
 };
 
@@ -129,7 +129,7 @@ export function Portfolio() {
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-extrabold text-slate-900 inline-flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+            <Building2 className="w-4 h-4 text-brand-700" aria-hidden="true" />
             {so ? 'Guudmarka kooxaha' : 'Group portfolio'}
           </h2>
           <p className="text-[11px] text-slate-500 mt-0.5">
@@ -148,7 +148,7 @@ export function Portfolio() {
               aria-pressed={days === value}
               className={`h-9 px-2.5 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
                 days === value
-                  ? 'bg-emerald-700 text-white border-emerald-700'
+                  ? 'bg-brand-700 text-white border-brand-700'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
             >
@@ -194,7 +194,7 @@ export function Portfolio() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               {
-                icon: <Building2 className="w-3.5 h-3.5 text-emerald-700" aria-hidden="true" />,
+                icon: <Building2 className="w-3.5 h-3.5 text-brand-700" aria-hidden="true" />,
                 label: so ? 'Kooxo firfircoon' : 'Live groups',
                 value: formatNumber(summary.liveGroups),
                 hint: `${formatNumber(data.groups.length)} ${so ? 'guud' : 'total'}`,
@@ -212,7 +212,7 @@ export function Portfolio() {
                 hint: so ? 'Ballanqaadka la dhaafay' : 'Past the promise',
               },
               {
-                icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" aria-hidden="true" />,
+                icon: <CheckCircle2 className="w-3.5 h-3.5 text-brand-700" aria-hidden="true" />,
                 label: so ? 'Dhammaatay' : 'Completed',
                 value: formatNumber(summary.completed),
                 hint: `${formatNumber(summary.photos)} ${so ? 'sawir' : 'photos'} · ${windowLabel(days, lang)}`,
@@ -263,7 +263,7 @@ export function Portfolio() {
                             ? 'border-rose-200 bg-rose-50 text-rose-700'
                             : tone === 'warn'
                               ? 'border-amber-200 bg-amber-50 text-amber-800'
-                              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-brand-200 bg-brand-50 text-brand-700'
                         }`}
                       >
                         {overdueLabel(group, lang)}
@@ -291,7 +291,7 @@ export function Portfolio() {
                     {/* how much of the open work is late */}
                     <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                       <div
-                        className={tone === 'bad' ? 'h-full bg-rose-500' : 'h-full bg-emerald-600'}
+                        className={tone === 'bad' ? 'h-full bg-rose-500' : 'h-full bg-brand-600'}
                         style={{ width: `${Math.round(overdueShare(group) * 100)}%` }}
                       />
                     </div>

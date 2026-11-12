@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="110 82 270 178" role="img" aria-label="Telesom">
+  <!--
+    Telesom emblem, redrawn as vector from the official raster.
+
+    Not an approximation. The orbits were fitted to the artwork by least squares
+    (blue ring outer: centre 230,172 · 122 × 67 · −28.7°), the disc's centre and
+    radius measured off its widest scanline, and the baseline taken from the
+    bottom of the mark. Radii below are the centreline: the fitted figures less
+    half the stroke. Colours sampled from the logo, not chosen.
+
+    The peak sits in front of the orbit: its apex clears the ring's opening and
+    its base runs along the baseline, over the ring's lower arc.
+  -->
+  <!-- Gold orbit, behind. Visible as the right-hand crescent and the wedge. -->
+  <ellipse cx="237" cy="178" rx="112" ry="56" transform="rotate(-28.7 237 178)"
+           fill="none" stroke="#F8DC09" stroke-width="11.5" />
+  <path d="M300 203 L350 258 L220 258 Z" fill="#F8DC09" />
+
+  <!-- Blue orbit, in front of the apex. -->
+  <ellipse cx="230" cy="172" rx="116" ry="61" transform="rotate(-28.7 230 172)"
+           fill="none" stroke="#313195" stroke-width="11.5" />
+
+  <!-- The peak, in front of the orbit. Apex measured at the top of the mark,
+       base cut flat on the baseline. -->
+  <path d="M250 100 L177 258 L302 258 Z" fill="#313195" />
+
+  <!-- The disc, in front of everything. -->
+  <circle cx="217" cy="181" r="45" fill="#F8DC09" />
+</svg>

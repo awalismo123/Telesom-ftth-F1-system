@@ -312,7 +312,7 @@ export function TeamAndCrewManager() {
             <button
               type="button"
               onClick={openAddMember}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{t('addMember')}</span>
@@ -322,7 +322,7 @@ export function TeamAndCrewManager() {
             <button
               type="button"
               onClick={openAddCrew}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{t('addCrew')}</span>
@@ -335,7 +335,7 @@ export function TeamAndCrewManager() {
                 setFormError(null);
                 setGroupModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{t('addGroup')}</span>
@@ -351,7 +351,7 @@ export function TeamAndCrewManager() {
           onClick={() => setSubTab('members')}
           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
             subTab === 'members'
-              ? 'bg-emerald-900 text-white border-emerald-900 shadow-xs'
+              ? 'bg-brand-900 text-white border-brand-900 shadow-xs'
               : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
           }`}
         >
@@ -366,7 +366,7 @@ export function TeamAndCrewManager() {
           onClick={() => setSubTab('crews')}
           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
             subTab === 'crews'
-              ? 'bg-emerald-900 text-white border-emerald-900 shadow-xs'
+              ? 'bg-brand-900 text-white border-brand-900 shadow-xs'
               : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
           }`}
         >
@@ -381,7 +381,7 @@ export function TeamAndCrewManager() {
           onClick={() => setSubTab('groups')}
           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
             subTab === 'groups'
-              ? 'bg-emerald-900 text-white border-emerald-900 shadow-xs'
+              ? 'bg-brand-900 text-white border-brand-900 shadow-xs'
               : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
           }`}
         >
@@ -444,7 +444,7 @@ export function TeamAndCrewManager() {
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                         m.role === 'supervisor'
                           ? 'bg-amber-100 text-amber-800'
-                          : 'bg-emerald-100 text-emerald-800'
+                          : 'bg-brand-100 text-brand-800'
                       }`}
                     >
                       {m.role === 'supervisor' ? (
@@ -468,7 +468,7 @@ export function TeamAndCrewManager() {
                   <button
                     type="button"
                     onClick={() => openEditMember(m)}
-                    className="p-2 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                    className="p-2 rounded-lg text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
                     title={t('editMember')}
                   >
                     <Edit3 className="w-4 h-4" />
@@ -482,7 +482,7 @@ export function TeamAndCrewManager() {
                       className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
                         m.role === 'supervisor'
                           ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'bg-brand-50 text-brand-800 border border-brand-200'
                       }`}
                     >
                       {m.role === 'supervisor' ? t('supervisorRole') : t('technicianRole')}
@@ -494,7 +494,7 @@ export function TeamAndCrewManager() {
                     {m.phone ? (
                       <a
                         href={`tel:${m.phone.startsWith('0') || m.phone.startsWith('+') ? m.phone : `0${m.phone}`}`}
-                        className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:underline"
+                        className="inline-flex items-center gap-1 font-bold text-brand-700 hover:underline"
                       >
                         <Phone className="w-3 h-3" />
                         <span>{m.phone}</span>
@@ -553,7 +553,7 @@ export function TeamAndCrewManager() {
                       </div>
                       {c.zone_focus && (
                         <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                          <MapPin className="w-3.5 h-3.5 text-brand-600" />
                           <span>{c.zone_focus}</span>
                         </div>
                       )}
@@ -562,7 +562,7 @@ export function TeamAndCrewManager() {
                   <button
                     type="button"
                     onClick={() => openEditCrew(c)}
-                    className="p-2 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                    className="p-2 rounded-lg text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
@@ -582,7 +582,7 @@ export function TeamAndCrewManager() {
                           className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/70"
                         >
                           <div className="flex items-center gap-2">
-                            <Wrench className="w-3.5 h-3.5 text-emerald-700" />
+                            <Wrench className="w-3.5 h-3.5 text-brand-700" />
                             <span className="text-xs font-bold text-slate-800">
                               {tech.full_name}
                             </span>
@@ -590,7 +590,7 @@ export function TeamAndCrewManager() {
                           {tech.phone && (
                             <a
                               href={`tel:0${tech.phone.replace(/^0/, '')}`}
-                              className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                              className="text-xs font-semibold text-brand-700 hover:underline flex items-center gap-1"
                             >
                               <Phone className="w-3 h-3" />
                               <span>{tech.phone}</span>
@@ -611,17 +611,17 @@ export function TeamAndCrewManager() {
             <div
               key={g.id}
               className={`rounded-2xl border p-5 bg-white shadow-xs flex flex-col justify-between gap-4 ${
-                g.is_active ? 'border-emerald-300 ring-1 ring-emerald-500/20' : 'border-slate-200'
+                g.is_active ? 'border-brand-300 ring-1 ring-brand-500/20' : 'border-slate-200'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-950 text-emerald-300">
+                  <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-brand-950 text-brand-300">
                     Group {g.code}
                   </span>
                   <span
                     className={`inline-flex items-center gap-1 text-xs font-bold ${
-                      g.is_active ? 'text-emerald-700' : 'text-slate-500'
+                      g.is_active ? 'text-brand-700' : 'text-slate-500'
                     }`}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -641,13 +641,13 @@ export function TeamAndCrewManager() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                       g.is_active
                         ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200'
                     }`}
                   >
                     {g.is_active ? t('deactivate') : t('activateGroup', { code: g.code })}
                   </button>
                 ) : (
-                  <span className="text-[11px] font-bold text-emerald-700">{t('primaryTeam')}</span>
+                  <span className="text-[11px] font-bold text-brand-700">{t('primaryTeam')}</span>
                 )}
               </div>
             </div>
@@ -689,7 +689,7 @@ export function TeamAndCrewManager() {
                   value={mFullName}
                   onChange={(e) => setMFullName(e.target.value)}
                   placeholder={t('memberNamePlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
@@ -704,7 +704,7 @@ export function TeamAndCrewManager() {
                     value={mUsername}
                     onChange={(e) => setMUsername(e.target.value)}
                     placeholder="e.g. cabdi"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-600"
                   />
                 </div>
                 <div>
@@ -716,7 +716,7 @@ export function TeamAndCrewManager() {
                     value={mPhone}
                     onChange={(e) => setMPhone(e.target.value)}
                     placeholder="63X XXX XXX"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-600"
                   />
                 </div>
               </div>
@@ -727,7 +727,7 @@ export function TeamAndCrewManager() {
                   <select
                     value={mRole}
                     onChange={(e) => setMRole(e.target.value as UserRole)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-brand-600"
                   >
                     <option value="technician">{t('technicianRole')}</option>
                     <option value="supervisor">{t('supervisorRole')}</option>
@@ -739,7 +739,7 @@ export function TeamAndCrewManager() {
                   <select
                     value={mActive ? 'active' : 'inactive'}
                     onChange={(e) => setMActive(e.target.value === 'active')}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-brand-600"
                   >
                     <option value="active">{t('statusActive')}</option>
                     <option value="inactive">{t('statusInactive')}</option>
@@ -759,7 +759,7 @@ export function TeamAndCrewManager() {
                   value={mPin}
                   onChange={(e) => setMPin(e.target.value.replace(/\D/g, ''))}
                   placeholder={editingMember ? '•••• (unchanged)' : '1111'}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
@@ -774,7 +774,7 @@ export function TeamAndCrewManager() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? '...' : t('saveChanges')}
                 </button>
@@ -819,7 +819,7 @@ export function TeamAndCrewManager() {
                     value={cName}
                     onChange={(e) => setCName(e.target.value)}
                     placeholder="F1 - Crew A"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-600"
                   />
                 </div>
                 <div>
@@ -831,7 +831,7 @@ export function TeamAndCrewManager() {
                     value={cVehicle}
                     onChange={(e) => setCVehicle(e.target.value)}
                     placeholder="Gaadhi 01"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-600"
                   />
                 </div>
               </div>
@@ -845,7 +845,7 @@ export function TeamAndCrewManager() {
                   value={cZone}
                   onChange={(e) => setCZone(e.target.value)}
                   placeholder={t('crewZonePlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
@@ -861,7 +861,7 @@ export function TeamAndCrewManager() {
                         key={tech.id}
                         className={`flex items-center justify-between p-2 rounded-lg border text-xs font-semibold cursor-pointer transition ${
                           checked
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                            ? 'bg-brand-50 border-brand-300 text-brand-900'
                             : 'bg-white border-slate-200 text-slate-700'
                         }`}
                       >
@@ -870,7 +870,7 @@ export function TeamAndCrewManager() {
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleCrewMemberSelection(tech.id)}
-                            className="rounded text-emerald-600 focus:ring-emerald-500"
+                            className="rounded text-brand-600 focus:ring-brand-500"
                           />
                           <span>{tech.full_name}</span>
                         </div>
@@ -892,7 +892,7 @@ export function TeamAndCrewManager() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? '...' : t('saveChanges')}
                 </button>
@@ -965,7 +965,7 @@ export function TeamAndCrewManager() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-700 text-white cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brand-700 text-white cursor-pointer"
                 >
                   {saving ? '...' : t('saveChanges')}
                 </button>

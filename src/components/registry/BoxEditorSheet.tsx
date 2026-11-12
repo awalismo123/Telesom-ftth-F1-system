@@ -119,7 +119,7 @@ export function BoxEditorSheet({
       size="md"
       title={
         <span className="flex items-center gap-2">
-          <Server className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+          <Server className="w-4 h-4 text-brand-700" aria-hidden="true" />
           {editing
             ? so
               ? 'Wax ka beddel sanduuqa'

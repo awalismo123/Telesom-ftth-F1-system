@@ -119,7 +119,7 @@ export function SearchPalette({
       size="lg"
       title={
         <span className="flex items-center gap-2">
-          <Search className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+          <Search className="w-4 h-4 text-brand-700" aria-hidden="true" />
           {so ? 'Raadi' : 'Search'}
         </span>
       }
@@ -138,7 +138,7 @@ export function SearchPalette({
           inputSize="lg"
           autoFocus
           leadingIcon={<Search className="w-4 h-4" />}
-          aside={loading ? <Loader2 className="w-4 h-4 animate-spin text-emerald-700" /> : null}
+          aside={loading ? <Loader2 className="w-4 h-4 animate-spin text-brand-700" /> : null}
         />
 
         {error && <p className="text-[11px] font-semibold text-rose-600">{error}</p>}
@@ -170,8 +170,8 @@ export function SearchPalette({
                     className={cx(
                       'w-full text-left rounded-xl border px-3 py-2 transition cursor-pointer',
                       active === index
-                        ? 'border-emerald-400 bg-emerald-50'
-                        : 'border-slate-200 bg-white hover:border-emerald-300',
+                        ? 'border-brand-400 bg-brand-50'
+                        : 'border-slate-200 bg-white hover:border-brand-300',
                     )}
                   >
                     <div className="flex items-center gap-2 flex-wrap">
@@ -235,12 +235,12 @@ export function SearchPalette({
                       className={cx(
                         'w-full text-left rounded-xl border px-3 py-2 transition cursor-pointer',
                         active === rowIndex
-                          ? 'border-emerald-400 bg-emerald-50'
-                          : 'border-slate-200 bg-white hover:border-emerald-300',
+                          ? 'border-brand-400 bg-brand-50'
+                          : 'border-slate-200 bg-white hover:border-brand-300',
                       )}
                     >
                       <div className="flex items-center gap-2">
-                        <Server className="w-3.5 h-3.5 text-emerald-700" />
+                        <Server className="w-3.5 h-3.5 text-brand-700" />
                         <span className="text-[12px] font-extrabold text-slate-900">{hit.box_code}</span>
                         <span className="text-[10px] font-bold text-slate-500">
                           {countLabel(hit.total_ports, 'ports', lang)}

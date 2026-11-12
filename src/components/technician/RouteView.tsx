@@ -227,7 +227,7 @@ export function RouteView({
           <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
             {so ? 'Maanta' : 'Done today'}
           </div>
-          <div className="text-2xl font-extrabold text-emerald-700">{stats.doneToday}</div>
+          <div className="text-2xl font-extrabold text-brand-700">{stats.doneToday}</div>
         </div>
       </div>
 
@@ -249,7 +249,7 @@ export function RouteView({
           <RouteIcon className="w-3.5 h-3.5" />
           {so ? 'Jidkayga maanta' : 'My route today'}
           {stats.running > 0 && (
-            <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
+            <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-100 text-brand-800 text-[10px] font-extrabold">
               <Timer className="w-3 h-3" />
               {stats.running}
             </span>
@@ -267,7 +267,7 @@ export function RouteView({
 
       {loading && tasks.length === 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-          <Loader2 className="w-6 h-6 text-emerald-700 animate-spin mx-auto mb-2" />
+          <Loader2 className="w-6 h-6 text-brand-700 animate-spin mx-auto mb-2" />
           <p className="text-xs text-slate-500">{so ? 'Jidkaaga waa la soo dejinayaa…' : 'Loading your route…'}</p>
         </div>
       )}
@@ -290,7 +290,7 @@ export function RouteView({
       {sections.map((section) => (
         <div key={section.key} className="space-y-2">
           <div className="flex items-center gap-1.5 px-1 pt-1">
-            <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+            <MapPin className="w-3.5 h-3.5 text-brand-700" />
             <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-600">
               {section.label}
             </span>
@@ -346,10 +346,10 @@ export function RouteView({
 
       {/* running timers summary, always visible at the bottom of the list */}
       {stats.running > 0 && (
-        <div className="rounded-2xl bg-emerald-950 text-white p-3 flex items-center gap-3">
-          <Timer className="w-5 h-5 text-emerald-300 shrink-0" />
+        <div className="rounded-2xl bg-brand-950 text-white p-3 flex items-center gap-3">
+          <Timer className="w-5 h-5 text-brand-300 shrink-0" />
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold text-emerald-200">
+            <div className="text-[11px] font-bold text-brand-200">
               {stats.running === 1
                 ? so
                   ? '1 shaqo ayaa socota'
@@ -358,7 +358,7 @@ export function RouteView({
                   ? `${stats.running} shaqo ayaa socda`
                   : `${stats.running} jobs running`}
             </div>
-            <div className="text-[10px] text-emerald-300/80 font-mono">
+            <div className="text-[10px] text-brand-300/80 font-mono">
               {tasks
                 .filter((task) => task.status === 'in_progress')
                 .map((task) => `${task.line_number} ${formatClock(elapsedSeconds(task, nowMs))}`)

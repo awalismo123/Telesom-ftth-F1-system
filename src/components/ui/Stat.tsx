@@ -25,7 +25,7 @@ export function Stat({
   className?: string;
 }) {
   const tones = {
-    emerald: 'text-emerald-600',
+    emerald: 'text-brand-600',
     sky: 'text-sky-600',
     amber: 'text-amber-600',
     violet: 'text-violet-600',
@@ -53,7 +53,7 @@ export function Stat({
         onClick={onClick}
         className={cx(
           'text-left w-full rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs',
-          'hover:border-emerald-300 hover:shadow-sm transition cursor-pointer',
+          'hover:border-brand-300 hover:shadow-sm transition cursor-pointer',
           className,
         )}
       >

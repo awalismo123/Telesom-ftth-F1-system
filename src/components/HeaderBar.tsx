@@ -45,13 +45,13 @@ function IdentityChip({ compact = false }: { compact?: boolean }) {
 
   return (
     <div
-      className={`flex items-center gap-2 px-2 py-1 rounded-lg bg-emerald-900/60 border border-emerald-800/80 min-w-0 ${
+      className={`flex items-center gap-2 px-2 py-1 rounded-lg bg-brand-900/60 border border-brand-800/80 min-w-0 ${
         compact ? '' : 'md:px-3 md:py-1.5'
       }`}
       title={`${session.user.full_name} — ${roleLabel}`}
     >
       <span
-        className="w-6 h-6 md:w-7 md:h-7 rounded-md bg-emerald-400/15 border border-emerald-400/30 text-emerald-200 text-[10px] font-extrabold flex items-center justify-center shrink-0"
+        className="w-6 h-6 md:w-7 md:h-7 rounded-md bg-brand-400/15 border border-brand-400/30 text-brand-200 text-[10px] font-extrabold flex items-center justify-center shrink-0"
         aria-hidden="true"
       >
         {initials(session.user.full_name)}
@@ -60,11 +60,11 @@ function IdentityChip({ compact = false }: { compact?: boolean }) {
         <div className="text-[11px] md:text-xs font-semibold text-white truncate max-w-[104px] md:max-w-[150px]">
           {session.user.full_name}
         </div>
-        <div className="text-[10px] md:text-[10px] text-emerald-300/90 truncate max-w-[104px] md:max-w-[150px] flex items-center gap-1">
+        <div className="text-[10px] md:text-[10px] text-brand-300/90 truncate max-w-[104px] md:max-w-[150px] flex items-center gap-1">
           {supervisor || manager ? (
             <ShieldCheck className="w-3 h-3 text-amber-300 shrink-0" />
           ) : (
-            <Wrench className="w-3 h-3 text-emerald-300 shrink-0" />
+            <Wrench className="w-3 h-3 text-brand-300 shrink-0" />
           )}
           <span className="truncate">{roleLabel}</span>
         </div>
@@ -167,7 +167,7 @@ export function HeaderBar() {
         setPinSuccess(false);
         setShowPinModal(true);
       }}
-      className="p-2 rounded-lg bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 hover:text-white border border-emerald-800 transition cursor-pointer"
+      className="p-2 rounded-lg bg-brand-900/80 hover:bg-brand-800 text-brand-200 hover:text-white border border-brand-800 transition cursor-pointer"
       title={t('changePin')}
       aria-label={t('changePin')}
     >
@@ -192,12 +192,12 @@ export function HeaderBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-emerald-950 text-white border-b border-emerald-800/80 shadow-sm">
+      <header className="sticky top-0 z-30 bg-brand-950 text-white border-b border-brand-800/80 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
           {/* Left Brand + Group Badge */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-inner shrink-0">
-              <Wifi className="w-5 h-5 text-emerald-950 stroke-[2.5]" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-teal-600 flex items-center justify-center shadow-inner shrink-0">
+              <Wifi className="w-5 h-5 text-brand-950 stroke-[2.5]" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -210,7 +210,7 @@ export function HeaderBar() {
                       aria-label={t('selectActiveGroup')}
                       value={activeGroup?.id || ''}
                       onChange={(e) => setActiveGroupById(e.target.value)}
-                      className="appearance-none bg-emerald-800/90 hover:bg-emerald-700 text-emerald-100 text-xs font-bold pl-2.5 pr-6 py-1 rounded-full border border-emerald-600 cursor-pointer focus:outline-none"
+                      className="appearance-none bg-brand-800/90 hover:bg-brand-700 text-brand-100 text-xs font-bold pl-2.5 pr-6 py-1 rounded-full border border-brand-600 cursor-pointer focus:outline-none"
                     >
                       {activeGroupsList.map((g) => (
                         <option key={g.id} value={g.id} className="bg-slate-900 text-white">
@@ -218,19 +218,19 @@ export function HeaderBar() {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-emerald-300 absolute right-1.5 pointer-events-none" />
+                    <ChevronDown className="w-3.5 h-3.5 text-brand-300 absolute right-1.5 pointer-events-none" />
                   </div>
                 ) : isManager ? (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 shrink-0">
                     {lang === 'so' ? 'Dhammaan kooxaha' : 'All groups'}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/40 shrink-0">
                     Group {activeGroup?.code || 'F1'}
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-emerald-300/80 truncate hidden sm:block">
+              <p className="text-[11px] text-brand-300/80 truncate hidden sm:block">
                 {t('deptSubtitle')}
               </p>
             </div>
@@ -241,11 +241,11 @@ export function HeaderBar() {
             <button
               type="button"
               onClick={handleToggleLanguage}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-900/90 hover:bg-emerald-800 border border-emerald-700/80 text-xs font-semibold text-emerald-100 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-900/90 hover:bg-brand-800 border border-brand-700/80 text-xs font-semibold text-brand-100 transition cursor-pointer"
               title={t('switchLanguage')}
               aria-label={t('switchLanguage')}
             >
-              <Globe className="w-3.5 h-3.5 text-emerald-300" />
+              <Globe className="w-3.5 h-3.5 text-brand-300" />
               <span>{lang === 'so' ? 'SO' : 'EN'}</span>
             </button>
 
@@ -254,7 +254,7 @@ export function HeaderBar() {
                 <button
                   type="button"
                   onClick={() => setSearchOpen(true)}
-                  className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100 hover:bg-emerald-800 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-brand-900/60 border border-brand-800/80 text-brand-100 hover:bg-brand-800 transition cursor-pointer"
                   title={lang === 'so' ? 'Raadi (⌘K)' : 'Search (⌘K)'}
                   aria-label={lang === 'so' ? 'Raadi' : 'Search'}
                 >
@@ -262,7 +262,7 @@ export function HeaderBar() {
                   <span className="hidden lg:inline text-[11px] font-semibold">
                     {lang === 'so' ? 'Raadi' : 'Search'}
                   </span>
-                  <kbd className="hidden lg:inline text-[10px] font-bold text-emerald-300/70 border border-emerald-700 rounded px-1">
+                  <kbd className="hidden lg:inline text-[10px] font-bold text-brand-300/70 border border-brand-700 rounded px-1">
                     ⌘K
                   </kbd>
                 </button>
@@ -283,7 +283,7 @@ export function HeaderBar() {
           Phone row. A technician on a 360 px screen must still be able to see
           whose session this is before touching a customer's job.
         */}
-        <div className="md:hidden border-t border-emerald-800/70 bg-emerald-900/30">
+        <div className="md:hidden border-t border-brand-800/70 bg-brand-900/30">
           <div className="px-3 h-12 flex items-center justify-between gap-2">
             <IdentityChip compact />
             <div className="flex items-center gap-1.5 shrink-0">
@@ -292,7 +292,7 @@ export function HeaderBar() {
                   <button
                     type="button"
                     onClick={() => setSearchOpen(true)}
-                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100"
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-900/60 border border-brand-800/80 text-brand-100"
                     aria-label={lang === 'so' ? 'Raadi' : 'Search'}
                   >
                     <Search className="w-4 h-4" />
@@ -328,7 +328,7 @@ export function HeaderBar() {
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
             <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-emerald-700" />
+                <KeyRound className="w-4 h-4 text-brand-700" />
                 <h3 className="font-bold text-slate-900 text-sm">{t('changePin')}</h3>
               </div>
               <button
@@ -348,7 +348,7 @@ export function HeaderBar() {
                 </div>
               )}
               {pinSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{t('pinUpdated')}</span>
                 </div>
@@ -365,7 +365,7 @@ export function HeaderBar() {
                   required
                   value={currentPin}
                   onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-center tracking-[0.4em] font-bold text-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-center tracking-[0.4em] font-bold text-lg focus:outline-none focus:ring-2 focus:ring-brand-600"
                   placeholder="••••"
                 />
               </div>
@@ -381,7 +381,7 @@ export function HeaderBar() {
                   required
                   value={newPin}
                   onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-center tracking-[0.4em] font-bold text-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-center tracking-[0.4em] font-bold text-lg focus:outline-none focus:ring-2 focus:ring-brand-600"
                   placeholder="••••"
                 />
               </div>
@@ -397,7 +397,7 @@ export function HeaderBar() {
                 <button
                   type="submit"
                   disabled={savingPin || currentPin.length < 4 || newPin.length < 4}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-700 hover:bg-brand-800 text-white disabled:opacity-50 cursor-pointer"
                 >
                   {savingPin ? '...' : t('saveChanges')}
                 </button>

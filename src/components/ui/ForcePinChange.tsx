@@ -51,14 +51,14 @@ export function ForcePinChange() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-        <div className="bg-emerald-950 px-6 py-5 text-center">
-          <div className="mx-auto w-11 h-11 rounded-2xl bg-emerald-800 text-emerald-200 flex items-center justify-center">
+        <div className="bg-brand-950 px-6 py-5 text-center">
+          <div className="mx-auto w-11 h-11 rounded-2xl bg-brand-800 text-brand-200 flex items-center justify-center">
             <ShieldCheck className="w-5 h-5" aria-hidden="true" />
           </div>
           <h1 className="mt-3 text-base font-extrabold text-white">
             {so ? 'Dooro PIN-kaaga' : 'Choose your own PIN'}
           </h1>
-          <p className="mt-1 text-[11px] text-emerald-200/90 leading-relaxed">
+          <p className="mt-1 text-[11px] text-brand-200/90 leading-relaxed">
             {so
               ? 'Akoonkaaga wali wuxuu isticmaalayaa PIN-ka waaxdu ku siisay. Beddel si shaqadaada loo aqoonsado adiga oo kaliya.'
               : 'This account is still using the PIN the department set. Change it so the record of your work belongs to you.'}

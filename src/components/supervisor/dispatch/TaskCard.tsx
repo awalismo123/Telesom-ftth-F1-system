@@ -49,8 +49,8 @@ export function TaskCard({
     <div
       className={`group rounded-xl border transition ${
         selected
-          ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-400'
-          : 'border-slate-200 bg-white hover:border-emerald-300'
+          ? 'border-brand-500 bg-brand-50/60 ring-1 ring-brand-400'
+          : 'border-slate-200 bg-white hover:border-brand-300'
       } ${compact ? 'p-2.5' : 'p-3'}`}
     >
       <div className="flex items-start gap-2.5">
@@ -61,8 +61,8 @@ export function TaskCard({
             aria-pressed={selected}
             className={`mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
               selected
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-white border-slate-300 hover:border-emerald-500'
+                ? 'bg-brand-700 border-brand-700 text-white'
+                : 'bg-white border-slate-300 hover:border-brand-500'
             }`}
           >
             {selected && (
@@ -127,7 +127,7 @@ export function TaskCard({
             {phone && (
               <a
                 href={tel ? `tel:${tel}` : undefined}
-                className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-semibold"
+                className="inline-flex items-center gap-1 text-brand-700 hover:text-brand-900 font-semibold"
               >
                 <Phone className="w-3 h-3" />
                 {phone}
@@ -151,7 +151,7 @@ export function TaskCard({
                 onClick={onActions}
                 title={actionsLabel}
                 aria-label={actionsLabel}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
               >
                 <MoreVertical className="w-3.5 h-3.5" />
               </button>

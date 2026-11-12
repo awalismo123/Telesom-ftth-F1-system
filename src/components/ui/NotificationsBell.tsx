@@ -41,7 +41,7 @@ const TIME = (iso: string | null): string => {
 const TONE_DOT: Record<OpsNotification['tone'], string> = {
   rose: 'bg-rose-500',
   amber: 'bg-amber-500',
-  emerald: 'bg-emerald-500',
+  emerald: 'bg-brand-500',
   sky: 'bg-sky-500',
 };
 
@@ -166,7 +166,7 @@ export function NotificationsBell({
         type="button"
         onClick={openSheet}
         className={cx(
-          'relative inline-flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-900/60 border border-emerald-800/80 text-emerald-100 hover:bg-emerald-800 transition cursor-pointer',
+          'relative inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-900/60 border border-brand-800/80 text-brand-100 hover:bg-brand-800 transition cursor-pointer',
           className,
         )}
         aria-label={
@@ -212,7 +212,7 @@ export function NotificationsBell({
 
         {!loading && items.length === 0 && (
           <div className="py-10 text-center">
-            <CheckCheck className="w-8 h-8 text-emerald-600 mx-auto" aria-hidden="true" />
+            <CheckCheck className="w-8 h-8 text-brand-600 mx-auto" aria-hidden="true" />
             <p className="mt-2 text-[13px] font-bold text-slate-900">
               {so ? 'Waxba sugaya ma jiro' : 'Nothing needs you right now'}
             </p>
@@ -236,7 +236,7 @@ export function NotificationsBell({
                 <button
                   type="button"
                   onClick={() => pick(item)}
-                  className="w-full text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-300 px-3 py-2.5 transition cursor-pointer"
+                  className="w-full text-left rounded-xl border border-slate-200 bg-white hover:border-brand-300 px-3 py-2.5 transition cursor-pointer"
                 >
                   <div className="flex items-start gap-2.5">
                     <span className={cx('mt-1.5 w-2 h-2 rounded-full shrink-0', TONE_DOT[item.tone])} aria-hidden="true" />
@@ -245,7 +245,7 @@ export function NotificationsBell({
                         <span className="text-[12px] font-extrabold text-slate-900">
                           {item.title}
                           {isNew && (
-                            <span className="ml-1.5 text-[10px] font-extrabold text-emerald-700 uppercase">
+                            <span className="ml-1.5 text-[10px] font-extrabold text-brand-700 uppercase">
                               {so ? 'cusub' : 'new'}
                             </span>
                           )}

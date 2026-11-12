@@ -27,9 +27,9 @@ const TONES: Record<AlertTone, { wrap: string; icon: string; title: string }> = 
     title: 'text-sky-950',
   },
   success: {
-    wrap: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-    icon: 'text-emerald-600',
-    title: 'text-emerald-950',
+    wrap: 'bg-brand-50 border-brand-200 text-brand-900',
+    icon: 'text-brand-600',
+    title: 'text-brand-950',
   },
   warning: {
     wrap: 'bg-amber-50 border-amber-200 text-amber-900',

@@ -179,7 +179,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged, onEd
         <div className="overflow-y-auto px-4 py-3 space-y-3">
           {loading && !detail && (
             <div className="py-10 text-center">
-              <Loader2 className="w-6 h-6 text-emerald-700 animate-spin mx-auto mb-2" />
+              <Loader2 className="w-6 h-6 text-brand-700 animate-spin mx-auto mb-2" />
               <p className="text-xs text-slate-500">{so ? 'Waa la soo dejinayaa…' : 'Loading…'}</p>
             </div>
           )}
@@ -288,7 +288,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged, onEd
                               ? 'bg-rose-500'
                               : incident.event_type === 'box_full'
                                 ? 'bg-amber-500'
-                                : 'bg-emerald-500'
+                                : 'bg-brand-500'
                           }`}
                         />
                         <div className="min-w-0 flex-1">
@@ -300,7 +300,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged, onEd
                               </span>
                             )}
                             {incident.optical_dbm !== null && (
-                              <span className="ml-1 font-mono font-normal text-emerald-700">
+                              <span className="ml-1 font-mono font-normal text-brand-700">
                                 {formatDbm(incident.optical_dbm)}
                               </span>
                             )}
@@ -347,7 +347,7 @@ export function BoxSheet({ boxId, token, lang, canEdit, onClose, onChanged, onEd
                           <span
                             className={`text-[10px] font-extrabold px-1 rounded ${
                               job.status === 'completed'
-                                ? 'bg-emerald-50 text-emerald-700'
+                                ? 'bg-brand-50 text-brand-700'
                                 : job.status === 'cancelled'
                                   ? 'bg-slate-100 text-slate-600'
                                   : 'bg-amber-50 text-amber-700'

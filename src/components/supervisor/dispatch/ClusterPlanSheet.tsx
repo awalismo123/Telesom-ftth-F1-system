@@ -71,7 +71,7 @@ export function ClusterPlanSheet({ open, onClose, plan, targets, busy, onApply }
       onClose={onClose}
       title={
         <span className="inline-flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+          <Sparkles className="w-4 h-4 text-brand-700" aria-hidden="true" />
           {t('dispatchPlanTitle')}
         </span>
       }
@@ -116,13 +116,13 @@ export function ClusterPlanSheet({ open, onClose, plan, targets, busy, onApply }
                   onClick={() => toggle(row.cluster.id)}
                   className={`w-full text-left rounded-2xl border p-2.5 transition flex items-start gap-2.5 cursor-pointer ${
                     checked
-                      ? 'border-emerald-300 bg-emerald-50/40'
+                      ? 'border-brand-300 bg-brand-50/40'
                       : 'border-slate-200 bg-white opacity-60'
                   }`}
                 >
                   <span
                     className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
-                      checked ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-slate-300'
+                      checked ? 'bg-brand-700 border-brand-700 text-white' : 'bg-white border-slate-300'
                     }`}
                   >
                     {checked && <Check className="w-3 h-3" />}
@@ -151,7 +151,7 @@ export function ClusterPlanSheet({ open, onClose, plan, targets, busy, onApply }
 
                     <span className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
                       {row.target.kind === 'crew' ? (
-                        <Truck className="w-3 h-3 text-emerald-700" />
+                        <Truck className="w-3 h-3 text-brand-700" />
                       ) : (
                         <User className="w-3 h-3 text-sky-700" />
                       )}

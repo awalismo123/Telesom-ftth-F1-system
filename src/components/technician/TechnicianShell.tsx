@@ -120,13 +120,13 @@ export function TechnicianShell() {
               className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Wrench className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
+                <Wrench className="w-4 h-4 text-brand-700 shrink-0" aria-hidden="true" />
                 <span className="text-xs font-bold text-slate-800 truncate">{partner.full_name}</span>
               </div>
               {partner.phone && (
                 <a
                   href={`tel:0${partner.phone.replace(/^0/, '')}`}
-                  className="shrink-0 inline-flex items-center gap-1 min-h-11 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold"
+                  className="shrink-0 inline-flex items-center gap-1 min-h-11 px-2.5 rounded-lg bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold"
                 >
                   <Phone className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>{t('call')}</span>
@@ -146,27 +146,27 @@ export function TechnicianShell() {
   return (
     <div className="mx-auto w-full max-w-md md:max-w-5xl px-3 md:px-6 pt-4 pb-28 md:pb-8">
       {/* Identity banner: who am I, which group, which crew. */}
-      <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 text-white rounded-2xl p-4 shadow-md print-block">
+      <div className="bg-gradient-to-br from-brand-900 to-brand-950 text-white rounded-2xl p-4 shadow-md print-block">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">
+            <div className="text-[11px] font-bold text-brand-300 uppercase tracking-wider">
               Group {activeGroup?.code} • {t('technicianRole')}
             </div>
             <h2 className="text-base font-extrabold mt-0.5 truncate">{session.user.full_name}</h2>
           </div>
           {activeCrew && (
             <div className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15 text-right shrink-0">
-              <div className="text-xs font-extrabold text-emerald-200">{activeCrew.name}</div>
+              <div className="text-xs font-extrabold text-brand-200">{activeCrew.name}</div>
               {activeCrew.vehicle_tag && (
-                <div className="text-[10px] text-emerald-300/80">{activeCrew.vehicle_tag}</div>
+                <div className="text-[10px] text-brand-300/80">{activeCrew.vehicle_tag}</div>
               )}
             </div>
           )}
         </div>
 
         {activeCrew?.zone_focus && (
-          <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center gap-1.5 text-xs text-emerald-200">
-            <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" aria-hidden="true" />
+          <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center gap-1.5 text-xs text-brand-200">
+            <MapPin className="w-3.5 h-3.5 text-brand-400 shrink-0" aria-hidden="true" />
             <span>{activeCrew.zone_focus}</span>
           </div>
         )}
@@ -255,7 +255,7 @@ export function TechnicianShell() {
                 aria-current={active ? 'page' : undefined}
                 className={cx(
                   'min-h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-bold cursor-pointer transition',
-                  active ? 'text-emerald-700' : 'text-slate-500 hover:text-slate-600',
+                  active ? 'text-brand-700' : 'text-slate-500 hover:text-slate-600',
                 )}
               >
                 <span aria-hidden="true">{item.icon}</span>

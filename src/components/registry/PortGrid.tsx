@@ -141,7 +141,7 @@ export function PortGrid({ ports, totalPorts, lang, canEdit, onSave }: Props) {
                   ? 'Qoraal (ikhtiyaari)'
                   : 'Note (optional)'
             }
-            className="w-full h-9 rounded-xl border border-slate-200 px-2.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            className="w-full h-9 rounded-xl border border-slate-200 px-2.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-brand-600"
           />
 
           {error && <p className="text-[10px] font-semibold text-rose-700">{error}</p>}
@@ -150,7 +150,7 @@ export function PortGrid({ ports, totalPorts, lang, canEdit, onSave }: Props) {
             type="button"
             onClick={() => void handleSave()}
             disabled={saving || status === (active?.status ?? 'unknown')}
-            className="w-full h-9 rounded-xl bg-emerald-700 text-white text-[11px] font-extrabold disabled:opacity-40 cursor-pointer inline-flex items-center justify-center gap-1.5"
+            className="w-full h-9 rounded-xl bg-brand-700 text-white text-[11px] font-extrabold disabled:opacity-40 cursor-pointer inline-flex items-center justify-center gap-1.5"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             {so ? 'Kaydi' : 'Save port'}

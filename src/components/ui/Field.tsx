@@ -13,7 +13,7 @@ const CONTROL =
   'w-full rounded-xl border bg-white text-slate-900 placeholder:text-slate-500 transition ' +
   'focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500';
 
-const OK = 'border-slate-300 focus:border-emerald-600 focus:ring-emerald-600/25';
+const OK = 'border-slate-300 focus:border-brand-600 focus:ring-brand-600/25';
 const BAD = 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/25';
 
 interface FieldShell {

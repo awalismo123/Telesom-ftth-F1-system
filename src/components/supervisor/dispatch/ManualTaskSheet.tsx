@@ -108,7 +108,7 @@ export function ManualTaskSheet({
       size="md"
       title={
         <span className="flex items-center gap-2">
-          <Phone className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+          <Phone className="w-4 h-4 text-brand-700" aria-hidden="true" />
           {so ? 'Shaqo telefoon ku timid' : 'Phone-in job'}
         </span>
       }

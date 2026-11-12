@@ -406,7 +406,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
             {task.customer_phone && (
               <a
                 href={`tel:${formatPhoneE164(task.customer_phone)}`}
-                className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-emerald-700 text-white text-sm font-extrabold active:scale-95 transition"
+                className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-brand-700 text-white text-sm font-extrabold active:scale-95 transition"
               >
                 <Phone className="w-4 h-4" />
                 {formatPhoneLocal(task.customer_phone)}
@@ -414,7 +414,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
             )}
             {task.speed_plan && (
               <div className="inline-flex items-center gap-1.5 px-3 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700">
-                <Signal className="w-3.5 h-3.5 text-emerald-700" />
+                <Signal className="w-3.5 h-3.5 text-brand-700" />
                 {task.speed_plan}
               </div>
             )}
@@ -449,7 +449,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               className="w-full inline-flex items-center justify-between gap-2 px-3 min-h-11 rounded-2xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 active:scale-[0.99] transition cursor-pointer"
             >
               <span className="inline-flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                <MapPin className="w-3.5 h-3.5 text-brand-700" />
                 {so ? 'Taariikhda sanduuqa' : 'Box history'}
                 <span className="font-mono text-slate-500">{task.cablebox_code_raw}</span>
               </span>
@@ -460,12 +460,12 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
           {/* timer */}
           <div
             className={`rounded-2xl p-4 text-center ${
-              running ? 'bg-emerald-950 text-white' : 'bg-white border border-slate-200'
+              running ? 'bg-brand-950 text-white' : 'bg-white border border-slate-200'
             }`}
           >
             <div
               className={`text-[10px] font-bold uppercase tracking-widest ${
-                running ? 'text-emerald-300' : 'text-slate-500'
+                running ? 'text-brand-300' : 'text-slate-500'
               }`}
             >
               {completed
@@ -497,7 +497,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               <div className="mt-1 text-[11px] text-slate-500 italic">“{task.blocker_notes}”</div>
             )}
             {completed && task.optical_dbm !== null && (
-              <div className="mt-1 text-[11px] font-bold text-emerald-700">
+              <div className="mt-1 text-[11px] font-bold text-brand-700">
                 {Number(task.optical_dbm).toFixed(2)} dBm
               </div>
             )}
@@ -511,10 +511,10 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
 
           {/* success */}
           {done && (
-            <div className="rounded-2xl bg-emerald-600 text-white p-4 text-center space-y-1">
+            <div className="rounded-2xl bg-brand-700 text-white p-4 text-center space-y-1">
               <CheckCheck className="w-7 h-7 mx-auto" />
               <div className="text-sm font-extrabold">{so ? 'Shaqadu waa dhammaatay' : 'Job completed'}</div>
-              <div className="text-[11px] text-emerald-100">
+              <div className="text-[11px] text-brand-100">
                 {so ? 'Waqti' : 'Duration'} {formatClock(done.duration_seconds)} ·{' '}
                 {done.optical_dbm.toFixed(2)} dBm
               </div>
@@ -531,13 +531,13 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                   <div className="font-bold">
                     {so ? 'Sawirka lama dirin — shaqadu way dhammaatay.' : 'Photo not uploaded — the job is still complete.'}
                   </div>
-                  {photoError && <div className="mt-0.5 text-emerald-100">{photoError}</div>}
+                  {photoError && <div className="mt-0.5 text-brand-100">{photoError}</div>}
                   {photo && (
                     <button
                       type="button"
                       onClick={() => void sendPhoto(photo, done.task_id)}
                       disabled={photoBusy}
-                      className="mt-1 min-h-11 px-3 rounded-lg bg-white text-emerald-800 text-[10px] font-extrabold cursor-pointer"
+                      className="mt-1 min-h-11 px-3 rounded-lg bg-white text-brand-800 text-[10px] font-extrabold cursor-pointer"
                     >
                       {so ? 'Dib u dir sawirka' : 'Retry the photo'}
                     </button>
@@ -546,7 +546,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               )}
 
               {photoState === 'none' && (
-                <label className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-100 underline cursor-pointer">
+                <label className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-100 underline cursor-pointer">
                   <input
                     type="file"
                     accept="image/*"
@@ -573,7 +573,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                   type="button"
                   onClick={() => void doStart(false)}
                   disabled={busy}
-                  className="w-full inline-flex items-center justify-center gap-2 h-14 rounded-2xl bg-emerald-700 text-white text-sm font-extrabold active:scale-[0.98] transition disabled:opacity-60 cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 h-14 rounded-2xl bg-brand-700 text-white text-sm font-extrabold active:scale-[0.98] transition disabled:opacity-60 cursor-pointer"
                 >
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
                   {so ? 'Bilow shaqada' : 'Start the job'}
@@ -595,7 +595,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                     type="button"
                     onClick={() => setMode('complete')}
                     disabled={busy}
-                    className="inline-flex items-center justify-center gap-1.5 h-12 rounded-2xl bg-emerald-700 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 h-12 rounded-2xl bg-brand-700 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
                     {so ? 'Dhammee' : 'Complete'}
@@ -618,7 +618,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                     type="button"
                     onClick={() => setMode('complete')}
                     disabled={busy}
-                    className="inline-flex items-center justify-center gap-1.5 h-12 rounded-2xl bg-white border border-emerald-300 text-emerald-800 text-xs font-extrabold active:scale-95 transition cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 h-12 rounded-2xl bg-white border border-brand-300 text-brand-800 text-xs font-extrabold active:scale-95 transition cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
                     {so ? 'Dhammee' : 'Complete'}
@@ -656,14 +656,14 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                     onClick={() => setReason(item.id)}
                     className={`w-full text-left rounded-xl border px-3 py-2.5 transition cursor-pointer ${
                       active
-                        ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-300'
+                        ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-300'
                         : 'border-slate-200 bg-white'
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-4 h-4 rounded-full border-2 shrink-0 ${
-                          active ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300'
+                          active ? 'border-brand-600 bg-brand-600' : 'border-slate-300'
                         }`}
                       >
                         {active && <Check className="w-3 h-3 text-white mx-auto -mt-0.5" />}
@@ -676,7 +676,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                       {so ? item.hintSo : item.hintEn}
                     </div>
                     {active && (
-                      <div className="mt-1 pl-6 text-[11px] font-semibold text-emerald-800">
+                      <div className="mt-1 pl-6 text-[11px] font-semibold text-brand-800">
                         {so ? item.actionSo : item.actionEn}
                       </div>
                     )}
@@ -697,7 +697,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                       ? 'Faahfaahin (ikhtiyaari)'
                       : 'Notes (optional)'
                 }
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-brand-600"
               />
 
               <div className="flex gap-2">
@@ -757,7 +757,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                       : dbmCheck.value === null
                         ? 'border-rose-300 text-rose-700'
                         : dbmTone(dbmCheck.value) === 'good'
-                          ? 'border-emerald-500 text-emerald-800'
+                          ? 'border-brand-500 text-brand-800'
                           : dbmTone(dbmCheck.value) === 'bad'
                             ? 'border-amber-500 text-amber-800'
                             : 'border-sky-400 text-sky-800'
@@ -796,7 +796,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                       ? String(task.port_number)
                       : '—'
                   }
-                  className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-3 text-center font-mono text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-3 text-center font-mono text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
@@ -811,7 +811,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                   placeholder={
                     so ? 'Tusaale: fiilo cusub, connector la nadiifiyay…' : 'e.g. new drop cable, cleaned connector…'
                   }
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
@@ -897,7 +897,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                   type="button"
                   onClick={() => void doComplete()}
                   disabled={busy || dbmCheck.value === null}
-                  className="flex-[2] inline-flex items-center justify-center gap-1.5 h-12 rounded-xl bg-emerald-700 text-white text-xs font-extrabold disabled:opacity-50 cursor-pointer"
+                  className="flex-[2] inline-flex items-center justify-center gap-1.5 h-12 rounded-xl bg-brand-700 text-white text-xs font-extrabold disabled:opacity-50 cursor-pointer"
                 >
                   {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   {so ? 'Dhammee shaqada' : 'Complete job'}
@@ -974,7 +974,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                     const blockerRow = blockerById(row.blocker_reason);
                     return (
                       <li key={row.id} className="px-3 py-2 flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <div className="text-[11px] font-bold text-slate-800">
                             {so ? label.so : label.en}
@@ -984,7 +984,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                               </span>
                             )}
                             {row.optical_dbm !== null && (
-                              <span className="ml-1 font-mono font-normal text-emerald-700">
+                              <span className="ml-1 font-mono font-normal text-brand-700">
                                 {Number(row.optical_dbm).toFixed(1)} dBm
                               </span>
                             )}

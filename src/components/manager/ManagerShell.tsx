@@ -49,7 +49,7 @@ export function ManagerShell() {
     <div className="max-w-4xl mx-auto px-3 pb-24 pt-3">
       {/* read-only, said out loud rather than implied */}
       <div className="mb-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 flex items-center gap-2">
-        <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
+        <ShieldCheck className="w-4 h-4 text-brand-700 shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <div className="text-[11px] font-extrabold text-slate-900">
             {so ? 'Aragtida maamulaha — akhris kaliya' : 'Manager view — read only'}

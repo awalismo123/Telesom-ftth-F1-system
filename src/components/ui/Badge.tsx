@@ -9,7 +9,7 @@ import { cx } from './cx';
 export type BadgeTone = 'emerald' | 'amber' | 'rose' | 'sky' | 'slate' | 'violet';
 
 const TONES: Record<BadgeTone, string> = {
-  emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  emerald: 'bg-brand-100 text-brand-800 border-brand-200',
   amber: 'bg-amber-100 text-amber-900 border-amber-200',
   rose: 'bg-rose-100 text-rose-800 border-rose-200',
   sky: 'bg-sky-100 text-sky-800 border-sky-200',
@@ -31,7 +31,7 @@ export function Badge({ tone = 'slate', solid = false, dot = false, className, c
       {...rest}
       className={cx(
         'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide whitespace-nowrap',
-        solid ? 'bg-emerald-400 text-emerald-950 border-emerald-300' : TONES[tone],
+        solid ? 'bg-brand-400 text-brand-950 border-brand-300' : TONES[tone],
         className,
       )}
     >
@@ -40,7 +40,7 @@ export function Badge({ tone = 'slate', solid = false, dot = false, className, c
           aria-hidden="true"
           className={cx(
             'w-1.5 h-1.5 rounded-full',
-            tone === 'emerald' ? 'bg-emerald-500' : tone === 'amber' ? 'bg-amber-500' : tone === 'rose' ? 'bg-rose-500' : 'bg-slate-400',
+            tone === 'emerald' ? 'bg-brand-500' : tone === 'amber' ? 'bg-amber-500' : tone === 'rose' ? 'bg-rose-500' : 'bg-slate-400',
           )}
         />
       )}

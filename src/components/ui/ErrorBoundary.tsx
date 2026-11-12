@@ -76,7 +76,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-emerald-700 text-white text-xs font-extrabold cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-brand-700 text-white text-xs font-extrabold cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Reload / Dib u cusbooneysii
@@ -94,7 +94,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               onClick={() => void this.copy()}
               className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-brand-600" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copied' : 'Copy details'}
             </button>
           </div>

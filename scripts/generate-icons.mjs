@@ -1,9 +1,10 @@
 /**
  * Generate the app icon set — a small, dependency-free PNG writer.
  *
- * The mark is the one already used in the UI: a Wi-Fi glyph on the emerald
- * gradient. Rendered with 4×4 supersampling so the arcs stay smooth at 180 px
- * on a phone home screen.
+ * The mark is the Telesom emblem — the same measured geometry as
+ * `public/brand/telesom-emblem.svg` and `TelesomEmblem.tsx`, redrawn with
+ * point-in-shape tests so this script stays dependency-free. Rendered with 4×4
+ * supersampling so the thin orbit rings survive at 180 px.
  *
  *   node scripts/generate-icons.mjs
  *
@@ -82,10 +83,61 @@ function roundedRectDistance(x, y, size, radius) {
   return outside + inside - radius;
 }
 
+/**
+ * The Telesom emblem, in its own coordinate space (the viewBox of
+ * `public/brand/telesom-emblem.svg`, which these shapes mirror exactly).
+ *
+ * Drawing it here rather than rasterising the SVG keeps this script
+ * dependency-free, and means the icon set and the in-app logo cannot drift:
+ * both are generated from the same measured geometry.
+ */
+const EMBLEM = { x0: 110, y0: 82, w: 270, h: 178, rot: (-28.7 * Math.PI) / 180 };
+const BLUE = [0x31, 0x31, 0x95];
+const GOLD = [0xf8, 0xdc, 0x09];
+const WHITE = [0xff, 0xff, 0xff];
+
+/** Is (x,y) inside the rotated elliptical ring centred (cx,cy)? */
+function onRing(x, y, cx, cy, rx, ry, stroke) {
+  const dx = x - cx;
+  const dy = y - cy;
+  const c = Math.cos(-EMBLEM.rot);
+  const s = Math.sin(-EMBLEM.rot);
+  const u = dx * c - dy * s;
+  const v = dx * s + dy * c;
+  const k = Math.hypot(u / rx, v / ry);
+  // Approximate distance to the ellipse, in emblem units.
+  return Math.abs(k - 1) * Math.min(rx, ry) <= stroke / 2;
+}
+
+/** Point-in-triangle, sign-of-cross-product form. */
+function inTriangle(x, y, [ax, ay], [bx, by], [cx, cy]) {
+  const d1 = (x - bx) * (ay - by) - (ax - bx) * (y - by);
+  const d2 = (x - cx) * (by - cy) - (bx - cx) * (y - cy);
+  const d3 = (x - ax) * (cy - ay) - (cx - ax) * (y - ay);
+  const neg = d1 < 0 || d2 < 0 || d3 < 0;
+  const pos = d1 > 0 || d2 > 0 || d3 > 0;
+  return !(neg && pos);
+}
+
+/** Colour of the emblem at a point, or null for background. */
+function emblemAt(ex, ey) {
+  // Back to front, exactly as the SVG paints them.
+  if (onRing(ex, ey, 237, 178, 112, 56, 11.5)) return GOLD;
+  if (inTriangle(ex, ey, [300, 203], [350, 258], [220, 258])) return GOLD;
+  if (inTriangle(ex, ey, [250, 100], [177, 258], [302, 258])) return BLUE;
+  if (onRing(ex, ey, 230, 172, 116, 61, 11.5)) return BLUE;
+  if (Math.hypot(ex - 217, ey - 181) <= 45) return GOLD;
+  return null;
+}
+
 function render(size, { rounded = true, glyphScale = 1 } = {}) {
   const SS = 4;
   const out = Buffer.alloc(size * size * 4);
   const radius = rounded ? size * 0.225 : 0;
+  const pad = 0.14;
+  const scale = ((size * (1 - pad * 2)) / EMBLEM.w) * glyphScale;
+  const originX = (size - EMBLEM.w * scale) / 2;
+  const originY = (size - EMBLEM.h * scale) / 2;
 
   for (let py = 0; py < size; py += 1) {
     for (let px = 0; px < size; px += 1) {
@@ -103,32 +155,18 @@ function render(size, { rounded = true, glyphScale = 1 } = {}) {
           const bgAlpha = rounded ? clamp01(0.5 - dist) : 1;
           if (bgAlpha <= 0) continue;
 
-          // Emerald gradient, top-left light → bottom-right deep.
-          const t = clamp01((x / size) * 0.6 + (y / size) * 0.4);
-          let cr = lerp(16, 4, t);
-          let cg = lerp(185, 120, t);
-          let cb = lerp(129, 87, t);
+          // The mark was drawn for white paper, so the icon is white paper.
+          let cr = WHITE[0];
+          let cg = WHITE[1];
+          let cb = WHITE[2];
 
-          // Wi-Fi glyph: three arcs + dot, opening upwards.
-          const cx = size * 0.5;
-          const cy = size * 0.66;
-          const dx = (x - cx) / (size * glyphScale);
-          const dy = (y - cy) / (size * glyphScale);
-          const d = Math.hypot(dx, dy);
-          const angle = Math.abs(Math.atan2(dx, -dy)); // 0 = straight up
-          const stroke = 0.052;
-
-          const onArc = (radius) =>
-            angle <= 0.95 && Math.abs(d - radius) <= stroke / 2;
-          const glyph =
-            d <= 0.058 || onArc(0.125) || onArc(0.225) || onArc(0.325);
-
-          if (glyph) {
-            const gx = clamp01((0.5 - Math.abs(d - 0.2)) * 12);
-            cr = lerp(cr, 255, 1);
-            cg = lerp(cg, 255, 1);
-            cb = lerp(cb, 255, 1);
-            void gx;
+          const ex = (x - originX) / scale + EMBLEM.x0;
+          const ey = (y - originY) / scale + EMBLEM.y0;
+          const hit = emblemAt(ex, ey);
+          if (hit) {
+            cr = hit[0];
+            cg = hit[1];
+            cb = hit[2];
           }
 
           r += cr;
@@ -145,7 +183,6 @@ function render(size, { rounded = true, glyphScale = 1 } = {}) {
         out[index + 3] = 0;
         continue;
       }
-      // Average only the covered subpixels for colour.
       out[index] = Math.round(r / Math.max(a, 1e-6));
       out[index + 1] = Math.round(g / Math.max(a, 1e-6));
       out[index + 2] = Math.round(b / Math.max(a, 1e-6));
@@ -161,8 +198,8 @@ mkdirSync(OUT_DIR, { recursive: true });
 const targets = [
   { path: new URL('icon-192.png', OUT_DIR), size: 192, options: {} },
   { path: new URL('icon-512.png', OUT_DIR), size: 512, options: {} },
-  { path: new URL('icon-maskable-512.png', OUT_DIR), size: 512, options: { rounded: false, glyphScale: 1.28 } },
-  { path: APPLE, size: 180, options: { rounded: false, glyphScale: 1.18 } },
+  { path: new URL('icon-maskable-512.png', OUT_DIR), size: 512, options: { rounded: false, glyphScale: 0.86 } },
+  { path: APPLE, size: 180, options: { rounded: false, glyphScale: 0.94 } },
 ];
 
 for (const target of targets) {
