@@ -183,27 +183,61 @@ point-in-time recovery, one day of logs, and the project pauses after a week of
 low activity.** If someone deletes the wrong rows, or a migration goes wrong,
 the data is gone — there is no undo and no support escalation on that plan.
 
-At 44 jobs and 2 cableboxes the exposure is small today. At 40 jobs a day it is
-a week of a supervisor's work.
+At **8 jobs and 2 cableboxes** the exposure is small today — measured, not
+remembered; §3.7 is the query. At 40 jobs a day it is a week of a supervisor's
+work.
 
 **Fix:** Supabase Pro ($25/month) for daily backups with 7-day retention and no
 pausing — or, if the budget is refused, a nightly `pg_dump` to storage with the
 restore drill actually performed once and written down. A backup you have never
 restored from is a hope, not a backup.
 
-### 3.5 Real data and demo data live in the same database — **open, by design**
+### 3.5 Real data and demo data live in the same database — **fixed** (Batch I)
 
-Of 44 jobs in production, **36 are demo** and **8 are real test rows**. For a
-first demo that is an asset, because the screens are not empty. But:
+This section used to say: *"Of 44 jobs in production, 36 are demo and 8 are real
+test rows."* Those numbers were true **on the day they were measured**, when the
+demo history happened to be loaded. By the time the audit read the document the
+demo had been cleared, and the file went on describing it. The audit was right
+that the figures did not match the database; the cause was a stale document, not
+invented data.
 
-* a manager looking at "completed jobs this month" is looking at mostly
-  synthetic numbers unless you say so;
-* the moment real sheets start flowing in, the demo rows must be cleared and the
-  demo seeding turned off in production, or the analytics are wrong.
+**The state on 09/11/2026 (and until someone loads the demo again):**
 
-**Fix:** a "Go live" checklist in `RUNBOOK.md`, and the demo banner on the
-Insights screen ("36 demo jobs are included in these numbers", one-tap removal)
-repeated on the Overview and the daily report, where the numbers are quoted.
+| | Count |
+| :--- | ---: |
+| Jobs | **8** |
+| …of which demo | **0** |
+| Completion photos | **0** |
+| Cableboxes | 2 |
+| Import batches | 2 |
+
+The demo history is **built and available, not loaded**. A supervisor taps
+*Load demo history* on Insights and gets 36 completed jobs across the last 29
+days, spread over both boxes, with work logs, a chronic bad port per box, and a
+banner on every screen that can be inflated by them.
+
+**The label was the real defect.** The demo banner existed on Insights and
+nowhere else. With the demo loaded, the printable period report said *"44
+created, 39 completed"* and the manager's portfolio said *"39 completed"* —
+both correct, both counting 36 synthetic jobs, neither saying so. A printed
+report a head manager signs is the one document that must not be quietly
+fiction. Migration 021 adds `demo_summary`, and both screens now carry the
+sentence:
+
+> 36 of 44 jobs in this report are demo — remove them before filing this.
+
+**One tap really does remove it.** Verified on the live database rather than
+asserted: seeded 36 jobs and 38 box events, then cleared. Tasks 44 → 8, box
+events 38 → 0, demo port rows 11 → 0, work logs 85 → 40, and the port map
+returned to its exact prior state (16 ports: 13 unknown, 3 damaged, 0 occupied).
+Nothing was left behind.
+
+**One quirk worth knowing.** Seeded demo jobs carry a spread of `reported_date`
+across 29 days but a `created_at` of the moment they were seeded. `period_report`
+counts a job as *created* when it entered the system, so all 36 land in the
+window containing the seed — not spread across the month. That is why the label
+counts on `created_at` too: two different date bases on one page produce numbers
+that are individually right and together look like a bug.
 
 ### 3.6 Credentials in the repository and in the bundle — **FIXED** (Batch I)
 
@@ -238,6 +272,42 @@ a file containing `identifier:"supervisor", pin:"1234", phone:"634100101` in
 issued to replace them are the supervisor's to distribute. Until each person
 signs in once, the accounts are flagged but unused. Nothing sensitive is
 exposed by that — the published PINs no longer work on any account.
+
+### 3.7 The live figures, and how to check them
+
+Every number in this document comes from this query. Run it before quoting any
+of them — the workspace outlives the person who measured them last.
+
+```sql
+select
+  (select count(*) from public.tasks)                              as jobs,
+  (select count(*) from public.tasks where is_demo)                as demo_jobs,
+  (select count(*) from public.tasks where status = 'completed')   as completed,
+  (select count(*) from public.task_photos)                        as photos,
+  (select count(*) from public.cableboxes)                         as cableboxes,
+  (select count(*) from public.import_batches)                     as import_batches,
+  (select count(*) from public.users where is_active)              as active_people,
+  (select count(*) from public.users where must_change_pin)        as must_change_pin;
+```
+
+Measured 09/11/2026: **8 jobs · 0 demo · 3 completed · 0 photos · 2 cableboxes ·
+2 import batches · 6 active people · 0 must change PIN.**
+
+**The report's arithmetic reconciles with the rows.** Run on the 8 real jobs:
+created 8, completed 3, cancelled 4, open at end 1, over SLA 1, average dBm
+−21.3 — every one matching a direct count from `tasks`. The audit's doubt about
+the KPIs was fair, and the answer is that the sums are right.
+
+**One metric is honest but misleading.** `avg_minutes` reads **916** (15.3 hours)
+because a single job carries 45.7 hours of accumulated timer. Remove it and the
+average is 1.9 minutes. The number is correct; it is simply one runaway timer
+away from meaningless, which is why `KNOWN_LIMITS` §7d says to quote counts and
+per-job durations rather than the average until there is enough real work.
+
+That last one changed during this work and is worth explaining: after Batch I
+rotated the published PINs, all six accounts were flagged. The supervisor has
+since signed in and chosen their own PIN, which cleared their flag — exactly the
+path the design intended — so it reads 0 rather than 6.
 
 ## 4. What managers will ask for that does not exist yet
 

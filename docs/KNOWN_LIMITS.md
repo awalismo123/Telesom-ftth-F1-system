@@ -139,23 +139,50 @@ every group's jobs, customer names, phone numbers, notes and completion photos.
 
 ---
 
-## 7c. Everyone can still sign in with the PIN in the README
+## 7c. Everyone can still sign in with the PIN in the README — **CLOSED** (Batch I)
 
-`must_change_pin` exists (Batch B) and is set whenever a supervisor resets a
-PIN, but nothing ever set it on the accounts that already existed — so the five
-seeded accounts (and the demo manager) still sign in with a published PIN.
-**Measured on the live project, 09/11/2026: 6 of 6 accounts, `must_change_pin =
-false`.** The condition is shown on the Team screen and fixed in one press
-(**Flag all of them**, `flag_department_pins`), which makes every active member of
-the group choose their own PIN at next sign-in.
+This section described a real hole: `must_change_pin` existed but had never been
+set on the accounts that already existed, so six seeded accounts signed in with
+`1234` / `1111` — printed in the README and, because a `DEV` flag only removes
+the code that *renders* a value, still present in the production bundle.
 
-It is a button rather than an automatic flag because pressing it during a
-demonstration replaces the screen with a PIN change for whoever is holding the
-phone. **Press it in the last hour of the last day of the pilot, not before.**
-After it, this limit is closed for good: a reset PIN can never stay in place.
+Migration 018 changed the hashes, not just the flags. Every account on a
+published PIN was rotated to a random one, flagged for a forced change, and all
+sessions were deleted. Measured afterwards: **0 of 6 accounts accept a published
+PIN**; 12 live session tokens were revoked. Temporary PINs were issued in person,
+and the supervisor has since chosen their own — the flag clears by itself when
+that happens, which is why the live count of `must_change_pin` is 0.
 
-Not covered by it: manager accounts, which are created by SQL (`RUNBOOK` §10a)
-and should be given a PIN the manager changes on first use.
+The regression guard is now a build step: `scripts/check-credentials.mjs` fails
+the build if a PIN pair, a seeded identifier or a real subscriber number appears
+in `dist/`, and it was verified by planting one. See
+`docs/PERFECTION_PLAN.md` §18 for why the flag did not work.
+
+**What is still true:** a manager account is created by SQL (`RUNBOOK` §10a) and
+must be given a PIN the person changes on first use. Nothing enforces that at
+creation time beyond the flag itself.
+
+---
+
+## 7d. The average completion time is one long timer away from meaningless
+
+Measured on the live data (8 real jobs, 09/11/2026): the period report shows
+**avg_minutes 916** — 15.3 hours. That is arithmetically correct and practically
+useless. Three completed jobs carry durations of 45.7 hours, 3 minutes and 29
+seconds, so the average is entirely the first one.
+
+The 45.7-hour figure is a timer that was started and left running, which the
+design allows (a job may stay *in progress* overnight, and a crew that forgets to
+stop it accumulates).
+
+**Why it stays as it is:** changing a metric after a manager has quoted it is
+worse than a metric that is honest about its shape. The fix, when it is wanted,
+is a median alongside the mean, plus a rule that flags any completion whose
+duration exceeds the job's own age — not a silent cap.
+
+**What to do meanwhile:** quote the completed count and the per-job durations,
+not the average, until there is enough real work for one outlier to stop
+dominating.
 
 ---
 

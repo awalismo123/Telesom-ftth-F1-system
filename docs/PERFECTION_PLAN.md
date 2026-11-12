@@ -3,6 +3,15 @@
 > Status: **planning** · Branch `arena/a3c58180-telesom-ftth-f1-system` · Base `42b39b2` (all 5 phases merged)
 > Rule: every batch ships independently, is verified (`tsc -b`, `npm run build`, tests, live DB where relevant) and lands as its own PR.
 
+> **A note on the numbers in this file.** It is a build log: the figures in
+> each batch were true on the day that batch was verified, and they are not
+> restated. Several of them — "8 real + 36 demo tasks", "44 created / 34
+> completed", "36 completed / 36 demo flagged" — were measured with the demo
+> history **loaded**. That history was later cleared, so the live database today
+> holds **8 jobs, 0 demo rows, 0 photos**. For current figures, and the query
+> that produces them, see `docs/PRODUCTION_READINESS.md` §3.7. Read the numbers
+> below as history, not as status.
+
 ---
 
 ## 1. Audit — what the app is today

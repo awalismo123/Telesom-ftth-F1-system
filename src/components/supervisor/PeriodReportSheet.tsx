@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Download, FileText, Printer, RefreshCw, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
+import { demoNotice } from '../../lib/demo';
 import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
@@ -10,10 +11,12 @@ import { describeError } from '../../lib/useErrorMessage';
 import {
   fetchManagerReport,
   fetchPeriodReport,
+  fetchDemoSummary,
   type ManagerReport,
+  type DemoSummary,
   type PeriodReport,
 } from '../../lib/reads';
-import { formatDate, formatDbm, formatDuration, formatNumber, todayKey } from '../../lib/format';
+import { formatDate, formatDbm, formatDuration, formatNumber, isoDaysAgo, todayKey } from '../../lib/format';
 import { BUILD_LABEL } from '../../lib/version';
 import { downloadCsv } from '../../lib/registry';
 
@@ -27,12 +30,6 @@ import { downloadCsv } from '../../lib/registry';
  * a portal on `document.body`, the app hides itself in print, and the numbers
  * are laid out for A4 rather than for a phone.
  */
-
-function isoDaysAgo(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return todayKey(date);
-}
 
 const PRESETS: { id: string; days: number | 'month' | 'lastMonth'; en: string; so: string }[] = [
   { id: 'today', days: 0, en: 'Today', so: 'Maanta' },
@@ -63,6 +60,7 @@ export function PeriodReportSheet({
   const [to, setTo] = useState(() => todayKey());
   const [preset, setPreset] = useState<string>('week');
   const [report, setReport] = useState<PeriodReport | ManagerReport | null>(null);
+  const [demo, setDemo] = useState<DemoSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,6 +75,20 @@ export function PeriodReportSheet({
           : await fetchPeriodReport(token, groupId, from, to);
       setReport(payload);
       setError(null);
+
+      // The label is fetched separately and never blocks the report: a failed
+      // count must not stop a supervisor printing the numbers they asked for.
+      try {
+        setDemo(
+          await fetchDemoSummary(token, {
+            groupId: scope === 'manager' ? null : groupId,
+            from,
+            to,
+          }),
+        );
+      } catch {
+        setDemo(null);
+      }
     } catch (err) {
       setError(describeError(err, lang));
     } finally {
@@ -283,6 +295,18 @@ export function PeriodReportSheet({
           {/* the report itself */}
           {report && totals && (
             <div className="p-5 sm:p-7 space-y-5 print:p-0">
+              {/*
+                Demo disclosure, immediately under the heading and above the
+                first number — because the numbers below it include demo work
+                and nothing else on this sheet says so. Deliberately not
+                `print:hidden`: the printed copy is the one that gets filed.
+              */}
+              {demoNotice(demo, lang) && (
+                <div className="rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900 print:border print:bg-white">
+                  {demoNotice(demo, lang)}
+                </div>
+              )}
+
               {/* letterhead */}
               <div className="flex items-start justify-between gap-4 border-b-2 border-slate-900 pb-3">
                 <div>

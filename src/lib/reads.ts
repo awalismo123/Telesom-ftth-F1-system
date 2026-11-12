@@ -288,6 +288,28 @@ export async function fetchActivity(
   return data ?? [];
 }
 
+/**
+ * How many of the rows behind a report are demo.
+ *
+ * `period_report` and `manager_portfolio` count demo work as real work. This
+ * is the label, kept as its own small call rather than an extra key inside two
+ * functions that are already 5 kB of SQL each (migration 021 explains why).
+ */
+import type { DemoSummary } from './demo';
+export type { DemoSummary } from './demo';
+
+export async function fetchDemoSummary(
+  token: string,
+  params: { groupId?: string | null; from?: string | null; to?: string | null } = {},
+): Promise<DemoSummary> {
+  return (await rpcRead<DemoSummary>('demo_summary', {
+    p_token: token,
+    p_group_id: params.groupId ?? null,
+    p_from: params.from ?? null,
+    p_to: params.to ?? null,
+  })) as DemoSummary;
+}
+
 /** One period, as aggregates a manager can print. */
 export async function fetchPeriodReport(
   token: string,

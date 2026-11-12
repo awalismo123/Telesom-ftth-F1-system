@@ -275,7 +275,13 @@ members with a `counts` object, `ops_analytics` returned its `totals` key, and
 `start_task` executed through `is_task_worker` without a permission error. The
 test session and the task it started were both reverted.
 
-### Phase 2 — Protect the service (Batch G; gated on billing)
+### Phase 2 — Protect the service (Batch G) — **BLOCKED ON BILLING**
+
+> Not started, by decision (09/11/2026). Every item here needs either the Supabase
+> Pro plan or an account that can create a watcher; the billing question covers
+> both this phase and GitHub Actions (§P1-5). Until it is answered the honest
+> statement to management is unchanged: **a lost table cannot be recovered and
+> nobody would know the system was down.**
 
 | Task | Notes |
 |---|---|
@@ -288,14 +294,51 @@ test session and the task it started were both reverted.
 
 **Acceptance:** one documented restore performed end-to-end with timings; an induced outage raises an alert within the agreed window; a known failure appears in error capture.
 
-### Phase 3 — Honest demo (≈0.5 day)
+### Phase 3 — Honest demo (≈0.5 day) — **DONE 09/11/2026**
 
 - Correct `PRODUCTION_READINESS.md` (44/36 → 8 tasks, 0 photo, 0 demo).
 - Either seed the demo history and label it, or remove the claim. The controls already exist in `Analytics.tsx`.
 - Label any demo-derived figure on the Portfolio and report screens as demo.
 - Validate the KPIs the audit questioned against the 8 real rows.
 
-**Acceptance:** every number in the docs is reproducible from a query in the doc; no screen shows demo-influenced numbers unlabelled.
+**Outcome.** The audit's sub-claim — "no demo banner anywhere" — was wrong, but
+the narrower point underneath it was right, and worse than it looked.
+
+*The figures were stale, not invented.* "44 jobs, 36 demo, 8 real" was true on
+the day it was written; the demo history was cleared afterwards and the document
+never noticed. Measured today: **8 jobs, 0 demo, 0 photos**. The numbers are now
+in `PRODUCTION_READINESS.md` §3.7 with the query that produces every one of them,
+so the next reader can check rather than trust.
+
+*The label existed on one screen out of three.* `ops_analytics` returns demo
+counts and Insights shows the banner. `period_report` and `manager_portfolio`
+return none — so with the demo loaded the **printable** period report read
+"44 created, 39 completed" and the portfolio "39", both counting 36 synthetic
+jobs, both silent. That is not a display problem: the period report is the sheet a
+head manager signs.
+
+*Fixed additively.* Migration 021 adds `demo_summary(p_token, group, from, to)`,
+which returns demo **and** total counts. Deliberately not another key inside
+`period_report` (5.7 kB) or `manager_portfolio` (4.6 kB): rewriting either by hand
+to add one key is the §17.2 failure mode, where a plausible jsonb object breaks a
+screen silently. A new function cannot break a caller that does not know it.
+
+*The label is aligned to the number.* The first version counted tasks by
+`reported_date` while the report counts by `created_at`, which produced "36 of 39"
+under a heading saying "44 created" — two correct numbers that together look like
+a bug. Caught by running both side by side before shipping; the function now
+counts on `created_at` and reads "36 of 44".
+
+*Verified removal.* Seeded 36 jobs on the live database, then cleared them:
+44 → 8 jobs, 38 → 0 box events, 11 → 0 demo port rows, 85 → 40 work logs, and the
+port map returned to exactly its prior state. The "one tap" claim is now tested
+rather than asserted.
+
+**Acceptance:** every figure reproducible from §3.7's query — met; no screen shows
+demo-influenced numbers unlabelled — met for Insights, the period report (print
+included) and the manager portfolio. The Overview's open-job counters are
+unaffected in practice, because demo rows are seeded as *completed*; if that ever
+changes, the same `demo_summary` call is the label.
 
 ### Phase 4 — Interface honesty (≈2 days)
 
