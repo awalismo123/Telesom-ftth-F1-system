@@ -158,6 +158,43 @@ const COPY_ATTR = /\b(placeholder|alt|label|hint|description|heading|aria-descri
 const ARIA_ATTR = /\b(title|aria-label)\s*=\s*"([^"]{3,})"/g;
 
 /**
+ * The same attributes, single-quoted.
+ *
+ * JSX allows it and one screen used it, which meant a visible English label sat
+ * outside this lint for three batches. Quoting style is not a reason to be
+ * invisible.
+ */
+const SINGLE_QUOTED_ATTR =
+  /\b(placeholder|alt|label|hint|description|heading|aria-description|title|aria-label)\s*=\s*'([^']{3,})'/g;
+
+/**
+ * A template literal passed as a prop.
+ *
+ *   hint={`Group ${activeGroup?.code} field ready`}
+ *
+ * This is the shape the audit found. `JSX_TEXT` skips anything containing
+ * braces, and `COPY_ATTR` needs a quote immediately after the `=`, so a template
+ * literal was invisible to both — the only English sentence left on the
+ * supervisor's first screen survived every review since Batch C.
+ *
+ * The interpolations are stripped before judging: what matters is the static
+ * text a translator would have to translate. `\`${t('x')} ${code}\`` leaves
+ * nothing behind and is correctly ignored.
+ */
+const COPY_PROPS = 'placeholder|alt|label|hint|description|heading|aria-description|title|aria-label';
+const TEMPLATE_ATTR = new RegExp(`\\b(${COPY_PROPS})\\s*=\\s*\\{\\s*\`([^\`]*)\`\\s*\\}`, 'g');
+
+/**
+ * A bare string expression in JSX: `{'Some copy'}` or `{"Some copy"}`.
+ *
+ * Also invisible to `JSX_TEXT`, for the same brace reason.
+ */
+const STRING_EXPR = /\{\s*(['"])([^'"]{3,})\1\s*\}/g;
+
+/** What a template literal says once the interpolated values are removed. */
+const staticPart = (literal: string) => literal.replace(/\$\{[^}]*\}/g, ' ');
+
+/**
  * JSX text, scanned over the *whole file* rather than line by line: a sentence
  * wrapped across two lines is still one sentence, and the first version of this
  * lint missed a visible English footer for exactly that reason.
@@ -184,8 +221,14 @@ const BILINGUAL_BY_DESIGN = new Set([
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
-function englishOnlyLiterals(file: string): string[] {
-  const raw = read(file);
+/**
+ * The scan, over a source string.
+ *
+ * Split out from the file walk so the rules can be tested against the exact
+ * shapes that escaped them — a planted bug, caught by a test, rather than a
+ * green tick over source that happens to be clean today.
+ */
+export function englishOnlyLiteralsIn(raw: string, file: string): string[] {
   const source = stripComments(raw);
   const found: string[] = [];
 
@@ -215,12 +258,19 @@ function englishOnlyLiterals(file: string): string[] {
     found.push(`${file}: ${text}`);
   };
 
-  for (const pattern of [COPY_ATTR, ARIA_ATTR]) {
+  for (const pattern of [COPY_ATTR, ARIA_ATTR, SINGLE_QUOTED_ATTR, STRING_EXPR]) {
     for (const match of source.matchAll(pattern)) consider(match[2] ?? '', match.index ?? 0);
+  }
+  for (const match of source.matchAll(TEMPLATE_ATTR)) {
+    consider(staticPart(match[2] ?? ''), match.index ?? 0);
   }
   for (const match of source.matchAll(JSX_TEXT)) consider(match[1] ?? '', match.index ?? 0);
 
   return [...new Set(found)];
+}
+
+function englishOnlyLiterals(file: string): string[] {
+  return englishOnlyLiteralsIn(read(file), file);
 }
 
 test('no screen ships copy in only one language', () => {
@@ -344,4 +394,65 @@ test('every count word is complete in both languages', () => {
       assert.ok(forms[lang].other.length > 0, `${word}.${lang}.other`);
     }
   }
+});
+
+/* -------------------------------------------------------------------------- */
+/* The shapes that used to be invisible                                        */
+/* -------------------------------------------------------------------------- */
+/*
+ * The audit found one English sentence on the supervisor's first screen:
+ *
+ *   hint={`Group ${activeGroup?.code ?? 'F1'} field ready`}
+ *
+ * It had survived every batch since C because the lint could not see it:
+ * `COPY_ATTR` needs a double quote straight after the `=`, and `JSX_TEXT` skips
+ * anything containing braces. A lint that cannot see the bug it was written to
+ * catch is decoration, so each shape is now planted and asserted.
+ */
+
+test('the lint sees a template literal prop carrying English', () => {
+  const planted = [
+    'export function X() {',
+    "  return <Stat hint={`Group ${group?.code} field ready`} />;",
+    '}',
+  ].join('\n');
+
+  assert.deepEqual(englishOnlyLiteralsIn(planted, 'Plant.tsx'), ['Plant.tsx: Group field ready']);
+});
+
+test('the lint ignores a template literal that is entirely interpolated', () => {
+  // `hint={`${t('a')} ${code}`}` has no words of its own; a translator has
+  // nothing to do, and flagging it would train people to ignore the lint.
+  const clean = [
+    'export function X() {',
+    "  return <Stat hint={`${t('groupFieldReady')} ${activeGroup?.code}`} />;",
+    '}',
+  ].join('\n');
+
+  assert.deepEqual(englishOnlyLiteralsIn(clean, 'Clean.tsx'), []);
+});
+
+test('the lint sees a single-quoted attribute', () => {
+  const planted = "export const A = () => <input placeholder='Search jobs by line' />;";
+  assert.deepEqual(englishOnlyLiteralsIn(planted, 'Plant.tsx'), ['Plant.tsx: Search jobs by line']);
+});
+
+test('the lint sees a bare string expression in JSX', () => {
+  const planted = 'export const A = () => <p>{\'Nothing to dispatch today\'}</p>;';
+  assert.deepEqual(englishOnlyLiteralsIn(planted, 'Plant.tsx'), ['Plant.tsx: Nothing to dispatch today']);
+});
+
+test('a bilingual ternary is still exempt', () => {
+  const both = "export const A = () => <p>{so ? 'Waxba ma jiraan' : 'Nothing here'}</p>;";
+  assert.deepEqual(englishOnlyLiteralsIn(both, 'Both.tsx'), []);
+});
+
+test('the sentence the audit found is gone from the source', () => {
+  const shell = read('components/supervisor/SupervisorShell.tsx');
+
+  assert.equal(
+    /field ready/.test(shell),
+    false,
+    'the English-only "field ready" hint is back in the supervisor shell',
+  );
 });

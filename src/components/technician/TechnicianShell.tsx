@@ -126,7 +126,7 @@ export function TechnicianShell() {
               {partner.phone && (
                 <a
                   href={`tel:0${partner.phone.replace(/^0/, '')}`}
-                  className="shrink-0 inline-flex items-center gap-1 min-h-9 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold"
+                  className="shrink-0 inline-flex items-center gap-1 min-h-11 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold"
                 >
                   <Phone className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>{t('call')}</span>

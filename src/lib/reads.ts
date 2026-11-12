@@ -289,6 +289,25 @@ export async function fetchActivity(
 }
 
 /**
+ * Today's operational counts: open, blocked, unassigned, overdue, crews out.
+ *
+ * `p_day` is the supervisor's local date, not the server's. The two differ by
+ * three hours in Hargeisa, which is exactly the gap between a night shift
+ * closing a job and a morning shift asking how yesterday went.
+ */
+export async function fetchTodaySummary(
+  token: string,
+  groupId: string,
+  day: string,
+): Promise<TodaySummary> {
+  return (await rpcRead<TodaySummary>('today_summary', {
+    p_token: token,
+    p_group_id: groupId,
+    p_day: day,
+  })) as TodaySummary;
+}
+
+/**
  * How many of the rows behind a report are demo.
  *
  * `period_report` and `manager_portfolio` count demo work as real work. This
@@ -296,7 +315,9 @@ export async function fetchActivity(
  * functions that are already 5 kB of SQL each (migration 021 explains why).
  */
 import type { DemoSummary } from './demo';
+import type { TodaySummary } from './today';
 export type { DemoSummary } from './demo';
+export type { TodaySummary } from './today';
 
 export async function fetchDemoSummary(
   token: string,

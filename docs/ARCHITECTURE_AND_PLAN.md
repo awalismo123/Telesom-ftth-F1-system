@@ -197,7 +197,7 @@ screens render; the logic is pure and covered by `tests/`.
 
 - **204 tests**, no browser: pure logic, server-side rendering of the real
   component tree, and source-level lint (design system, i18n, realtime, OCR).
-- **Performance budget**: first load ≤ 200 kB gzip; currently **≈191 kB**.
+- **Performance budget**: first load ≤ 200 kB gzip; currently **≈192 kB**.
 - **Accessibility lint**: no text below 10 px, contrast ≥ 4.5:1, every icon-only
   button named.
 - **Language lint**: every dictionary key in both languages, no dead keys, no

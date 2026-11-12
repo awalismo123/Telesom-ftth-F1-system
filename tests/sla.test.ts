@@ -79,10 +79,12 @@ test('every overdue check uses the same number as the screen', () => {
 
 test('the scan still finds every site', () => {
   // If a query is refactored and stops matching, the test above would pass by
-  // finding nothing. Four report functions make this comparison.
+  // finding nothing. Five queries make this comparison: `period_report`,
+  // `report_jobs`, and the two manager reports, plus `today_summary.over_sla`
+  // added in migration 022 for the supervisor's landing screen.
   assert.equal(
     sites.length,
-    4,
+    5,
     `expected 4 overdue checks, found ${sites.length}. ` +
       'If one was intentionally added or removed, update this count with it.',
   );

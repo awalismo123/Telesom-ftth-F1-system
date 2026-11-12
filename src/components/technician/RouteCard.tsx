@@ -166,7 +166,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
           {phone && (
             <a
               href={tel ? `tel:${tel}` : undefined}
-              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-extrabold active:scale-95 transition"
+              className="inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-extrabold active:scale-95 transition"
             >
               <Phone className="w-4 h-4" />
               {phone}
@@ -177,7 +177,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
             <button
               type="button"
               onClick={() => onQuickStart(task)}
-              className="ml-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-emerald-700 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
+              className="ml-auto inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl bg-emerald-700 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
             >
               <Play className="w-4 h-4" />
               {so ? 'Bilow' : 'Start'}
@@ -188,7 +188,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
             <button
               type="button"
               onClick={() => onQuickResume(task)}
-              className="ml-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-amber-600 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
+              className="ml-auto inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl bg-amber-600 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               {so ? 'Sii wad' : 'Resume'}
@@ -199,7 +199,7 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
             <button
               type="button"
               onClick={() => onOpen(task)}
-              className="ml-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-slate-900 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
+              className="ml-auto inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl bg-slate-900 text-white text-xs font-extrabold active:scale-95 transition cursor-pointer"
             >
               <Flag className="w-4 h-4" />
               {so ? 'Dhammee' : 'Finish'}

@@ -12,7 +12,7 @@
 **The system is functionally complete and it is live.** All five modules your
 managers asked for exist and work: sheet photos in, only F1 rows kept,
 dispatch by area and cablebox, a technician route with a live timer, dBm
-completion, box health and a daily report. It is bilingual, it has 212 tests,
+completion, box health and a daily report. It is bilingual, it has 240 tests,
 and it installs on a phone.
 
 **It is now safe to put real customer data into it.** The hole described in the
@@ -51,7 +51,7 @@ is genuinely in the state you would show people. Detail below.
 | Backups / disaster recovery | ❌ none on current plan | A bad delete is unrecoverable |
 | Error monitoring | ❌ none | You learn about crashes by phone call |
 | Uptime / alerting | ❌ none | Nobody is told when it goes down |
-| Test coverage | ⚠️ 212 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
+| Test coverage | ⚠️ 240 unit tests, **0 browser tests** | Logic is proven; the click-path is not |
 | **Continuous integration** | ❌ **not running** | GitHub Actions fails every job in ~1 s: *"your account is locked due to a billing issue"*. Nothing is checked on push except on a machine that ran `npm run hooks:install` |
 | Mobile / PWA | ✅ installable, safe-area aware | Not yet held in a real technician's hand |
 | Docs (runbook, limits) | ✅ good | Technician card, manager page and runbook all written |
@@ -346,11 +346,11 @@ on". The audit screen in particular is cheap: the data is already there.
 * **The work model is right.** A blocker pauses the timer and the job stays
   blocked and resumable; dBm is mandatory to complete; typed notes survive a
   failed submit; several timers are allowed with a confirmation.
-* **It is bilingual for real.** 212 tests fail the build if a string appears in
+* **It is bilingual for real.** 240 tests fail the build if a string appears in
   only one language, if a translation key dies, or if PIN copy contradicts the
   input. Somali takes the singular after a numeral (`4 shaqo`), dates are
   day-first, and "today" is the local day — not the UTC day.
-* **It is fast on a weak phone.** First load 191 kB gzipped, screens loaded on
+* **It is fast on a weak phone.** First load 192 kB gzipped, screens loaded on
   demand, OCR only downloaded when used, budget enforced by `npm run verify`.
 * **Reads are authorised, not open.** Eleven token-checked functions replaced
   every direct table read, the sheet archive is private, five wrong PINs lock an
@@ -388,7 +388,7 @@ said rather than read, with the honest answer to every question in §9.
 | Supabase Pro | $25 / month | No pausing, daily backups 7-day retention. Free plan is not suitable for live work |
 | Vercel | $0–20 / month | The Hobby tier is for personal, non-commercial projects — confirm before running Telesom work on it, or move to Pro |
 | Domain (optional) | ~$12 / year | `f1.telesom.so` reads better than a vercel.app URL |
-| Phone data | existing | The app is deliberately light: 191 kB first load |
+| Phone data | existing | The app is deliberately light: 192 kB first load |
 
 **≈ $25–65 per month, all in.** Against one avoided repeat visit per week, that
 pays for itself immediately — that comparison is worth putting on the slide.
@@ -410,8 +410,8 @@ pays for itself immediately — that comparison is worth putting on the slide.
 **Three numbers:**
 
 1. Five modules, all built — sheets, dispatch, technician, execution, analytics.
-2. 191 kB first load: it opens on a weak phone and a weak connection.
-3. 212 automated tests, so the app cannot quietly break between releases.
+2. 192 kB first load: it opens on a weak phone and a weak connection.
+3. 240 automated tests, so the app cannot quietly break between releases.
 
 **The pilot, not the rollout:**
 

@@ -187,6 +187,41 @@ dominating.
 
 ---
 
+## 7e. A crew can have three members, or none
+
+The app models a crew as a vehicle with a **partner** — two people — and the
+second-member copy says so. Nothing enforces it: `crew_members` has no cap and no
+minimum, and the crew screen adds whoever is selected.
+
+Measured on the live project, 09/11/2026: **Crew A had 0 members, Crew B had 3.**
+
+Two consequences:
+
+* the first screen reports "crews out of N", where a crew with no members still
+  counts toward N, so `0/2` can be true while three people are in the field;
+* a job assigned to a three-person crew shows on all three phones, and whoever
+  starts it starts one shared timer — the design assumes two people working one
+  job, not three.
+
+This is a roster problem, not a code bug, and it is the supervisor's to fix on
+*Team & Crews*. It is written down because the number on the landing screen
+inherits it, and somebody will eventually ask why "2 crews" does not add up.
+
+---
+
+## 7f. The screen says which day it counted, and it means the phone's day
+
+`today_summary` takes the date from the browser. That is deliberate — Hargeisa is
+UTC+3 and the server is UTC, so the three hours around midnight belong to
+whichever day the person living in them says. The panel prints that date
+under "TODAY".
+
+The limit: a phone with a wrong clock gets wrong "today" counts. The counts are
+still internally consistent (they describe the day the phone claims), and a
+technician whose clock has drifted a full day would see it plainly in the label.
+
+---
+
 ## 8. iPhone specifics
 
 - Installable via Safari → *Share* → *Add to Home Screen*; it runs full-screen with
