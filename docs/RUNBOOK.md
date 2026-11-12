@@ -164,12 +164,37 @@ later.
 
 ## 7. Demo data
 
-*Insights* → **Load demo history** creates ~30 days of flagged sample jobs so the
-analytics and box health look real while training. **Remove demo data** deletes
-only rows with `is_demo = true`; real work is never touched.
+*Insights* → **Load demo history** creates **36 completed jobs across the last 29
+days**, spread over the boxes, each with a work log, a port marked in use, and a
+chronic bad port per box so the health flags have something to say.
+**Remove demo data** deletes only rows with `is_demo = true`; real work is never
+touched.
 
-Before quoting any number to management, check the banner on *Insights*: it states
-whether demo jobs are included.
+**Verified, not assumed.** On the live database: seeding produced 44 jobs (8 real
++ 36 demo) and 38 box events; removing returned it to 8 jobs, 0 demo rows, 0 box
+events, 40 work logs, and the exact prior port map (16 ports — 13 unknown, 3
+damaged, 0 occupied). Nothing was left behind.
+
+**The banner follows the numbers.** Any screen whose figures demo data can
+inflate now says so:
+
+| Screen | What it says |
+| :--- | :--- |
+| Insights | "36 demo jobs are included in these numbers" + the two buttons |
+| Period report (printed too) | "36 of 44 jobs in this report are demo — remove them before filing this" |
+| Manager portfolio | "36 of 44 jobs in this window are demo. The group figures below include synthetic work." |
+
+If no banner appears, no demo rows are in that scope — the count is zero. Do not
+train yourself to ignore the banner: it is only ever shown when the number really
+is affected.
+
+**Before quoting a number to management**, look for the banner. If it is there,
+either remove the demo data or say the number is mixed.
+
+**A quirk:** seeded jobs have a `reported_date` spread across the month but a
+`created_at` of the moment they were seeded, so a period report counts all 36 in
+the window that contains the seed. That is why the disclosure counts on
+`created_at` — so the label and the number it labels always agree.
 
 ---
 

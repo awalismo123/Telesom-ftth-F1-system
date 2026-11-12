@@ -118,6 +118,13 @@ export function todayKey(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/** `YYYY-MM-DD` for `days` days before today, in local time. */
+export function isoDaysAgo(days: number, now: Date = new Date()): string {
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  date.setDate(date.getDate() - days);
+  return todayKey(date);
+}
+
 /** Whole days from today to `value`; negative means in the past. */
 export function daysFromToday(value: string | null | undefined, now: Date = new Date()): number | null {
   const date = parseDate(value);

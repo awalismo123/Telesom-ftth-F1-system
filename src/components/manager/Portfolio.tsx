@@ -2,7 +2,15 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Building2, CheckCircle2, Clock, Users, ChevronDown, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
-import { fetchManagerPortfolio, fetchManagerTasks, type ManagerPortfolio } from '../../lib/reads';
+import {
+  fetchDemoSummary,
+  fetchManagerPortfolio,
+  fetchManagerTasks,
+  type DemoSummary,
+  type ManagerPortfolio,
+} from '../../lib/reads';
+import { portfolioDemoNotice } from '../../lib/demo';
+import { isoDaysAgo } from '../../lib/format';
 import type { Task } from '../../types/database';
 import {
   MANAGER_WINDOWS,
@@ -53,6 +61,7 @@ export function Portfolio() {
   const [data, setData] = useState<ManagerPortfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [demo, setDemo] = useState<DemoSummary | null>(null);
 
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -65,6 +74,20 @@ export function Portfolio() {
     try {
       setData(await fetchManagerPortfolio(token, days));
       setError(null);
+
+      // A manager comparing groups must know whether the comparison is against
+      // synthetic work. Never blocks the portfolio: a failed count leaves the
+      // notice off rather than failing the screen.
+      try {
+        setDemo(
+          await fetchDemoSummary(token, {
+            from: isoDaysAgo(days - 1),
+            to: null,
+          }),
+        );
+      } catch {
+        setDemo(null);
+      }
     } catch (err) {
       setError(describeError(err, lang));
     } finally {
@@ -139,6 +162,13 @@ export function Portfolio() {
         <Alert tone="danger" onDismiss={() => setError(null)} dismissLabel={so ? 'Xir' : 'Dismiss'}>
           {error}
         </Alert>
+      )}
+
+      {/* Demo disclosure. The group cards below count demo work as real work;
+          a manager comparing groups across a window of mixed data is comparing
+          a group with synthetic history against one without. */}
+      {portfolioDemoNotice(demo, lang) && (
+        <Alert tone="warning">{portfolioDemoNotice(demo, lang)}</Alert>
       )}
 
       {/* A mismatch between the server's totals and its own rows is a bug, and a
