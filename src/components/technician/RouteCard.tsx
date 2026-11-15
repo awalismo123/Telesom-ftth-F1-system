@@ -6,6 +6,7 @@ import {
   Clock,
   Flag,
   MapPin,
+  Navigation,
   PauseCircle,
   Phone,
   Play,
@@ -20,7 +21,7 @@ import {
   taskWarnings,
 } from '../../lib/execution';
 import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
-import { formatDbm, todayKey } from '../../lib/format';
+import { formatDbm, formatTime, todayKey } from '../../lib/format';
 import { isPlanned, scheduleLabel } from '../../lib/schedule';
 
 interface Props {
@@ -102,6 +103,14 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold">
                 <AlertTriangle className="w-2.5 h-2.5" />
                 {so ? 'DEGDEG' : 'URGENT'}
+              </span>
+            )}
+            {task.en_route_at && !done && (
+              // Read by the crew partner too: one phone marks "on the way" and
+              // the other needs to see that it has been said.
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-brand-100 text-brand-800 text-[10px] font-extrabold">
+                <Navigation className="w-2.5 h-2.5" aria-hidden="true" />
+                {so ? 'SOCDA' : 'EN ROUTE'} {formatTime(task.en_route_at)}
               </span>
             )}
             {planned && (

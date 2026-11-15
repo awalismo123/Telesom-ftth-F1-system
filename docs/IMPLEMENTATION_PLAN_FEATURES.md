@@ -186,9 +186,33 @@ planned lane excludes today; importer keeps a supplied date and defaults to toda
 
 ---
 
-### Phase 3 — Customer updates (WhatsApp)
+### Phase 3 — Customer updates (WhatsApp) — ✅ DONE 15/11/2026
 
-**Effort:** ~3–4 hours. **Depends on:** Phase 2 for the date in the message.
+**Effort:** ~3–4 hours (took about that). **Depends on:** Phase 2 for the date in the message.
+
+> **Result:** migration 025 applied live; `npm run verify` green at **323/323 tests, 195.2 kB of
+> 200 kB**. `mark_en_route` probed inside `BEGIN…ROLLBACK` on a real job: stamped once, a second
+> press kept the **original** timestamp (one log line, not two), reassigning the job **cleared**
+> the stamp, and a completed, a cancelled and an unknown job were all refused. Rollback left
+> 0 stray rows.
+>
+> **Nothing sends.** The message text is built in the browser; `wa.me/?text=` opens WhatsApp's own
+> contact picker with the text ready. There is no recipient number in the URL, no server-side send,
+> no API key, and no cost. Tests fail the build if `wa.me/\<number\>` appears, if the text module
+> ever gains a `fetch`/`rpc`, or if a **clock time** reaches a customer message.
+>
+> **Built beyond the plan, because it was nearly free:** the supervisor can preview and copy the
+> same per-job message in both languages from the job sheet. The plan only had the technician
+> button; the wording, the day and the group sign-off were already computed, and a supervisor
+> relaying it by hand is the same act.
+>
+> **Small refactor taken while here:** the clipboard-with-textarea-fallback existed inside
+> `DispatchMessageSheet`. A second caller would have meant a third copy, so it became
+> `copyPlainText()` in `format.ts` — and it now reports failure instead of showing a tick it did
+> not earn.
+>
+> **Caught by an existing test:** the first version used `bg-emerald-600`; `tests/brand.test.ts`
+> rejected it as un-branded. Moved to `brand-700`, which is also the contrast-safe shade.
 
 **What changes**
 

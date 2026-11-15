@@ -224,3 +224,40 @@ export type CountWord = keyof typeof COUNT_WORDS;
 export function countLabel(count: number, word: CountWord, lang: Lang): string {
   return pluralise(count, COUNT_WORDS[word][lang], lang);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Clipboard                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Copy text, with a fallback for the contexts where the Clipboard API is not
+ * available — an insecure origin, or an older Android WebView.
+ *
+ * `navigator.clipboard.writeText` throws rather than failing quietly in those
+ * cases, so a naive `await` leaves a supervisor having pressed "Copy" and got
+ * nothing. The textarea trick is deprecated and ugly and still the only thing
+ * that works there.
+ *
+ * Returns whether anything was copied, so a caller can say so honestly instead
+ * of showing a tick it did not earn.
+ */
+export async function copyPlainText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(area);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}

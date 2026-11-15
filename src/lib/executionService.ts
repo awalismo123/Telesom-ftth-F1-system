@@ -52,6 +52,29 @@ export async function fetchRoute(token: string): Promise<RouteResponse> {
  * `confirm` = false performs a dry run that only reports the jobs already
  * running, so the app can warn before the technician has two clocks going.
  */
+export interface EnRouteResult {
+  ok: boolean;
+  /** True when the job was already marked — the original time is kept. */
+  already_marked: boolean;
+  en_route_at: string;
+  task: Task;
+}
+
+/**
+ * Record that a technician is travelling to this customer.
+ *
+ * This **records**, it does not send. The message is built by
+ * `src/lib/customerUpdate.ts` and passed to the phone's WhatsApp through a
+ * `wa.me` link with no recipient, so a person still chooses the contact and
+ * presses send.
+ */
+export async function markEnRoute(token: string, taskId: string): Promise<EnRouteResult> {
+  return rpc<EnRouteResult>('mark_en_route', {
+    p_token: token,
+    p_task_id: taskId,
+  });
+}
+
 export async function startTask(token: string, taskId: string, confirm = true): Promise<StartResult> {
   return rpc<StartResult>('start_task', {
     p_token: token,

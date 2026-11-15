@@ -147,6 +147,11 @@ export interface Task {
   /** The latest completion photo, or null when the job has no proof yet. */
   proof_photo_id?: string | null;
   scheduled_date: string;
+  /** When a technician said they were on the way to this customer (migration
+   *  025). Null means no claim has been made — not "unknown". Cleared
+   *  automatically when the job is reassigned, because the drive belonged to
+   *  the previous person. */
+  en_route_at?: string | null;
   last_seen_on_sheet_date?: string | null;
   created_at: string;
   updated_at?: string;

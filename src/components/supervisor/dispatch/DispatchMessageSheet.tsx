@@ -25,7 +25,7 @@ import {
 import { logDispatch } from '../../../lib/dispatchService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
-import { countLabel } from '../../../lib/format';
+import { copyPlainText, countLabel } from '../../../lib/format';
 
 interface Props {
   open: boolean;
@@ -99,26 +99,22 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
     });
   };
 
+  /**
+   * Copy, then say so — but only if it actually worked.
+   *
+   * The fallback for browsers without the Clipboard API now lives in
+   * `copyPlainText` (shared with the job sheet), and it reports failure rather
+   * than silently doing nothing.
+   */
   const copyText = async (text: string, marker: string, channel: Channel) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(marker);
-      window.setTimeout(() => setCopied(null), 2000);
-      record(channel);
-    } catch {
-      // Very old browsers / insecure contexts: fall back to a textarea.
-      const area = document.createElement('textarea');
-      area.value = text;
-      area.style.position = 'fixed';
-      area.style.opacity = '0';
-      document.body.appendChild(area);
-      area.select();
-      document.execCommand('copy');
-      document.body.removeChild(area);
-      setCopied(marker);
-      window.setTimeout(() => setCopied(null), 2000);
-      record(channel);
+    const ok = await copyPlainText(text);
+    if (!ok) {
+      setCopied(null);
+      return;
     }
+    setCopied(marker);
+    window.setTimeout(() => setCopied(null), 2000);
+    record(channel);
   };
 
   const share = async () => {

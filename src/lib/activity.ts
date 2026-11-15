@@ -27,7 +27,8 @@ export type ActivityKind =
   | 'cancelled'
   | 'dispatched'
   | 'manual_created'
-  | 'scheduled';
+  | 'scheduled'
+  | 'en_route';
 
 export interface ActivityEvent {
   at: string;
@@ -65,6 +66,7 @@ const KNOWN_KINDS: ActivityKind[] = [
   'dispatched',
   'manual_created',
   'scheduled',
+  'en_route',
 ];
 
 export function isKnownKind(kind: string): kind is ActivityKind {
@@ -84,6 +86,7 @@ const LABELS: Record<ActivityKind, { en: string; so: string }> = {
   dispatched: { en: 'Plan sent', so: 'Qorshe la diray' },
   manual_created: { en: 'Added by phone', so: 'Telefoon lagu daray' },
   scheduled: { en: 'Moved to another day', so: 'Maalin kale loo raray' },
+  en_route: { en: 'On the way', so: 'Wadada u socda' },
 };
 
 export function activityLabel(kind: string, lang: Language): string {

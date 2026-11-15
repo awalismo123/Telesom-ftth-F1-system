@@ -189,6 +189,27 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.4.0 (15/11/2026) — telling the customer
+
+The app has never spoken to a customer. A person waiting at home had no way of
+knowing whether anyone was coming today or on Thursday — and the supervisor had
+no quick way to say so.
+
+* **"On my way"** on the technician's job sheet. It records `en_route_at` and
+  opens WhatsApp with the message ready. It does not send: WhatsApp's own
+  contact picker opens, and a person presses send. No customer number is stored
+  and none travels in the link.
+* **The same message for the supervisor**, in both languages, from the job
+  sheet — copy it, or open WhatsApp.
+* **Day-granular on purpose.** The text says *"planned for Thu 26/11/2026 …
+  we cannot give an exact time"*. No clock time can reach a customer message; a
+  test fails the build if one does.
+* **A journey belongs to a person.** Reassigning a job clears the stamp, so a
+  job cannot claim someone has been driving to it since 09:41 after it has
+  changed hands.
+* **A second press does not move the clock.** The first press is when the
+  journey began.
+
 ### v1.3.0 (15/11/2026) — crew size rules and job scheduling
 
 Two of the defects that made the app's numbers untrustworthy, and the first

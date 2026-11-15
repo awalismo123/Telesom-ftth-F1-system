@@ -344,3 +344,38 @@ notification.
 
 ---
 
+
+## 7i. The customer message goes to whoever the phone picks
+
+**Behaviour worth understanding before relying on it.**
+
+"On my way" records the time and opens WhatsApp with the text ready. It does **not** address the
+message, because no customer WhatsApp number is stored — the app has `customer_phone` from the
+sheet and nothing else, and adding a second number would be one more field for a supervisor to
+maintain and one more place for a wrong number to live.
+
+So WhatsApp opens its own contact picker: **the technician chooses who to send to.** That is also
+why the URL never contains a phone number, which is the point — a customer's number does not
+travel in a link.
+
+**The consequence to be honest about:** pressing the button and stopping there records the time
+but tells the customer nothing. The screen says so ("WhatsApp opens and you press send"), and the
+job then shows *Travelling since HH:MM*, so a supervisor can see a stamp with no way to know
+whether the message was actually delivered. Delivery is not tracked and cannot be, without a paid
+sender.
+
+**Nothing is sent automatically, ever** — not on assignment, not on completion, not on a schedule.
+Every message requires a person to press send.
+
+---
+
+## 7j. No clock times are ever promised to a customer
+
+The message is day-granular by design: *"planned for Thu 26/11/2026 … we cannot give an exact
+time"*. A department that says "between 2 and 4" and arrives at 6 has broken a promise it never
+needed to make.
+
+`tests/customerUpdate.test.ts` fails the build if a clock time, an `am`/`pm`, or a "9 to 11"
+window ever reaches the text. The limitation is the mirror image: a customer cannot use the
+message to plan their afternoon precisely, and some will ask for a time on the phone. The honest
+answer is the one the message already gives.

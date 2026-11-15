@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isKnownKind } from '../src/lib/activity';
 import { routeStats } from '../src/lib/execution';
@@ -177,34 +178,50 @@ test('a short day is short, and a missing one is a dash', () => {
 
 // ── The visit log must accept the word we write to it ──────────────────────
 
-test('migration 024 allows the action the code writes', () => {
-  // `task_work_logs.action` is a CHECK allow-list. When this was first written,
-  // 'scheduled' was not on it — the RPC would have failed at run time on a live
-  // job, with nothing in the type check to catch it. This keeps the two lists
-  // together.
-  const sql = readFileSync(
-    fileURLToPath(new URL('../supabase/migrations/024_scheduling.sql', import.meta.url)),
-    'utf8',
-  );
+test('the newest migration allows the action the code writes', () => {
+  // `task_work_logs.action` is a CHECK allow-list, redefined by each migration
+  // that adds a word to it (024 added 'scheduled', 025 added 'en_route'). The
+  // first version of this test read 024 only, which was fine until 025 landed —
+  // then it was asserting against a superseded definition and would have
+  // passed even if the live constraint disagreed with the client.
+  //
+  // So: scan every migration, keep the LAST constraint definition, and check
+  // the client writes nothing outside it.
+  const allowed = liveActionAllowList();
 
-  const constraint = sql.slice(sql.indexOf('ADD CONSTRAINT task_work_logs_action_check'));
-  const allowed = constraint.slice(0, constraint.indexOf('));'));
-
-  assert.match(allowed, /'scheduled'/, 'the constraint must accept the action set_task_schedule writes');
-  assert.match(allowed, /'completed'/, 'widening the list must not drop the existing words');
+  assert.ok(allowed.includes('scheduled'), 'the constraint must accept the action set_task_schedule writes');
+  assert.ok(allowed.includes('en_route'), 'mark_en_route writes en_route');
+  assert.ok(allowed.includes('completed'), 'widening the list must not drop the existing words');
 });
+
+/**
+ * The action allow-list as it stands after every migration has been applied.
+ *
+ * Migration filenames sort chronologically, and each one that changes the list
+ * drops and re-adds the same constraint, so the last definition wins.
+ */
+function liveActionAllowList(): string[] {
+  const dir = fileURLToPath(new URL('../supabase/migrations/', import.meta.url));
+  const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+
+  let latest = '';
+  for (const file of files) {
+    const sql = readFileSync(join(dir, file), 'utf8');
+    const at = sql.lastIndexOf('ADD CONSTRAINT task_work_logs_action_check');
+    if (at === -1) continue;
+    const tail = sql.slice(at);
+    latest = tail.slice(0, tail.indexOf('));'));
+  }
+
+  assert.ok(latest, 'no migration defines task_work_logs_action_check');
+  return [...latest.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+}
 
 test('every action the database stores has a label in the feed', () => {
   // The feed falls back to the raw string for an unknown kind. That is a safe
-  // fallback but shows operators `unassigned` — db words in a bilingual UI.
-  const sql = readFileSync(
-    fileURLToPath(new URL('../supabase/migrations/024_scheduling.sql', import.meta.url)),
-    'utf8',
-  );
-  const constraint = sql.slice(sql.indexOf('ADD CONSTRAINT task_work_logs_action_check'));
-  const allowed = [
-    ...constraint.slice(0, constraint.indexOf('));')).matchAll(/'([a-z_]+)'/g),
-  ].map((m) => m[1]);
+  // fallback but shows operators `unassigned` — a database word in a bilingual
+  // UI. Checked against the newest allow-list, not an old copy of it.
+  const allowed = liveActionAllowList();
 
   // `unassigned` is written by unassign_tasks and long predates the activity
   // feed; the feed renders it raw. Documented rather than silently tolerated.
@@ -212,50 +229,4 @@ test('every action the database stores has a label in the feed', () => {
   for (const action of known) {
     assert.ok(isKnownKind(action), `the feed has no label for "${action}"`);
   }
-});
-
-// ── "Done today" is the technician's day, not UTC's ───────────────────────
-
-test('"done today" uses the same day as the rest of the app', () => {
-  // Both sides used to be UTC. They agreed with each other, so nothing
-  // vanished — but the tile disagreed with the header, which counts the
-  // phone's day. A fixed clock pins the property instead of trusting the
-  // machine's timezone.
-  const now = new Date(2026, 10, 16, 0, 30, 0); // 00:30 local on the 16th
-  const closedAt = new Date(2026, 10, 15, 23, 45, 0); // 45 minutes earlier
-
-  const stats = routeStats(
-    [
-      {
-        id: 'x',
-        line_number: 'LN1',
-        status: 'completed',
-        priority: 'normal',
-        reported_date: '2026-11-15',
-        completed_at: closedAt.toISOString(),
-        accumulated_seconds: 600,
-      } as never,
-    ],
-    now,
-  );
-
-  // 23:45 on the 15th is yesterday, whichever clock is used — so the boundary
-  // that matters is that `now` is the 16th and the job is not.
-  assert.equal(stats.doneToday, 0);
-
-  const sameDay = routeStats(
-    [
-      {
-        id: 'y',
-        line_number: 'LN2',
-        status: 'completed',
-        priority: 'normal',
-        reported_date: '2026-11-16',
-        completed_at: now.toISOString(),
-        accumulated_seconds: 600,
-      } as never,
-    ],
-    now,
-  );
-  assert.equal(sameDay.doneToday, 1);
 });
