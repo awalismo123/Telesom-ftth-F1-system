@@ -42,7 +42,8 @@ test('the app shell renders without crashing', async () => {
   const html = renderToString(React.createElement(App));
 
   assert.ok(html.length > 200, 'expected a rendered document');
-  assert.match(html, /Telesom FTTH/, 'branded splash should be on first paint');
+  assert.match(html, /Telesom (FTTH|Fiber)/, 'branded splash should be on first paint');
+  assert.match(html, /<svg/, 'the splash should carry the mark, not a loading glyph');
   assert.doesNotMatch(html, /Loading Telesom FTTH System/, 'old bare loading text is gone');
 });
 

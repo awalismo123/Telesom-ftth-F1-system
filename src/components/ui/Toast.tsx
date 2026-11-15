@@ -46,8 +46,8 @@ const ToastContext = createContext<ToastApi | null>(null);
 const TONE_META: Record<ToastTone, { icon: React.ReactNode; ring: string; iconWrap: string }> = {
   success: {
     icon: <CheckCircle2 className="w-4 h-4" />,
-    ring: 'border-emerald-200',
-    iconWrap: 'bg-emerald-100 text-emerald-700',
+    ring: 'border-brand-200',
+    iconWrap: 'bg-brand-100 text-brand-700',
   },
   error: {
     icon: <AlertTriangle className="w-4 h-4" />,

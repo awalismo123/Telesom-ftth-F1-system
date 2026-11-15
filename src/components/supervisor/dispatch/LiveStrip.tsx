@@ -64,8 +64,8 @@ export function LiveStrip() {
   return (
     <div className="rounded-2xl bg-slate-900 text-white p-3 space-y-2">
       <div className="flex items-center gap-1.5">
-        <Activity className="w-3.5 h-3.5 text-emerald-400" />
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-300">
+        <Activity className="w-3.5 h-3.5 text-brand-400" />
+        <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-300">
           {so ? 'Hadda goobta' : 'Live in the field'}
         </span>
         <span className="ml-auto text-[10px] font-bold text-slate-500">
@@ -92,7 +92,7 @@ export function LiveStrip() {
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                  isRunning ? 'bg-brand-400 animate-pulse' : 'bg-rose-400'
                 }`}
               />
               <div className="min-w-0 flex-1">
@@ -112,7 +112,7 @@ export function LiveStrip() {
                   {so ? blocker.labelSo.split(' ')[0] : blocker.labelEn.split(' ')[0]}
                 </span>
               ) : (
-                <span className="shrink-0 inline-flex items-center gap-1 font-mono text-[11px] font-bold text-emerald-300 tabular-nums">
+                <span className="shrink-0 inline-flex items-center gap-1 font-mono text-[11px] font-bold text-brand-300 tabular-nums">
                   <Timer className="w-3 h-3" />
                   {formatClock(seconds)}
                 </span>

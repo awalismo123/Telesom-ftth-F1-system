@@ -17,6 +17,7 @@ import {
   type PeriodReport,
 } from '../../lib/reads';
 import { formatDate, formatDbm, formatDuration, formatNumber, isoDaysAgo, todayKey } from '../../lib/format';
+import { TelesomEmblem } from '../brand/TelesomLogo';
 import { BUILD_LABEL } from '../../lib/version';
 import { downloadCsv } from '../../lib/registry';
 
@@ -201,7 +202,7 @@ export function PeriodReportSheet({
           {/* toolbar — never printed */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200 bg-slate-50 no-print">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <FileText className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
+              <FileText className="w-4 h-4 text-brand-700 shrink-0" aria-hidden="true" />
               <span className="text-sm font-extrabold text-slate-900 truncate">
                 {so ? 'Warbixinta xilliga' : 'Period report'}
               </span>
@@ -308,9 +309,15 @@ export function PeriodReportSheet({
               )}
 
               {/* letterhead */}
-              <div className="flex items-start justify-between gap-4 border-b-2 border-slate-900 pb-3">
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-emerald-800">
+              {/* Letterhead. This sheet is the artefact a head manager signs, so
+                  it carries the mark rather than only the name in a text style.
+                  `print-color-adjust` keeps the emblem from being flattened to
+                  greyscale by a browser's economy printing. */}
+              <div className="print-colour flex items-start justify-between gap-4 border-b-2 border-slate-900 pb-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <TelesomEmblem className="w-12 h-[32px] shrink-0" title="Telesom" />
+                  <div className="min-w-0">
+                  <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-brand-800">
                     Telesom · Fixed Broadband
                   </div>
                   <h1 className="text-xl font-extrabold text-slate-900 leading-tight">
@@ -324,6 +331,7 @@ export function PeriodReportSheet({
                       : `${so ? 'Kooxda' : 'Group'} ${activeGroup?.code ?? 'F1'}${
                           activeGroup?.name ? ` · ${activeGroup.name}` : ''
                         }`}
+                  </div>
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-slate-600 leading-relaxed">
@@ -381,7 +389,7 @@ export function PeriodReportSheet({
                   className={`rounded-xl border px-3 py-2 print-block ${
                     totals.waiting_over_sla > 0
                       ? 'border-rose-200 bg-rose-50'
-                      : 'border-emerald-200 bg-emerald-50'
+                      : 'border-brand-200 bg-brand-50'
                   }`}
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
@@ -445,7 +453,7 @@ export function PeriodReportSheet({
                   {(report.daily ?? []).map((day) => (
                     <div key={day.day} className="flex-1 flex flex-col items-center justify-end gap-0.5 min-w-0">
                       <div
-                        className="w-full bg-emerald-600 rounded-t-sm"
+                        className="w-full bg-brand-600 rounded-t-sm"
                         style={{ height: `${Math.max(2, (day.completed / peak) * 72)}px` }}
                         title={`${day.day}: ${day.completed} ${so ? 'dhammaatay' : 'completed'}`}
                       />
@@ -459,7 +467,7 @@ export function PeriodReportSheet({
                 </div>
                 <div className="mt-1.5 flex items-center gap-3 text-[10px] font-semibold text-slate-500">
                   <span className="inline-flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-emerald-600" aria-hidden="true" />
+                    <span className="w-2.5 h-2.5 rounded-sm bg-brand-600" aria-hidden="true" />
                     {so ? 'Dhammaatay' : 'Completed'}
                   </span>
                   <span className="inline-flex items-center gap-1">

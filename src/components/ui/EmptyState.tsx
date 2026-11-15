@@ -24,7 +24,7 @@ export function EmptyState({
     <div
       className={cx(
         'flex flex-col items-center justify-center text-center rounded-2xl border border-dashed px-6 py-10',
-        tone === 'default' ? 'border-slate-300 bg-slate-50/60' : 'border-emerald-800/60 bg-emerald-900/20',
+        tone === 'default' ? 'border-slate-300 bg-slate-50/60' : 'border-brand-800/60 bg-brand-900/20',
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function EmptyState({
           aria-hidden="true"
           className={cx(
             'w-11 h-11 rounded-2xl flex items-center justify-center mb-3',
-            tone === 'default' ? 'bg-white text-slate-500 border border-slate-200' : 'bg-emerald-400/15 text-emerald-300',
+            tone === 'default' ? 'bg-white text-slate-500 border border-slate-200' : 'bg-brand-400/15 text-brand-300',
           )}
         >
           {icon}
@@ -43,7 +43,7 @@ export function EmptyState({
         {title}
       </p>
       {description && (
-        <p className={cx('text-xs mt-1 max-w-sm', tone === 'default' ? 'text-slate-500' : 'text-emerald-200/80')}>
+        <p className={cx('text-xs mt-1 max-w-sm', tone === 'default' ? 'text-slate-500' : 'text-brand-200/80')}>
           {description}
         </p>
       )}

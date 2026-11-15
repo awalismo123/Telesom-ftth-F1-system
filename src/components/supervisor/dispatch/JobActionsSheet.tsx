@@ -278,11 +278,11 @@ export function JobActionsSheet({
                     key={photo.id}
                     type="button"
                     onClick={() => setOpenPhotoId(photo.id)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-bold text-emerald-800 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-2 py-1.5 text-[11px] font-bold text-brand-800 cursor-pointer"
                   >
                     <Camera className="w-3.5 h-3.5" aria-hidden="true" />
                     {so ? 'Sawir' : 'Photo'} {index + 1}
-                    <span className="font-mono text-[10px] font-normal text-emerald-700">
+                    <span className="font-mono text-[10px] font-normal text-brand-700">
                       {photoSizeLabel(photo.byte_size)}
                     </span>
                   </button>

@@ -161,7 +161,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
         <div className="px-4 py-3 border-b border-slate-100 flex items-start justify-between gap-2">
           <div>
             <div className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-              <MessageCircle className="w-4 h-4 text-emerald-700" />
+              <MessageCircle className="w-4 h-4 text-brand-700" />
               {t('dispatchMessage')}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5">
@@ -199,7 +199,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                       onClick={() => setLang(option)}
                       className={`px-3 py-1.5 text-[11px] font-extrabold transition cursor-pointer ${
                         lang === option
-                          ? 'bg-emerald-950 text-white'
+                          ? 'bg-brand-950 text-white'
                           : 'bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                     >
@@ -213,7 +213,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                   onClick={() => setIncludePhone((v) => !v)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition cursor-pointer ${
                     includePhone
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                      ? 'bg-brand-50 border-brand-300 text-brand-800'
                       : 'bg-white border-slate-200 text-slate-500'
                   }`}
                 >
@@ -238,7 +238,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                     onChange={(e) => saveTemplate(e.target.value)}
                     rows={6}
                     spellCheck={false}
-                    className="w-full rounded-xl border border-slate-200 p-2.5 text-[11px] font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-[11px] font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-600 bg-white"
                   />
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[10px] text-slate-500">{t('dispatchTemplateHelp')}</span>
@@ -262,7 +262,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                       {masterMessage}
                     </pre>
                   </div>
-                  <div className="text-[10px] text-emerald-900/60 text-right mt-1 pr-1">
+                  <div className="text-[10px] text-brand-900/60 text-right mt-1 pr-1">
                     {so ? 'Sida ay ka muuqan doonto WhatsApp' : 'How it will look in WhatsApp'}
                   </div>
                 </div>
@@ -273,7 +273,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                 <button
                   type="button"
                   onClick={() => void copyText(masterMessage, 'master', 'clipboard')}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-extrabold cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-[11px] font-extrabold cursor-pointer"
                 >
                   {copied === 'master' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copied === 'master' ? t('dispatchCopied') : t('dispatchCopyAll')}
@@ -329,7 +329,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                       key={key}
                       className="rounded-2xl border border-slate-200 p-2.5 flex items-center gap-2"
                     >
-                      <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
+                      <span className="w-8 h-8 rounded-lg bg-brand-50 text-brand-800 flex items-center justify-center shrink-0">
                         {lane.target.kind === 'crew' ? (
                           <Truck className="w-4 h-4" />
                         ) : (
@@ -355,7 +355,7 @@ export function DispatchMessageSheet({ open, onClose, lanes, groupCode, groupId 
                       <button
                         type="button"
                         onClick={() => openExternal(whatsappLink(single), 'whatsapp')}
-                        className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+                        className="p-1.5 rounded-lg text-brand-700 hover:bg-brand-50 cursor-pointer"
                         title={t('dispatchWhatsApp')}
                       >
                         <MessageCircle className="w-4 h-4" />

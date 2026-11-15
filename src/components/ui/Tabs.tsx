@@ -101,10 +101,10 @@ export function Tabs<T extends string>({
                 : 'flex-1 min-h-9 px-3 rounded-lg text-xs',
               variant === 'pills'
                 ? active
-                  ? 'bg-emerald-950 text-white border-emerald-950 shadow-sm'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50/60 hover:border-emerald-200'
+                  ? 'bg-brand-950 text-white border-brand-950 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-brand-50/60 hover:border-brand-200'
                 : active
-                  ? 'bg-white text-emerald-900 shadow-sm'
+                  ? 'bg-white text-brand-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800',
             )}
           >
@@ -115,7 +115,7 @@ export function Tabs<T extends string>({
                 className={cx(
                   'text-[10px] font-extrabold px-1.5 py-0.5 rounded-md',
                   active
-                    ? 'bg-emerald-400 text-emerald-950'
+                    ? 'bg-brand-400 text-brand-950'
                     : 'bg-slate-100 text-slate-500',
                 )}
               >

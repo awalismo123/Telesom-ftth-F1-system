@@ -3,6 +3,54 @@
 @theme {
   --font-sans: 'Inter var', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
+
+  /*
+   * Telesom brand palette.
+   *
+   * Sampled from the official logo, not taken from a brand directory — the one
+   * published palette omits the blue entirely and gets the green wrong.
+   *
+   *   green #389955  the wordmark        -> `brand-600`, used as-is
+   *   gold  #F8DC09  the "o", the orbit  -> `gold-400`
+   *   blue  #313195  the orbit ring      -> `ink-600`
+   *
+   * The green ramp is generated, not hand-picked: every shade sits at the same
+   * relative luminance as the Tailwind emerald it replaced, so swapping hue
+   * changed no contrast ratio anywhere in the app. `brand-600` is the exact
+   * sampled colour. White text needs `brand-700` or darker (4.6:1 vs 3.6:1).
+   */
+  --color-brand-50: #f6faf7;
+  --color-brand-100: #e9f3ec;
+  --color-brand-200: #d4e8da;
+  --color-brand-300: #abddba;
+  --color-brand-400: #80cb97;
+  --color-brand-500: #4eb76d;
+  --color-brand-600: #389955;
+  --color-brand-700: #307645;
+  --color-brand-800: #265e37;
+  --color-brand-900: #1f4d2d;
+  --color-brand-950: #172a1d;
+
+  --color-gold-50: #fefbe6;
+  --color-gold-100: #fdf5bf;
+  --color-gold-200: #fbe97a;
+  --color-gold-300: #f8dc09;
+  --color-gold-400: #f8dc09;
+  --color-gold-500: #e0c400;
+  --color-gold-600: #b89e00;
+  --color-gold-700: #8c7600;
+  --color-gold-800: #5e4f00;
+  --color-gold-900: #3a3100;
+
+  --color-ink-50: #eeedf8;
+  --color-ink-100: #dcdaf2;
+  --color-ink-300: #a9a7dd;
+  --color-ink-500: #5c5abe;
+  --color-ink-600: #313195;
+  --color-ink-700: #28287a;
+  --color-ink-800: #1f1f5e;
+  --color-ink-900: #171745;
+  --color-ink-950: #101033;
 }
 
 @layer base {
@@ -26,13 +74,13 @@
 
   /* One visible, consistent focus ring for keyboard users only. */
   :focus-visible {
-    outline: 2px solid #059669;
+    outline: 2px solid var(--color-brand-600);
     outline-offset: 2px;
     border-radius: 0.5rem;
   }
 
   ::selection {
-    background-color: #065f46;
+    background-color: var(--color-brand-700);
     color: #ffffff;
   }
 }
@@ -111,6 +159,14 @@
     box-shadow: none !important;
   }
 
+  /* The letterhead carries the company mark; browsers drop colour on paper by
+     default, which would print the emblem in greys. */
+  .print-colour,
+  .print-colour * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   .print-block {
     break-inside: avoid;
   }
@@ -157,5 +213,67 @@
 
   .print-root .no-print {
     display: none !important;
+  }
+}
+
+/*
+ * ── Larger-text mode ────────────────────────────────────────────────────────
+ *
+ * An opt-in setting, not a redesign of the scale. Three reasons it is a
+ * setting: the department asked to keep the current density; a manager's screen
+ * would lose half its columns if everything grew; and growing type for
+ * everybody makes the layout worse for the people who read fine.
+ *
+ * Two mechanisms, because the app has two kinds of size:
+ *
+ *  1. The rem scale follows the root font size, so raising it grows text,
+ *     padding and touch targets together — which is what you want.
+ *  2. Roughly 390 labels are px-locked (`text-[10px]`, `text-[11px]`) and are
+ *     the smallest, hardest-to-read text on the screen. Scaling only the root
+ *     would leave exactly those untouched, so they are lifted explicitly.
+ *
+ * These rules are unlayered on purpose: unlayered CSS outranks Tailwind's
+ * `@layer utilities`, so they win without `!important` anywhere.
+ */
+html[data-text-size='large'] {
+  font-size: 19px;
+}
+html[data-text-size='xlarge'] {
+  font-size: 21px;
+}
+
+html[data-text-size='large'] [class*='text-[10px]'] { font-size: 12px; }
+html[data-text-size='large'] [class*='text-[11px]'] { font-size: 13px; }
+html[data-text-size='large'] [class*='text-[12px]'] { font-size: 14px; }
+html[data-text-size='large'] [class*='text-[13px]'] { font-size: 15px; }
+html[data-text-size='large'] [class*='text-[14px]'] { font-size: 16px; }
+html[data-text-size='large'] [class*='text-[15px]'] { font-size: 17px; }
+html[data-text-size='large'] [class*='text-[16px]'] { font-size: 18px; }
+html[data-text-size='large'] [class*='text-[17px]'] { font-size: 19px; }
+
+html[data-text-size='xlarge'] [class*='text-[10px]'] { font-size: 13px; }
+html[data-text-size='xlarge'] [class*='text-[11px]'] { font-size: 14px; }
+html[data-text-size='xlarge'] [class*='text-[12px]'] { font-size: 16px; }
+html[data-text-size='xlarge'] [class*='text-[13px]'] { font-size: 17px; }
+html[data-text-size='xlarge'] [class*='text-[14px]'] { font-size: 18px; }
+html[data-text-size='xlarge'] [class*='text-[15px]'] { font-size: 19px; }
+html[data-text-size='xlarge'] [class*='text-[16px]'] { font-size: 20px; }
+html[data-text-size='xlarge'] [class*='text-[17px]'] { font-size: 22px; }
+
+/* A minimum target size survives the change too: the root scale already grows
+   `min-h-11`, and this keeps icon-only controls from staying thumb-hostile. */
+html[data-text-size='large'] button,
+html[data-text-size='xlarge'] button {
+  min-height: 2.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

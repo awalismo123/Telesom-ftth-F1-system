@@ -173,8 +173,8 @@ export const PORT_STATUS_META: Record<
   free: {
     en: 'Free',
     so: 'Banaan',
-    tile: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-    dot: 'bg-emerald-500',
+    tile: 'bg-brand-50 border-brand-200 text-brand-800',
+    dot: 'bg-brand-500',
   },
   occupied: {
     en: 'In use',
@@ -251,9 +251,9 @@ export function healthMeta(status: HealthStatus, lang: Lang) {
   }
   return {
     label: lang === 'so' ? 'Caafimaad' : 'Healthy',
-    chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    dot: 'bg-emerald-500',
-    text: 'text-emerald-700',
+    chip: 'bg-brand-50 text-brand-700 border-brand-200',
+    dot: 'bg-brand-500',
+    text: 'text-brand-700',
   };
 }
 
@@ -276,7 +276,7 @@ export function formatDbm(dbm: number | null | undefined): string {
 
 export function dbmTone(dbm: number | null | undefined): string {
   const band = dbmBand(dbm);
-  if (band === 'healthy') return 'text-emerald-700';
+  if (band === 'healthy') return 'text-brand-700';
   if (band === 'weak' || band === 'strong') return 'text-amber-700';
   return 'text-slate-400';
 }

@@ -19,7 +19,7 @@ interface Props {
 }
 
 const CONFLICT_STYLES: Record<ConflictKind, { bg: string; text: string; border: string }> = {
-  new: { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
+  new: { bg: 'bg-brand-50', text: 'text-brand-800', border: 'border-brand-200' },
   carryover: { bg: 'bg-sky-50', text: 'text-sky-800', border: 'border-sky-200' },
   repeat: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   duplicate_today: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
@@ -147,11 +147,11 @@ export function ConflictPanel({ plan, onChange }: Props) {
     <div className="space-y-4">
       {/* Decision totals */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">
+        <div className="rounded-2xl border border-brand-200 bg-brand-50 p-3.5">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-brand-700">
             {so ? 'Cusub' : 'Create'}
           </div>
-          <div className="text-xl font-extrabold text-emerald-900">{totals.create}</div>
+          <div className="text-xl font-extrabold text-brand-900">{totals.create}</div>
         </div>
         <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3.5">
           <div className="text-[11px] font-bold uppercase tracking-wide text-sky-700">
@@ -297,7 +297,7 @@ export function ConflictPanel({ plan, onChange }: Props) {
                         {so ? 'La dhaafayaa' : 'Skipped'}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {row.decision === 'create'
                           ? so
@@ -326,8 +326,8 @@ export function ConflictPanel({ plan, onChange }: Props) {
                         title={option.hint}
                         className={`px-3 py-2 rounded-xl text-[11px] font-bold border transition text-left cursor-pointer ${
                           active
-                            ? 'bg-emerald-950 text-white border-emerald-950 shadow-xs'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40'
+                            ? 'bg-brand-950 text-white border-brand-950 shadow-xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-brand-300 hover:bg-brand-50/40'
                         }`}
                       >
                         {option.label}

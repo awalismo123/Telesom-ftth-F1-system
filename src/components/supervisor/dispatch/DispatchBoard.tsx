@@ -312,14 +312,14 @@ export function DispatchBoard({
       {/* ---------------------------------------------------------------- */}
       {/* Header                                                            */}
       {/* ---------------------------------------------------------------- */}
-      <div className="rounded-2xl bg-emerald-950 text-white p-4 sm:p-5 shadow-sm">
+      <div className="rounded-2xl bg-brand-950 text-white p-4 sm:p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-base sm:text-lg font-extrabold flex items-center gap-2">
-              <Route className="w-5 h-5 text-emerald-300" />
+              <Route className="w-5 h-5 text-brand-300" />
               {t('dispatchTitle')}
             </h2>
-            <p className="text-[11px] sm:text-xs text-emerald-100/80 mt-1 max-w-xl leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-brand-100/80 mt-1 max-w-xl leading-relaxed">
               {t('dispatchSubtitle')}
             </p>
           </div>
@@ -336,19 +336,19 @@ export function DispatchBoard({
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-xl bg-white/10 p-2.5">
-            <div className="text-[10px] uppercase tracking-wide text-emerald-200/80 font-bold">
+            <div className="text-[10px] uppercase tracking-wide text-brand-200/80 font-bold">
               {so ? 'Aan la qaybin' : 'Unassigned'}
             </div>
             <div className="text-xl font-extrabold">{pool.length}</div>
           </div>
           <div className="rounded-xl bg-white/10 p-2.5">
-            <div className="text-[10px] uppercase tracking-wide text-emerald-200/80 font-bold">
+            <div className="text-[10px] uppercase tracking-wide text-brand-200/80 font-bold">
               {so ? 'Degdeg' : 'Urgent'}
             </div>
             <div className="text-xl font-extrabold text-rose-300">{urgentCount}</div>
           </div>
           <div className="rounded-xl bg-white/10 p-2.5">
-            <div className="text-[10px] uppercase tracking-wide text-emerald-200/80 font-bold">
+            <div className="text-[10px] uppercase tracking-wide text-brand-200/80 font-bold">
               {so ? 'La qaybiyay' : 'Dispatched'}
             </div>
             <div className="text-xl font-extrabold">{assignedCount}</div>
@@ -420,7 +420,7 @@ export function DispatchBoard({
                 <button
                   type="button"
                   onClick={selectAllVisible}
-                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 cursor-pointer"
+                  className="text-[11px] font-bold text-brand-700 hover:text-brand-900 cursor-pointer"
                 >
                   {t('dispatchSelectAll')}
                 </button>
@@ -516,7 +516,7 @@ export function DispatchBoard({
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         {target.kind === 'crew' ? (
-                          <Truck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                          <Truck className="w-3.5 h-3.5 text-brand-700 shrink-0" />
                         ) : (
                           <User className="w-3.5 h-3.5 text-sky-700 shrink-0" />
                         )}
@@ -535,7 +535,7 @@ export function DispatchBoard({
                           ? 'bg-slate-100 text-slate-500'
                           : laneTasks.length > 5
                             ? 'bg-amber-100 text-amber-800'
-                            : 'bg-emerald-100 text-emerald-800'
+                            : 'bg-brand-100 text-brand-800'
                       }`}
                     >
                       {laneTasks.length}
@@ -559,7 +559,7 @@ export function DispatchBoard({
                       </span>
                     )}
                     {target.zoneFocus && (
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 truncate max-w-full">
+                      <span className="px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 truncate max-w-full">
                         {target.zoneFocus}
                       </span>
                     )}
@@ -662,12 +662,12 @@ export function DispatchBoard({
                   type="button"
                   disabled={busy}
                   onClick={() => void runAssign(target)}
-                  className="w-full text-left rounded-2xl border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 p-3 transition flex items-center gap-3 disabled:opacity-50 cursor-pointer"
+                  className="w-full text-left rounded-2xl border border-slate-200 hover:border-brand-400 hover:bg-brand-50/50 p-3 transition flex items-center gap-3 disabled:opacity-50 cursor-pointer"
                 >
                   <span
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                       target.kind === 'crew'
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-brand-100 text-brand-800'
                         : 'bg-sky-100 text-sky-800'
                     }`}
                   >

@@ -188,7 +188,7 @@ export function Analytics() {
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-extrabold text-slate-900 inline-flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-emerald-700" />
+            <BarChart3 className="w-4 h-4 text-brand-700" />
             {so ? 'Falanqaynta shaqada' : 'Operations analytics'}
           </h2>
           <p className="text-[11px] text-slate-500 mt-0.5">
@@ -296,7 +296,7 @@ export function Analytics() {
           {/* KPI cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <Kpi
-              icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+              icon={<CheckCircle2 className="w-4 h-4 text-brand-600" />}
               label={so ? 'La dhammeeyay' : 'Completed'}
               value={String(totals.completed)}
               hint={
@@ -314,7 +314,7 @@ export function Analytics() {
               hint={`${totals.active_days} ${so ? 'maalmood firfircoon' : 'active days'}`}
             />
             <Kpi
-              icon={<Signal className="w-4 h-4 text-emerald-600" />}
+              icon={<Signal className="w-4 h-4 text-brand-600" />}
               label={so ? 'dBm caafimaad' : 'Healthy dBm'}
               value={`${quality}%`}
               hint={`${totals.bands.healthy} / ${totals.bands.healthy + totals.bands.weak + totals.bands.strong} ${so ? 'cabbir' : 'readings'}`}
@@ -330,7 +330,7 @@ export function Analytics() {
           {/* daily trend */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
             <div className="flex items-center gap-1.5 mb-2">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-700" />
+              <TrendingUp className="w-3.5 h-3.5 text-brand-700" />
               <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
                 {so ? 'Shaqooyin maalin kasta' : 'Jobs completed per day'}
               </span>
@@ -343,7 +343,7 @@ export function Analytics() {
                 <div key={day.date} className="flex-1 flex flex-col items-center justify-end h-full group">
                   <div
                     className={`w-full rounded-t transition ${
-                      day.completed > 0 ? 'bg-emerald-600 group-hover:bg-emerald-500' : 'bg-slate-100'
+                      day.completed > 0 ? 'bg-brand-600 group-hover:bg-brand-500' : 'bg-slate-100'
                     }`}
                     style={{ height: `${day.completed === 0 ? 3 : Math.max(6, (day.completed / peak) * 100)}%` }}
                     title={`${formatDate(day.date)} · ${countLabel(day.completed, 'jobs', lang)}${day.avg_minutes ? ` · ${formatMinutes(day.avg_minutes, lang)}` : ''}`}
@@ -381,7 +381,7 @@ export function Analytics() {
                             {tech.name}
                           </span>
                           {tech.running_now > 0 && (
-                            <span className="px-1 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
+                            <span className="px-1 rounded bg-brand-100 text-brand-800 text-[10px] font-extrabold">
                               {tech.running_now} {so ? 'socda' : 'live'}
                             </span>
                           )}
@@ -442,7 +442,7 @@ export function Analytics() {
                         key={box.id}
                         type="button"
                         onClick={() => setOpenBoxId(box.id)}
-                        className="w-full text-left rounded-xl border border-slate-100 px-2.5 py-1.5 hover:border-emerald-300 transition cursor-pointer"
+                        className="w-full text-left rounded-xl border border-slate-100 px-2.5 py-1.5 hover:border-brand-300 transition cursor-pointer"
                       >
                         <div className="flex items-center gap-1.5">
                           <span className="text-[11px] font-extrabold text-slate-800 truncate flex-1">
@@ -519,18 +519,18 @@ export function Analytics() {
 
             <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
               <div className="flex items-center gap-1.5 mb-2">
-                <Signal className="w-3.5 h-3.5 text-emerald-700" />
+                <Signal className="w-3.5 h-3.5 text-brand-700" />
                 <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
                   {so ? 'Tayada dBm' : 'dBm quality'}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-1.5 text-center">
-                <div className="rounded-xl bg-emerald-50 border border-emerald-100 py-2">
-                  <div className="text-lg font-extrabold text-emerald-800">{totals.bands.healthy}</div>
-                  <div className="text-[10px] font-bold uppercase text-emerald-700">
+                <div className="rounded-xl bg-brand-50 border border-brand-100 py-2">
+                  <div className="text-lg font-extrabold text-brand-800">{totals.bands.healthy}</div>
+                  <div className="text-[10px] font-bold uppercase text-brand-700">
                     {so ? 'Caafimaad' : 'Healthy'}
                   </div>
-                  <div className="text-[10px] text-emerald-600/70">−27…−8</div>
+                  <div className="text-[10px] text-brand-600/70">−27…−8</div>
                 </div>
                 <div className="rounded-xl bg-amber-50 border border-amber-100 py-2">
                   <div className="text-lg font-extrabold text-amber-800">{totals.bands.weak}</div>

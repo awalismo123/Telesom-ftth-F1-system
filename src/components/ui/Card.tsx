@@ -29,7 +29,7 @@ export function Card({ padding = 'md', tone = 'default', className, children, ..
         'rounded-2xl border shadow-xs',
         tone === 'default' && 'bg-white border-slate-200',
         tone === 'muted' && 'bg-slate-50 border-slate-200',
-        tone === 'dark' && 'bg-emerald-950 border-emerald-800/60 text-white',
+        tone === 'dark' && 'bg-brand-950 border-brand-800/60 text-white',
         PADDING[padding],
         className,
       )}

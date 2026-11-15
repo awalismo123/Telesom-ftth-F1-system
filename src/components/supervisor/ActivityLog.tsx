@@ -59,7 +59,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 
 const TONES: Record<string, string> = {
   neutral: 'bg-slate-100 text-slate-600 border-slate-200',
-  good: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  good: 'bg-brand-50 text-brand-700 border-brand-200',
   warn: 'bg-amber-50 text-amber-700 border-amber-200',
   bad: 'bg-rose-50 text-rose-700 border-rose-200',
 };
@@ -159,7 +159,7 @@ export function ActivityLog({ scope = 'group' }: { scope?: 'group' | 'manager' }
       <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-            <History className="w-5 h-5 text-emerald-700" aria-hidden="true" />
+            <History className="w-5 h-5 text-brand-700" aria-hidden="true" />
             {so ? 'Diiwaanka shaqada' : 'Activity record'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
@@ -361,7 +361,7 @@ export function ActivityLog({ scope = 'group' }: { scope?: 'group' | 'manager' }
                         {activityLabel(event.kind, lang)}
                       </span>
                       {'group_code' in event && (event as { group_code?: string }).group_code && (
-                        <span className="font-mono text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-[10px] font-extrabold text-brand-800 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded">
                           {(event as { group_code?: string }).group_code}
                         </span>
                       )}
@@ -383,7 +383,7 @@ export function ActivityLog({ scope = 'group' }: { scope?: 'group' | 'manager' }
                           type="button"
                           onClick={() => setOpenPhotoId(event.photo_id ?? null)}
                           aria-label={so ? 'Fur sawirka caddaynta' : 'Open the photo proof'}
-                          className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800 cursor-pointer"
+                          className="inline-flex items-center gap-1 rounded-md border border-brand-200 bg-brand-50 px-1.5 py-0.5 text-[10px] font-extrabold text-brand-800 cursor-pointer"
                         >
                           <Camera className="w-3 h-3" aria-hidden="true" />
                           {so ? 'Sawir' : 'Photo'}

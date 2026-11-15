@@ -34,7 +34,7 @@ export function OfflineBanner() {
 
   if (online) {
     return (
-      <div className="sticky top-0 z-40 bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 text-center">
+      <div className="sticky top-0 z-40 bg-brand-700 text-white text-[11px] font-bold px-3 py-1.5 text-center">
         {so ? 'Xiriirka wuu soo noqday — isku day mar kale.' : 'Back online — you can continue.'}
       </div>
     );

@@ -16,15 +16,15 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    'bg-emerald-700 text-white border border-transparent shadow-sm hover:bg-emerald-800 active:bg-emerald-900',
+    'bg-brand-700 text-white border border-transparent shadow-sm hover:bg-brand-800 active:bg-brand-900',
   secondary:
     'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 active:bg-slate-100',
   ghost: 'bg-transparent text-slate-700 border border-transparent hover:bg-slate-100',
   danger:
     'bg-rose-600 text-white border border-transparent shadow-sm hover:bg-rose-700 active:bg-rose-800',
   success:
-    'bg-emerald-400 text-emerald-950 border border-transparent shadow-sm hover:bg-emerald-300',
-  dark: 'bg-emerald-950 text-white border border-emerald-950 hover:bg-emerald-900',
+    'bg-brand-400 text-brand-950 border border-transparent shadow-sm hover:bg-brand-300',
+  dark: 'bg-brand-950 text-white border border-brand-950 hover:bg-brand-900',
 };
 
 const SIZES: Record<ButtonSize, string> = {

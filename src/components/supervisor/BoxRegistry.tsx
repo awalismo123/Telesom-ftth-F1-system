@@ -141,7 +141,7 @@ export function BoxRegistry({
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-extrabold text-slate-900 inline-flex items-center gap-2">
-            <Server className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+            <Server className="w-4 h-4 text-brand-700" aria-hidden="true" />
             {so ? 'Diiwaanka Cablebox' : 'Cablebox registry'}
           </h2>
           <p className="text-[11px] text-slate-500 mt-0.5">
@@ -315,7 +315,7 @@ function BoxCard({ box, lang, onOpen }: { box: BoxSummary; lang: 'so' | 'en'; on
     <button
       type="button"
       onClick={onOpen}
-      className="text-left bg-white rounded-2xl border border-slate-200 p-3.5 hover:border-emerald-300 hover:shadow-sm transition cursor-pointer"
+      className="text-left bg-white rounded-2xl border border-slate-200 p-3.5 hover:border-brand-300 hover:shadow-sm transition cursor-pointer"
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">

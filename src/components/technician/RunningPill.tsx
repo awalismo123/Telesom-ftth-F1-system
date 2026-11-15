@@ -60,13 +60,13 @@ export function RunningPill({ onGoToRoute }: { onGoToRoute: () => void }) {
       onClick={onGoToRoute}
       className="fixed bottom-[72px] inset-x-0 z-30 mx-auto max-w-md px-3 cursor-pointer"
     >
-      <div className="rounded-2xl bg-emerald-950 text-white shadow-lg px-3 py-2 flex items-center gap-2.5">
+      <div className="rounded-2xl bg-brand-950 text-white shadow-lg px-3 py-2 flex items-center gap-2.5">
         <span className="relative flex w-2 h-2 shrink-0">
-          <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-70 animate-ping" />
-          <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-400" />
+          <span className="absolute inline-flex w-full h-full rounded-full bg-brand-400 opacity-70 animate-ping" />
+          <span className="relative inline-flex w-2 h-2 rounded-full bg-brand-400" />
         </span>
         <div className="min-w-0 flex-1 text-left">
-          <div className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-300">
+          <div className="text-[10px] font-extrabold uppercase tracking-wide text-brand-300">
             {tasks.length === 1
               ? so
                 ? 'Shaqo socota'
@@ -82,8 +82,8 @@ export function RunningPill({ onGoToRoute }: { onGoToRoute: () => void }) {
               .join('  ·  ')}
           </div>
         </div>
-        <Timer className="w-4 h-4 text-emerald-400 shrink-0" />
-        <ChevronRight className="w-4 h-4 text-emerald-300 shrink-0" />
+        <Timer className="w-4 h-4 text-brand-400 shrink-0" />
+        <ChevronRight className="w-4 h-4 text-brand-300 shrink-0" />
       </div>
     </button>
   );

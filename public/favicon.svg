@@ -1,15 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Telesom FTTH">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#10b981" />
-      <stop offset="100%" stop-color="#047857" />
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="15" fill="url(#g)" />
-  <g fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round">
-    <path d="M9.8 26.4a29 29 0 0 1 44.4 0" />
-    <path d="M15.9 31.5a21 21 0 0 1 32.2 0" />
-    <path d="M22.4 37a12.5 12.5 0 0 1 19.2 0" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Telesom">
+  <rect width="64" height="64" rx="14" fill="#ffffff" />
+  <g transform="translate(3.4 8.6) scale(0.212) translate(-110 -82)">
+    <ellipse cx="237" cy="178" rx="112" ry="56" transform="rotate(-28.7 237 178)" fill="none" stroke="#F8DC09" stroke-width="11.5" />
+    <path d="M300 203 L350 258 L220 258 Z" fill="#F8DC09" />
+    <path d="M250 100 L177 258 L302 258 Z" fill="#313195" />
+    <ellipse cx="230" cy="172" rx="116" ry="61" transform="rotate(-28.7 230 172)" fill="none" stroke="#313195" stroke-width="11.5" />
+    <circle cx="217" cy="181" r="45" fill="#F8DC09" />
   </g>
-  <circle cx="32" cy="44" r="3.2" fill="#ffffff" />
 </svg>

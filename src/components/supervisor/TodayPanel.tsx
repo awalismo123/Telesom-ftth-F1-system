@@ -26,13 +26,13 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 const HEADLINE_STYLE: Record<string, string> = {
-  calm: 'from-emerald-950 via-slate-900 to-emerald-950 border-emerald-800/50',
+  calm: 'from-brand-950 via-slate-900 to-brand-950 border-brand-800/50',
   attention: 'from-amber-950 via-slate-900 to-amber-950 border-amber-700/50',
   urgent: 'from-rose-950 via-slate-900 to-rose-950 border-rose-700/50',
 };
 
 const TILE_TONE: Record<string, string> = {
-  calm: 'text-emerald-300',
+  calm: 'text-brand-300',
   attention: 'text-amber-400',
   urgent: 'text-rose-400',
 };

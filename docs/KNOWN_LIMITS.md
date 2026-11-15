@@ -222,6 +222,23 @@ technician whose clock has drifted a full day would see it plainly in the label.
 
 ---
 
+## 7g. Larger text scales but does not re-flow
+
+The **Aa** control grows type up to Extra large (21 px root). It does not
+re-lay-out the screens, so at the largest setting:
+
+* long customer names can wrap to three lines on a 360 px phone,
+* dense tables in the manager portfolio may clip a column,
+* the header can hide the *Sign out* label below 380 px wide (the button is
+  still there, still labelled for screen readers).
+
+This is a deliberate trade: re-flowing every screen for three sizes would triple
+the layout surface area and the testing that goes with it. If a specific screen
+is unreadable at Extra large for a real person, that is a bug worth reporting —
+it should be handled there rather than by shrinking the mode.
+
+---
+
 ## 8. iPhone specifics
 
 - Installable via Safari → *Share* → *Add to Home Screen*; it runs full-screen with

@@ -319,7 +319,7 @@ export function IngestWizard() {
                 : 'Group-chat picture (JPEG/PNG), Excel/CSV or pasted rows — only your active group is extracted.'}
             </p>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800 self-start">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-[11px] font-bold text-brand-800 self-start">
             <ShieldCheck className="w-3.5 h-3.5" />
             {so ? 'Sawirka taleefankaaga kama baxo' : 'OCR runs on your device'}
           </div>
@@ -334,9 +334,9 @@ export function IngestWizard() {
                 <div
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold ${
                     active
-                      ? 'bg-emerald-950 text-white'
+                      ? 'bg-brand-950 text-white'
                       : done
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        ? 'bg-brand-50 text-brand-700 border border-brand-200'
                         : 'bg-slate-50 text-slate-500 border border-slate-200'
                   }`}
                 >
@@ -379,11 +379,11 @@ export function IngestWizard() {
                   onClick={() => setSheetType(null)}
                   className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                     sheetType === null
-                      ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-500/30'
-                      : 'border-slate-200 hover:border-emerald-300'
+                      ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-500/30'
+                      : 'border-slate-200 hover:border-brand-300'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4 text-emerald-700 mb-1.5" />
+                  <Sparkles className="w-4 h-4 text-brand-700 mb-1.5" />
                   <div className="text-xs font-bold text-slate-900">
                     {so ? 'Auto-detect' : 'Auto-detect'}
                   </div>
@@ -396,11 +396,11 @@ export function IngestWizard() {
                   onClick={() => setSheetType('galinta')}
                   className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                     sheetType === 'galinta'
-                      ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-500/30'
-                      : 'border-slate-200 hover:border-emerald-300'
+                      ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-500/30'
+                      : 'border-slate-200 hover:border-brand-300'
                   }`}
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-700 mb-1.5" />
+                  <FileSpreadsheet className="w-4 h-4 text-brand-700 mb-1.5" />
                   <div className="text-xs font-bold text-slate-900">Galinta</div>
                   <div className="text-[10px] text-slate-500">
                     {so ? 'Rakibaad taagan' : 'Pending Installation'}
@@ -411,11 +411,11 @@ export function IngestWizard() {
                   onClick={() => setSheetType('cilada')}
                   className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                     sheetType === 'cilada'
-                      ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-500/30'
-                      : 'border-slate-200 hover:border-emerald-300'
+                      ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-500/30'
+                      : 'border-slate-200 hover:border-brand-300'
                   }`}
                 >
-                  <Zap className="w-4 h-4 text-emerald-700 mb-1.5" />
+                  <Zap className="w-4 h-4 text-brand-700 mb-1.5" />
                   <div className="text-xs font-bold text-slate-900">Cilada</div>
                   <div className="text-[10px] text-slate-500">
                     {so ? 'Cilado taagan' : 'Active Faults'}
@@ -437,10 +437,10 @@ export function IngestWizard() {
                 onFilesPicked(e.dataTransfer.files);
               }}
               className={`bg-white rounded-2xl border-2 border-dashed p-6 sm:p-10 text-center transition ${
-                dragging ? 'border-emerald-500 bg-emerald-50/60' : 'border-slate-300'
+                dragging ? 'border-brand-500 bg-brand-50/60' : 'border-slate-300'
               }`}
             >
-              <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 grid place-items-center mx-auto mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-800 grid place-items-center mx-auto mb-3">
                 <UploadCloud className="w-7 h-7" />
               </div>
               <h3 className="text-sm font-extrabold text-slate-900">
@@ -456,7 +456,7 @@ export function IngestWizard() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold cursor-pointer"
                 >
                   <ImageIcon className="w-4 h-4" />
                   {so ? 'Dooro sawir' : 'Choose picture'}
@@ -529,7 +529,7 @@ export function IngestWizard() {
                     <span
                       className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                         batch.sheet_category === 'installation'
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-brand-100 text-brand-800'
                           : 'bg-rose-100 text-rose-800'
                       }`}
                     >
@@ -578,7 +578,7 @@ export function IngestWizard() {
       {/* ---------------------------------------------------------------- */}
       {phase === 'processing' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center max-w-xl mx-auto">
-          <Loader2 className="w-9 h-9 text-emerald-700 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-9 h-9 text-brand-700 animate-spin mx-auto mb-4" />
           <h3 className="text-sm font-extrabold text-slate-900">
             {so ? 'Sawirka waa la akhrinayaa…' : 'Reading the picture…'}
           </h3>
@@ -586,7 +586,7 @@ export function IngestWizard() {
 
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden mt-5">
             <div
-              className="h-full bg-emerald-600 transition-all duration-300"
+              className="h-full bg-brand-600 transition-all duration-300"
               style={{ width: `${Math.round((progress?.progress ?? 0.02) * 100)}%` }}
             />
           </div>
@@ -656,7 +656,7 @@ export function IngestWizard() {
                 type="button"
                 onClick={() => void goToConflicts()}
                 disabled={committing || rows.length === 0}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white text-xs font-bold cursor-pointer"
               >
                 {committing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {so ? 'Sii wad — hubi shaqooyinka hore' : 'Continue — check existing tasks'}
@@ -697,7 +697,7 @@ export function IngestWizard() {
               type="button"
               onClick={() => void confirmImport()}
               disabled={committing}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white text-xs font-bold cursor-pointer"
             >
               {committing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               {so ? 'Xaqiiji oo soo geli' : 'Confirm & import'}
@@ -712,7 +712,7 @@ export function IngestWizard() {
       {/* ---------------------------------------------------------------- */}
       {phase === 'done' && result && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 max-w-2xl mx-auto text-center">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 grid place-items-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-700 grid place-items-center mx-auto mb-4">
             <CheckCircle2 className="w-7 h-7" />
           </div>
           <h3 className="text-lg font-extrabold text-slate-900">
@@ -725,11 +725,11 @@ export function IngestWizard() {
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 text-left">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-              <div className="text-[10px] font-bold uppercase text-emerald-700">
+            <div className="rounded-xl border border-brand-200 bg-brand-50 p-3">
+              <div className="text-[10px] font-bold uppercase text-brand-700">
                 {so ? 'Cusub' : 'Created'}
               </div>
-              <div className="text-xl font-extrabold text-emerald-900">{result.created}</div>
+              <div className="text-xl font-extrabold text-brand-900">{result.created}</div>
             </div>
             <div className="rounded-xl border border-sky-200 bg-sky-50 p-3">
               <div className="text-[10px] font-bold uppercase text-sky-700">
@@ -755,7 +755,7 @@ export function IngestWizard() {
             <button
               type="button"
               onClick={reset}
-              className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold cursor-pointer"
             >
               {so ? 'Soo geli warqad kale' : 'Upload another sheet'}
             </button>
@@ -778,7 +778,7 @@ export function IngestWizard() {
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ClipboardPaste className="w-4 h-4 text-emerald-700" />
+                <ClipboardPaste className="w-4 h-4 text-brand-700" />
                 <h3 className="font-bold text-slate-900 text-sm">
                   {so ? 'Koobi-gasho xogta Excel-ka' : 'Paste the table'}
                 </h3>
@@ -803,7 +803,7 @@ export function IngestWizard() {
                 onChange={(e) => setPasteText(e.target.value)}
                 rows={10}
                 placeholder={'ID\tCustName\tLine_No\tXNumber\tRef-Number\tXaafada\tService\tShaqada\tDateIn\tTimeIn\tSpeed\tGroup'}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-[11px] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-[11px] font-mono focus:outline-none focus:ring-2 focus:ring-brand-600"
               />
               <div className="flex justify-end gap-2">
                 <button
@@ -817,7 +817,7 @@ export function IngestWizard() {
                   type="button"
                   onClick={() => handleText(pasteText, 'pasted-table', 'paste')}
                   disabled={pasteText.trim().length < 10}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-700 text-white disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brand-700 text-white disabled:opacity-50 cursor-pointer"
                 >
                   {so ? 'Falanqee' : 'Parse rows'}
                 </button>
