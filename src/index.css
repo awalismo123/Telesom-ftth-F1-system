@@ -159,6 +159,14 @@
     box-shadow: none !important;
   }
 
+  /* The letterhead carries the company mark; browsers drop colour on paper by
+     default, which would print the emblem in greys. */
+  .print-colour,
+  .print-colour * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   .print-block {
     break-inside: avoid;
   }
@@ -205,5 +213,67 @@
 
   .print-root .no-print {
     display: none !important;
+  }
+}
+
+/*
+ * ── Larger-text mode ────────────────────────────────────────────────────────
+ *
+ * An opt-in setting, not a redesign of the scale. Three reasons it is a
+ * setting: the department asked to keep the current density; a manager's screen
+ * would lose half its columns if everything grew; and growing type for
+ * everybody makes the layout worse for the people who read fine.
+ *
+ * Two mechanisms, because the app has two kinds of size:
+ *
+ *  1. The rem scale follows the root font size, so raising it grows text,
+ *     padding and touch targets together — which is what you want.
+ *  2. Roughly 390 labels are px-locked (`text-[10px]`, `text-[11px]`) and are
+ *     the smallest, hardest-to-read text on the screen. Scaling only the root
+ *     would leave exactly those untouched, so they are lifted explicitly.
+ *
+ * These rules are unlayered on purpose: unlayered CSS outranks Tailwind's
+ * `@layer utilities`, so they win without `!important` anywhere.
+ */
+html[data-text-size='large'] {
+  font-size: 19px;
+}
+html[data-text-size='xlarge'] {
+  font-size: 21px;
+}
+
+html[data-text-size='large'] [class*='text-[10px]'] { font-size: 12px; }
+html[data-text-size='large'] [class*='text-[11px]'] { font-size: 13px; }
+html[data-text-size='large'] [class*='text-[12px]'] { font-size: 14px; }
+html[data-text-size='large'] [class*='text-[13px]'] { font-size: 15px; }
+html[data-text-size='large'] [class*='text-[14px]'] { font-size: 16px; }
+html[data-text-size='large'] [class*='text-[15px]'] { font-size: 17px; }
+html[data-text-size='large'] [class*='text-[16px]'] { font-size: 18px; }
+html[data-text-size='large'] [class*='text-[17px]'] { font-size: 19px; }
+
+html[data-text-size='xlarge'] [class*='text-[10px]'] { font-size: 13px; }
+html[data-text-size='xlarge'] [class*='text-[11px]'] { font-size: 14px; }
+html[data-text-size='xlarge'] [class*='text-[12px]'] { font-size: 16px; }
+html[data-text-size='xlarge'] [class*='text-[13px]'] { font-size: 17px; }
+html[data-text-size='xlarge'] [class*='text-[14px]'] { font-size: 18px; }
+html[data-text-size='xlarge'] [class*='text-[15px]'] { font-size: 19px; }
+html[data-text-size='xlarge'] [class*='text-[16px]'] { font-size: 20px; }
+html[data-text-size='xlarge'] [class*='text-[17px]'] { font-size: 22px; }
+
+/* A minimum target size survives the change too: the root scale already grows
+   `min-h-11`, and this keeps icon-only controls from staying thumb-hostile. */
+html[data-text-size='large'] button,
+html[data-text-size='xlarge'] button {
+  min-height: 2.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

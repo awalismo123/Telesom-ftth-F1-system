@@ -17,6 +17,7 @@ import {
   type PeriodReport,
 } from '../../lib/reads';
 import { formatDate, formatDbm, formatDuration, formatNumber, isoDaysAgo, todayKey } from '../../lib/format';
+import { TelesomEmblem } from '../brand/TelesomLogo';
 import { BUILD_LABEL } from '../../lib/version';
 import { downloadCsv } from '../../lib/registry';
 
@@ -308,8 +309,14 @@ export function PeriodReportSheet({
               )}
 
               {/* letterhead */}
-              <div className="flex items-start justify-between gap-4 border-b-2 border-slate-900 pb-3">
-                <div>
+              {/* Letterhead. This sheet is the artefact a head manager signs, so
+                  it carries the mark rather than only the name in a text style.
+                  `print-color-adjust` keeps the emblem from being flattened to
+                  greyscale by a browser's economy printing. */}
+              <div className="print-colour flex items-start justify-between gap-4 border-b-2 border-slate-900 pb-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <TelesomEmblem className="w-12 h-[32px] shrink-0" title="Telesom" />
+                  <div className="min-w-0">
                   <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-brand-800">
                     Telesom · Fixed Broadband
                   </div>
@@ -324,6 +331,7 @@ export function PeriodReportSheet({
                       : `${so ? 'Kooxda' : 'Group'} ${activeGroup?.code ?? 'F1'}${
                           activeGroup?.name ? ` · ${activeGroup.name}` : ''
                         }`}
+                  </div>
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-slate-600 leading-relaxed">

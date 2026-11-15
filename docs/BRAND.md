@@ -169,6 +169,8 @@ Rules that matter:
 * **No emblem without a reason.** It is a company mark, not a background texture.
   The login screen uses its orbit geometry faintly at 13% opacity — that is the
   one decorative use, and it is the mark's own geometry, not a stock pattern.
+* **On paper, add `.print-colour`.** Browsers drop colour on print by default;
+  without it the emblem prints as greys. The period report's letterhead sets it.
 * **Never recolour it.** `mono` and `reverse` are the only alternatives.
 * **No title when adjacent text already names it** — otherwise a screen reader
   says "Telesom" twice.
@@ -177,12 +179,47 @@ Rules that matter:
 
 ---
 
-## 6. Type and density
+## 6. Larger-text mode
 
-Unchanged, by decision. The app keeps its existing scale and spacing; this
-redesign changes colour, identity and the login screen only. Larger text for
-older staff arrives as an opt-in **larger-text mode** in a later phase, so nobody
-who reads fine today loses their density.
+A header control (`Aa`), cycling **Normal → Large → Extra large**, saved per
+device. It exists because the department wanted a UI that works for older staff
+*and* wanted the current density kept; a setting serves both, where a global
+increase would have taken information away from the managers.
+
+| Mode | Root size | `text-[10px]` becomes | `text-[11px]` becomes |
+| :--- | ---: | ---: | ---: |
+| Normal | 16 px | 10 px | 11 px |
+| Large | 19 px | 12 px | 13 px |
+| Extra large | 21 px | 13 px | 14 px |
+
+Two mechanisms, because the app has two kinds of size:
+
+1. **The rem scale** follows the root font size, so text, padding and spacing
+   grow together — which is what "bigger" should mean.
+2. **~390 px-locked labels** (`text-[10px]`, `text-[11px]`) are overridden
+   explicitly. Scaling only the root would have grown the body copy and left
+   the smallest labels — the ones people actually struggle with — untouched.
+
+The overrides are unlayered CSS so they outrank Tailwind's utilities without a
+single `!important`. `tests/textsize.test.ts` scans the source for every
+arbitrary `text-[Npx]` and fails if either mode is missing one, so a new label
+cannot quietly stay tiny in the mode built for people who cannot read tiny text.
+
+The 44 px target floor is re-applied under both modes, so growing type never
+shrinks a button.
+
+**Honest limits.** Long names and dense tables can still wrap or clip at extra
+large — the layout is not re-flowed, only scaled. The setting is per device, not
+per account, because it describes the screen somebody is holding.
+
+---
+
+## 7. Type and density
+
+Unchanged by default, as decided. The scale and spacing are what they were;
+what changed is colour, identity, the login screen, and a next-job band on the
+technician route. Larger text is the opt-in mode in §6, so nobody who reads fine
+today loses their density.
 
 The `--font-sans` stack declares `Inter var` first but the app ships no webfont,
 so it resolves to the platform UI font. That is deliberate: a network font fetch

@@ -37,6 +37,20 @@ A technician opens the same URL, signs in with their PIN, and sees only their ro
 
 ---
 
+## 1b. If someone cannot read the screen
+
+The **Aa** button in the header cycles text size: Normal → Large → Extra large.
+It is saved on that phone, so set it once for a technician and it stays.
+
+Large lifts both the body text and the small labels. If they are still
+struggling at Extra large, that is worth knowing — the layout scales but does
+not re-flow, so long names may wrap on a narrow phone.
+
+Note this is per device, not per account: the same person on a different phone
+gets the default until it is set there too.
+
+---
+
 ## 2. People
 
 ### Add a technician

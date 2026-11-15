@@ -737,7 +737,7 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                 </div>
                 {draftNotice && (
                   <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded px-1.5 py-0.5">
-                    {so ? `Qoraalkii hore · ${draftNotice}` : `Restored draft · ${draftNotice}`}
+                    {so ? `Waan soo celinnay qoraalkaagii · ${draftNotice}` : `Your last notes came back · ${draftNotice}`}
                   </span>
                 )}
               </div>

@@ -20,6 +20,7 @@ import { SearchPalette } from './ui/SearchPalette';
 import { NotificationsBell } from './ui/NotificationsBell';
 import { useNavigation } from '../lib/navigation';
 import { TelesomEmblem } from './brand/TelesomLogo';
+import { TextSizeButton } from './ui/TextSizeButton';
 
 /**
  * Who is signed in, in one chip.
@@ -186,7 +187,7 @@ export function HeaderBar() {
       aria-label={`${t('logout')} — ${session.user.full_name}`}
     >
       <LogOut className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
-      <span>{t('logout')}</span>
+      <span className="hidden min-[380px]:inline">{t('logout')}</span>
     </button>
   );
 
@@ -238,6 +239,8 @@ export function HeaderBar() {
 
           {/* Right Controls (tablet and up). Phones get the identity row below. */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <TextSizeButton />
+
             <button
               type="button"
               onClick={handleToggleLanguage}
@@ -287,6 +290,7 @@ export function HeaderBar() {
           <div className="px-3 h-12 flex items-center justify-between gap-2">
             <IdentityChip compact />
             <div className="flex items-center gap-1.5 shrink-0">
+              <TextSizeButton compact />
               {!isManager && (
                 <>
                   <button

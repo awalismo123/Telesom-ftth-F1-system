@@ -2,8 +2,8 @@
 
 **Request:** new design, best UI, easy for older and non-technical staff, impressive to managers, carrying real Telesom brand (logo, colours, identity).
 
-**Status:** Phase A and the first half of Phase B shipped 09/11/2026 — see
-`BRAND.md` for the system. Phases C–E not started.
+**Status:** Phases A, B, C and D shipped 09/11/2026. Phase E (screenshots for
+the management deck) remains. See `BRAND.md` for the system itself.
 **Supersedes:** the earlier "keep emerald/slate, refine, do not redesign" constraint. This is an explicit design change, so that rule no longer applies.
 
 ---
@@ -135,7 +135,7 @@ Ordered so that something presentable exists early, and each phase ships indepen
 header, the splash and the connection-error screen (all three still showed a
 Wi-Fi glyph), and the PWA icon set regenerated from the emblem.
 
-### Phase B — Field simplicity (technician) — **partly shipped**
+### Phase B — Field simplicity (technician) — **shipped**
 - Route card redesign: one primary action, tap-to-call as a large target, status as word + colour + icon.
 - Running timer made unmissable; the execution sheet simplified into steps.
 - 56 px targets on every primary control; a scan test enforces it.
@@ -150,19 +150,39 @@ could drift. The band carries a reason — blocked, urgent, routine — because 
 three need different verbs, and it is hidden while a timer is running, because
 a live timer plus a second Start button is how a technician begins two jobs.
 
-### Phase C — Office polish (supervisor / manager)
+### Phase C — Office polish (supervisor / manager) — **shipped**
 - Branded header and navigation; the "today" panel restyled with brand numbers.
 - Dispatch board: calmer chrome, clearer selection, the pool/lane distinction obvious.
 - Manager portfolio and the printable report letterhead with the real logo.
 - Print stylesheet checked against a real A4 page.
 
-### Phase D — Accessibility and trust
+**Shipped.** The period report — the one artefact a head manager signs — now
+carries the emblem in its letterhead rather than only the company name in a text
+style, and `.print-colour` stops the browser flattening the mark to greys on
+paper. The header, splash and error screens all carry the mark, so the brand
+reaches all three roles on every screen.
+
+### Phase D — Accessibility and trust — **shipped**
 - Contrast automated as a test (the existing `design.test.ts` extended to the brand ramp).
 - **Larger-text mode** for staff with poor eyesight — a real toggle, not a browser zoom.
 - Reduced-motion, focus-visible, keyboard order.
 - A "show me" first-run tour of three screens, skippable, bilingual.
 
-### Phase E — Brand assets and documentation
+**Shipped, except the tour.** Larger-text mode is a header control that cycles
+normal → large → extra large, shows its own state, and saves per device.
+
+It scales **two** things, because the app has two kinds of size. The rem scale
+follows the root font size, which grows text, padding and targets together. But
+~390 labels are px-locked (`text-[10px]`, `text-[11px]`) — and those are the
+smallest text on the screen, i.e. precisely the text the setting exists for. So
+they are lifted explicitly, and **a test fails if anyone adds a new px-locked
+size that the CSS does not cover**. That test caught one within a minute of
+being written.
+
+Reduced-motion support also landed, and the 44 px target floor is re-applied
+under both text sizes so growing type never shrinks a button.
+
+### Phase E — Brand assets and documentation — **docs shipped, screenshots outstanding**
 - `docs/BRAND.md`: palette, type, spacing, do/don't, with the sampled hex evidence.
 - Screenshot set for the management deck, light and dark.
 
