@@ -30,6 +30,12 @@ import {
   type DispatchLoad,
 } from '../../../lib/dispatchService';
 import {
+  CONFIRM_NOTE,
+  confirmSummary,
+  pendingKey,
+  type ConfirmTask,
+} from '../../../lib/dispatchConfirm';
+import {
   autoPlan,
   clusterTasks,
   searchTasks,
@@ -85,6 +91,9 @@ export function DispatchBoard({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [selected, setSelected] = useState<string[]>([]);
+  /** A target picked in the list but not yet committed. Nothing is assigned
+   *  until the supervisor confirms it. */
+  const [pendingTarget, setPendingTarget] = useState<DispatchTarget | null>(null);
   const [pickerFor, setPickerFor] = useState<'selection' | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
@@ -263,6 +272,7 @@ export function DispatchBoard({
       });
       setSelected([]);
       setPickerFor(null);
+      setPendingTarget(null);
       await refresh();
       return result.assigned;
     } catch (err) {
@@ -755,13 +765,86 @@ export function DispatchBoard({
         description={`${selected.length} ${t('dispatchSelected')}`}
         size="md"
       >
+        {/* Confirmation. Nothing is assigned until the confirm button is
+            pressed: the picker row used to commit on a single tap, which is one
+            thumb-width away from the wrong crew. */}
+        {pendingTarget ? (
+          (() => {
+            const byId = new Map<string, ConfirmTask>();
+            for (const task of [...pool, ...lanes.flatMap((lane) => lane.tasks)]) {
+              byId.set(task.id, {
+                id: task.id,
+                line_number: task.line_number,
+                priority: task.priority,
+                status: task.status,
+              });
+            }
+            const chosen = selected.map((id) => byId.get(id)).filter(Boolean) as ConfirmTask[];
+            const summary = confirmSummary(pendingTarget, chosen, lang);
+
+            return (
+              <div key={pendingKey(pendingTarget, selected)} className="space-y-3">
+                <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+                  <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+                    {summary.title}
+                  </div>
+                  <div className="text-sm font-extrabold text-slate-900">{summary.target}</div>
+                  <div className="text-[11px] font-semibold text-slate-600">
+                    {summary.count} {t('dispatchSelected')}
+                  </div>
+                  {summary.lines && (
+                    <div className="font-mono text-[11px] font-bold text-slate-700 break-words">
+                      {summary.lines}
+                      {summary.hidden > 0 && (
+                        <span className="text-slate-500">
+                          {' '}
+                          +{summary.hidden} {so ? 'kale' : 'more'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {summary.warnings.length > 0 && (
+                    <div className="rounded-xl bg-amber-50 border border-amber-200 px-2.5 py-2 space-y-1">
+                      {summary.warnings.map((warning) => (
+                        <p key={warning} className="text-[11px] font-bold text-amber-900">
+                          {warning}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPendingTarget(null)}
+                    disabled={busy}
+                  >
+                    {summary.cancelLabel}
+                  </Button>
+                  <Button
+                    variant="success"
+                    size="sm"
+                    loading={busy}
+                    onClick={() => void runAssign(pendingTarget)}
+                  >
+                    {summary.confirmLabel}
+                  </Button>
+                </div>
+
+                <p className="text-[10px] leading-snug text-slate-500">{CONFIRM_NOTE[lang]}</p>
+              </div>
+            );
+          })()
+        ) : (
         <div className="space-y-2">
               {targets.map((target) => (
                 <button
                   key={targetKey(target)}
                   type="button"
                   disabled={busy}
-                  onClick={() => void runAssign(target)}
+                  onClick={() => setPendingTarget(target)}
                   className="w-full text-left rounded-2xl border border-slate-200 hover:border-brand-400 hover:bg-brand-50/50 p-3 transition flex items-center gap-3 disabled:opacity-50 cursor-pointer"
                 >
                   <span
@@ -796,6 +879,7 @@ export function DispatchBoard({
                 />
               )}
         </div>
+        )}
       </Sheet>
 
       <ManualTaskSheet

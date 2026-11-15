@@ -189,6 +189,21 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.13.0 (15/11/2026) — the last step before the crews see it
+
+Bulk reassignment now asks first. Picking a technician or crew opens a summary
+that names the target, the number of jobs, the first few line numbers, and
+anything worth noticing — before anything changes.
+
+* **It was a single tap.** Twenty jobs moved, the audit log recorded it, and the
+  crews found out when their phones changed. A mistake there is not undoable
+  without another bulk operation in the opposite direction.
+* **The confirm names the jobs, not just the count.** "20 jobs" with no evidence
+  of which is the box people dismiss on reflex.
+* **Urgent jobs and already-assigned jobs are called out.** Reassigning work that
+  already belongs to somebody takes it off them, and nobody tells them.
+* **Cancel performs no call at all.**
+
 ### v1.12.0 (15/11/2026) — a job sheet you can carry
 
 The execution sheet gains **"Job sheet"**: a one-page print view for a single

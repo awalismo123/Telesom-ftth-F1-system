@@ -590,19 +590,36 @@ the view carries `print-root`; printing is an explicit action with no bulk print
 **Privacy:** the sheet carries a name, phone and address. It opens only for the job in front of you,
 on an explicit button press, and nothing else prints differently.
 
-### Phase 12 — Bulk reassignment confirmation
+### Phase 12 — Bulk reassignment confirmation — ✅ DONE 15/11/2026
 
-**Effort:** ~1 hour. **Depends on:** nothing.
+**Effort:** ~1 hour. **Depends on:** nothing. **No migration.**
 
-**What already exists:** multi-select, `assignTasks(uuid[])`, and `task_work_logs` audit rows
-written by `assign_tasks`.
+> **Result:** `npm run verify` green at **540/540 tests, 195.8 kB**. The audit trail
+> (`task_work_logs`) already existed; what was missing was a step before the write.
 
-**What is added:** a confirmation before the assignment commits — target name, job count, and the
-first few line numbers — because a mis-tap currently reassigns everyone's day silently.
+> **The tap was one thumb-width from the wrong crew.** Choosing a target in the picker called
+> `runAssign` directly. Twenty jobs moved, `task_work_logs` recorded it, and the crews found out when
+> their phones changed. The confirmation is not an "are you sure?" box — it names **who**, **how
+> many**, and **which line numbers**, because the useful question is "did I pick the right person and
+> the right twenty?".
 
-**Tests:** the confirm names the target and the count; cancelling performs no call.
+> **It warns about the two things that actually go wrong.** Urgent jobs in a bulk selection, and jobs
+> that already belong to somebody else — reassigning those takes work off a crew, and nobody tells
+> them. Both are stated as facts, not hedged.
 
----
+**What changes**
+
+* Picking a target now opens a summary: target name, job count, the first five line numbers (plus
+  how many more), any urgent jobs, any already-assigned jobs, and the sentence "nothing has been
+  assigned yet".
+* **Cancel performs no call at all** — it only clears the pending target.
+* The pending action is keyed on target **and** selection, so a changed selection cannot silently
+  reuse a stale confirmation.
+
+**Tests (19):** the confirm names the target, the count and the line numbers; one job is singular; a
+long selection shows five and states the remainder; the preview never shows zero lines; urgent and
+already-assigned jobs are called out; a clean selection produces no warnings; cancelling is a label
+with no call; the board no longer contains `onClick={() => void runAssign(target)}`.
 
 ### Phase 13 — Before-and-after photos
 
