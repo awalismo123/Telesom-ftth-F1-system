@@ -7,6 +7,7 @@ import {
   Clock,
   Loader2,
   MapPin,
+  MessageCircle,
   PauseCircle,
   Phone,
   Play,
@@ -33,11 +34,14 @@ import {
   blockTask,
   completeTask,
   fetchWorkLog,
+  markEnRoute,
   resumeTask,
   startTask,
 } from '../../lib/executionService';
+import { buildCustomerUpdate } from '../../lib/customerUpdate';
+import { formatTime, todayKey } from '../../lib/format';
 import { preparePhoto, photoSizeLabel, type PreparedPhoto } from '../../lib/photo';
-import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
+import { formatPhoneE164, formatPhoneLocal, whatsappLink } from '../../lib/dispatch';
 import { BoxSheet } from '../registry/BoxSheet';
 import { useToast } from '../ui/Toast';
 import {
@@ -68,6 +72,8 @@ const ACTION_LABEL: Record<string, { en: string; so: string }> = {
   completed: { en: 'Completed', so: 'La dhammeeyay' },
   reopened: { en: 'Reopened', so: 'La furay' },
   unassigned: { en: 'Returned', so: 'La celiyay' },
+  en_route: { en: 'On the way', so: 'Wadada u socda' },
+  scheduled: { en: 'Rescheduled', so: 'Maalin kale' },
 };
 
 function timeAgo(iso: string, lang: 'so' | 'en'): string {
@@ -200,6 +206,60 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
       const message = err instanceof Error ? err.message : 'Could not start the job';
       setError(message);
       toast.error(so ? 'Ma bilaaban karin' : 'Could not start', { description: message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * Record "on my way" and open WhatsApp's contact picker with the text ready.
+   *
+   * The order matters: **record first, open second**. If the browser blocks the
+   * new tab, the fact that the technician set off is still saved — the record is
+   * the thing with operational value, the message is a courtesy. Doing it the
+   * other way round would lose the record whenever a popup was blocked.
+   *
+   * Nothing is sent here. `wa.me` with no number opens WhatsApp's own picker, a
+   * person chooses the customer, and a person presses send.
+   */
+  const doEnRoute = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await markEnRoute(token, task.id);
+
+      const text = buildCustomerUpdate(task, {
+        kind: 'en_route',
+        lang,
+        today: todayKey(),
+      });
+
+      // A popup blocker is not an error the technician can act on, and telling
+      // them "failed" when the time WAS recorded would be a false error.
+      const opened = window.open(whatsappLink(text), '_blank', 'noopener,noreferrer');
+
+      toast.success(
+        result.already_marked
+          ? so
+            ? 'Hore ayaa loo calaamadeeyay'
+            : 'Already marked as on the way'
+          : so
+            ? 'Waa la diiwaan geliyay — fariinta WhatsApp fur'
+            : 'Recorded — WhatsApp is open with the message',
+        {
+          description: opened
+            ? undefined
+            : so
+              ? 'Fariinta lama furin (browser-ka ayaa xannibay). Waqtiga waa la kaydiyay.'
+              : 'The message did not open (browser blocked it). The time was still saved.',
+        },
+      );
+
+      await refresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not record that';
+      setError(message);
+      toast.error(so ? 'Lama diiwaan gelin karin' : 'Could not record it', { description: message });
     } finally {
       setBusy(false);
     }
@@ -419,6 +479,41 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               </div>
             )}
           </div>
+
+          {/* on my way — records the time, opens WhatsApp with the text ready.
+              Never sends: the technician still picks the contact and presses
+              send. Hidden for a finished job, where it would be a lie. */}
+          {task.status !== 'completed' && task.status !== 'cancelled' && (
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={() => void doEnRoute()}
+                disabled={busy}
+                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-brand-700 text-white text-sm font-extrabold active:scale-95 transition disabled:opacity-50 cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" aria-hidden="true" />
+                {task.en_route_at
+                  ? so
+                    ? 'Dib u dir fariinta'
+                    : 'Send the message again'
+                  : so
+                    ? 'Waan soo socdaa — u sheeg macmiilka'
+                    : 'On my way — tell the customer'}
+              </button>
+
+              {task.en_route_at && (
+                <p className="text-[11px] font-semibold text-slate-600 text-center">
+                  {so ? 'Wadada u socda tan iyo ' : 'Travelling since '}
+                  <span className="font-mono">{formatTime(task.en_route_at)}</span>
+                </p>
+              )}
+              <p className="text-[10px] text-slate-500 text-center">
+                {so
+                  ? 'Waxba si toos ah looma diro — WhatsApp ayaa furmaya, adigaa riixaya dir.'
+                  : 'Nothing is sent automatically — WhatsApp opens and you press send.'}
+              </p>
+            </div>
+          )}
 
           {/* warnings */}
           {warnings.length > 0 && (
