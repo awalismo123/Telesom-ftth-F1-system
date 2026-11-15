@@ -638,3 +638,27 @@ than printing blanks.
 A sheet printed mid-job is a snapshot. If the job changes afterwards, the paper
 does not update, and the reference at the top (`#A1B2C3D4`) is what ties it back
 to the record.
+
+---
+
+## 8c. Two kinds of photo double the worst case per job
+
+Photos are `bytea` inside the database, not object storage. The cap was 3 per
+job; it is now **3 per kind**, so 6. At the client's compression (~640 px,
+quality 0.6, usually 40–120 kB) that is roughly 0.25–0.75 MB per fully
+photographed job, inside a 500 MB free-plan database.
+
+This is a real capacity consideration, not a theoretical one. If photo volume
+grows, the honest fix is Supabase Storage (free tier, 1 GB) rather than
+shrinking the proof. Nothing in this migration makes that harder: `kind` is a
+column either way.
+
+## 8d. A before photo is evidence, not a measure of anybody
+
+The before photo records the state on arrival. It is deliberately **not** used
+to score technicians, and the copy on screen says so. A photo that feeds a
+performance figure is a photo a technician will stage, and a staged photo is
+worse than no photo.
+
+It is also optional: nothing in the completion path waits for one, so a
+technician without a working camera can still close a job.

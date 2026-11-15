@@ -48,6 +48,7 @@ import { DirectionsButton } from '../ui/DirectionsButton';
 import { RepeatFaultBadge } from '../ui/RepeatFaultBadge';
 import { LineHistoryPanel } from '../ui/LineHistoryPanel';
 import { JobSheetPrint } from './JobSheetPrint';
+import { BeforePhoto } from './BeforePhoto';
 import { useToast } from '../ui/Toast';
 import {
   clearCompletionDraft,
@@ -551,6 +552,9 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
             <Printer className="w-3.5 h-3.5" aria-hidden="true" />
             {so ? 'Warqadda shaqada' : 'Job sheet'}
           </button>
+
+          {/* a photo of what was found, before anything was done */}
+          {!completed && <BeforePhoto token={token} taskId={task.id} status={task.status} lang={lang} />}
 
           {/* this line's own fault history — shown whether or not the importer
               happened to flag this job, because the flag misses the first fault

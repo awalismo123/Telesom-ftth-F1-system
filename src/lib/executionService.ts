@@ -11,6 +11,7 @@ import { fetchWorkLogs as readWorkLogs } from './reads';
 import { rpc, rpcRead } from './rpc';
 import { toAppError } from './errors';
 import type { BlockerReason, Task } from '../types/database';
+import type { PhotoKind } from './photoKind';
 import type { RouteResponse, RouteTask } from './execution';
 
 export interface StartResult {
@@ -132,13 +133,19 @@ export async function addTaskPhoto(params: {
   taskId: string;
   base64: string;
   mime: string;
-}): Promise<{ id: string; byte_size: number; created_at: string }> {
-  return rpc<{ id: string; byte_size: number; created_at: string }>('add_task_photo', {
-    p_token: params.token,
-    p_task_id: params.taskId,
-    p_mime: params.mime,
-    p_base64: params.base64,
-  });
+  /** Defaults to `after`, which is exactly what every existing caller meant. */
+  kind?: PhotoKind;
+}): Promise<{ id: string; byte_size: number; created_at: string; kind: PhotoKind }> {
+  return rpc<{ id: string; byte_size: number; created_at: string; kind: PhotoKind }>(
+    'add_task_photo',
+    {
+      p_token: params.token,
+      p_task_id: params.taskId,
+      p_mime: params.mime,
+      p_base64: params.base64,
+      p_kind: params.kind ?? 'after',
+    },
+  );
 }
 
 export interface WorkLogRow {

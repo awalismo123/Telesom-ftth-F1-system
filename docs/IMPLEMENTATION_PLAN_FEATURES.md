@@ -621,31 +621,46 @@ long selection shows five and states the remainder; the preview never shows zero
 already-assigned jobs are called out; a clean selection produces no warnings; cancelling is a label
 with no call; the board no longer contains `onClick={() => void runAssign(target)}`.
 
-### Phase 13 — Before-and-after photos
+### Phase 13 — Before-and-after photos — ✅ DONE 15/11/2026
 
-**Effort:** ~3–4 hours. **Depends on:** nothing.
+**Effort:** ~2.5 hours. **Depends on:** nothing. Migration 032.
+
+> **Result:** migration 032 applied live; `npm run verify` green at **557/557 tests, 195.8 kB**.
+
+> **The plan's file number was wrong.** It called this `026_photo_kind.sql`; 026 is the materials
+> migration. This is **032**. The content is as planned.
+
+> **The existing guard made the feature impossible, and that was the finding.** `add_task_photo`
+> refused *any* photo unless the job was **completed** — right for proof, but a before photo is by
+> definition taken before the work. The rule is now split: `after` still needs a completed job,
+> `before` only needs a job that exists and is not cancelled.
+
+> **A before photo never moves `tasks.proof_photo_id`.** Only an after photo sets the proof pointer,
+> so a job photographed on arrival is not recorded as having photographic proof of completion. A test
+> pins it.
+
+> **The signature is preserved by a wrapper, not a default.** Two functions that could both match a
+> four-argument call is exactly where PostgreSQL has to guess. The old
+> `add_task_photo(token, task, mime, b64)` is kept as a thin wrapper delegating to `'after'`, so every
+> existing caller and every existing photo behaves identically.
 
 **What changes**
 
-1. **`026_photo_kind.sql`**: `task_photos.kind text NOT NULL DEFAULT 'after'`
-   (`before` | `after`), so **every existing and future photo defaults to `after`** — no backfill,
-   no data rewrite.
-2. `add_task_photo` gains a `kind` parameter with a default, so the old call signature keeps
-   working.
-3. The execution sheet gets an **optional** before photo beside the existing completion proof.
-   Optional means optional: a technician is never blocked from closing a job because they did not
-   photograph the "before".
+* `task_photos.kind` — `text NOT NULL DEFAULT 'after'` with a CHECK. **No backfill**: existing rows
+  read as `after`, which is what they are.
+* The execution sheet gains an **optional** before photo while the job is open, using the same
+  in-browser compression as the proof photo. It is a separate call from completion, so a camera
+  failure can never hold a finished job hostage.
+* The cap is **3 per kind** (6 per job, up from 3). `list_task_photos` now reports `kind`.
 
-**Risk — storage.** Photos are `bytea` inside a 500 MB free database, max 3 per job today. Allowing
-a second kind raises the ceiling to 6. That is a real capacity consideration on a free tier and is
-stated in `KNOWN_LIMITS`; if photo volume grows, the honest fix is Supabase Storage (free tier,
-1 GB) rather than shrinking proof.
+**Tests (17):** anything unknown reads as `after` (never as `before`); a before photo cannot be taken
+on a completed or cancelled job, and the reason is shown rather than the button silently vanishing; a
+full before quota does not block the after; a legacy photo with no kind counts as `after`; the SQL
+keeps the completed-job guard for `after` only, counts the cap per kind, and never rewrites existing
+rows.
 
-**Rollback:** the `kind` column can stay in place (defaulted, harmless) and the UI reverted.
-
-**Tests:** an old-shape two-argument upload still succeeds and lands as `after`; a `before` upload
-is stored as `before`; the per-job cap counts both kinds; closing a job without a before photo
-still succeeds.
+**Storage:** photos are `bytea` in a 500 MB free database. The ceiling per job doubles from 3 to 6.
+Recorded in `KNOWN_LIMITS` §8c. If volume grows, the honest fix is object storage, not smaller proof.
 
 ---
 
