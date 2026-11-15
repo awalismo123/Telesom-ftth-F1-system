@@ -189,6 +189,28 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.5.0 (15/11/2026) — directions, honestly
+
+A technician can now tap "Find on map" on a job and land on a map search for
+that cable box.
+
+* **It is a search, and the screen says so.** *"Opens a map search for the box
+  name — not a saved pin."* There are no coordinates anywhere in this system,
+  and a pin on the city centre would send someone to the wrong street while
+  looking authoritative.
+* **The query is box code plus neighbourhood**, because a box code is only
+  unique within the group's list, not within a city.
+* **Location notes are excluded from the search** and included in "copy the
+  address" — they are written for colleagues ("port 7 clip loose"), not for a
+  geocoder, but they are exactly what gets someone to the right cabinet.
+* **Google Maps by default, OpenStreetMap available, `geo:` for offline map
+  apps.** All three are plain URLs: no API key, no account, no billing, no tile
+  quota. Nothing can start costing money.
+* **A link inside a button is now a test failure.** The first version of the
+  route-card link sat inside the card's own `<button>` — invalid HTML, and a tap
+  opened two things at once. The type check cannot see that; a scan over every
+  `.tsx` now can.
+
 ### v1.4.0 (15/11/2026) — telling the customer
 
 The app has never spoken to a customer. A person waiting at home had no way of

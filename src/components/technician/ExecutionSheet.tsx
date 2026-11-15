@@ -43,6 +43,7 @@ import { formatTime, todayKey } from '../../lib/format';
 import { preparePhoto, photoSizeLabel, type PreparedPhoto } from '../../lib/photo';
 import { formatPhoneE164, formatPhoneLocal, whatsappLink } from '../../lib/dispatch';
 import { BoxSheet } from '../registry/BoxSheet';
+import { DirectionsButton } from '../ui/DirectionsButton';
 import { useToast } from '../ui/Toast';
 import {
   clearCompletionDraft,
@@ -514,6 +515,23 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               </p>
             </div>
           )}
+
+          {/* where to go — a map search, never a pin (there are no coordinates
+              in this system, and faking one would send someone to the wrong
+              street while looking authoritative) */}
+          <DirectionsButton
+            place={{
+              boxCode: task.cablebox_code_raw,
+              xaafada: task.xaafada,
+              locationNotes: task.cablebox_notes,
+            }}
+            lang={lang}
+            onCopied={(ok) =>
+              ok
+                ? toast.success(so ? 'Ciwaanka la nuqulay' : 'Address copied')
+                : toast.error(so ? 'Nuqul ma suurtagalin' : 'Could not copy')
+            }
+          />
 
           {/* warnings */}
           {warnings.length > 0 && (

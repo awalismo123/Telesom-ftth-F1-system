@@ -31,6 +31,7 @@ import { fetchTaskPhotos, type TaskPhotoMeta } from '../../../lib/reads';
 import { addDays, scheduleLabel, scheduleProblem, SCHEDULE_PROBLEM_COPY, todayLocal } from '../../../lib/schedule';
 import { buildCustomerUpdatePair } from '../../../lib/customerUpdate';
 import { whatsappLink } from '../../../lib/dispatch';
+import { DirectionsButton } from '../../ui/DirectionsButton';
 import { copyPlainText, todayKey } from '../../../lib/format';
 import { photoSizeLabel } from '../../../lib/photo';
 import { PhotoViewer } from '../../ui/PhotoViewer';
@@ -357,6 +358,25 @@ export function JobActionsSheet({
               {error}
             </Alert>
           )}
+
+          {/* A supervisor often relays directions to a crew on the phone, so
+              the same honest map search belongs here too. */}
+          <DirectionsButton
+            place={{
+              boxCode: task.cablebox_code_raw,
+              xaafada: task.xaafada,
+              // The supervisor's task payload has no cablebox_notes — only the
+              // technician's route does. Not worth widening a hot RPC for; the
+              // box code and the area are what a map search needs.
+              locationNotes: null,
+            }}
+            lang={lang}
+            onCopied={(ok) =>
+              ok
+                ? toast.success(so ? 'Ciwaanka la nuqulay' : 'Address copied')
+                : toast.error(so ? 'Nuqul ma suurtagalin' : 'Could not copy')
+            }
+          />
 
           {/* A message for this one customer. Built here, copied or opened in
               WhatsApp by hand — this app never sends anything on its own. */}
