@@ -189,6 +189,28 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.14.0 (15/11/2026) — before and after
+
+A technician can now photograph the state they found, not only the work they
+finished.
+
+* **This required changing a rule, not just adding a button.** The server
+  refused *any* photo unless the job was completed — correct for proof, and
+  impossible for a before photo. `after` still needs a completed job; `before`
+  only needs a job that exists and is not cancelled.
+* **A before photo never becomes the proof.** Only an after photo moves
+  `tasks.proof_photo_id`, so a job photographed on arrival is not recorded as
+  having photographic proof of completion.
+* **Optional means optional.** Nothing in the completion path waits for one, and
+  the job closes normally without it.
+* **Nothing was rewritten.** `kind` defaults to `after`, so every existing photo
+  reads as what it actually is. No backfill.
+* **The old upload call still works**, kept as a thin wrapper rather than a
+  default argument — two functions that could both match a four-argument call is
+  where PostgreSQL has to guess.
+* **The cap is 3 per kind**, so 6 per job. That doubles the worst case in a
+  500 MB database and is written down in `KNOWN_LIMITS` §8c.
+
 ### v1.13.0 (15/11/2026) — the last step before the crews see it
 
 Bulk reassignment now asks first. Picking a technician or crew opens a summary
