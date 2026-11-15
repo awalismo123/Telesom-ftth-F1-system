@@ -44,6 +44,7 @@ import { preparePhoto, photoSizeLabel, type PreparedPhoto } from '../../lib/phot
 import { formatPhoneE164, formatPhoneLocal, whatsappLink } from '../../lib/dispatch';
 import { BoxSheet } from '../registry/BoxSheet';
 import { DirectionsButton } from '../ui/DirectionsButton';
+import { RepeatFaultBadge } from '../ui/RepeatFaultBadge';
 import { useToast } from '../ui/Toast';
 import {
   clearCompletionDraft,
@@ -534,6 +535,11 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                 : toast.error(so ? 'Nuqul ma suurtagalin' : 'Could not copy')
             }
           />
+
+          {/* this line's own fault history — shown whether or not the importer
+              happened to flag this job, because the flag misses the first fault
+              on a line and any job that arrives while an earlier one is open */}
+          <RepeatFaultBadge token={token} taskId={task.id} lang={lang} />
 
           {/* warnings */}
           {warnings.length > 0 && (

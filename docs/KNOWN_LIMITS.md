@@ -490,3 +490,41 @@ misreport.
 
 `open_faults` is shown separately so an unfixed backlog is never hidden inside a
 total.
+
+---
+
+## 7q. "Repeat fault" counts jobs, and a job is not a fault
+
+The escalation at three faults per 90 days counts **fault jobs sharing a line
+number**. It does not know how many of them were the same underlying problem.
+
+A short drop cable that was never replaced after the first visit produces three
+separate jobs on one line, and the watch list is right to name it. But so does a
+customer who reports the same dead router three times without letting anyone in.
+The screen says **"worth investigating"** rather than "repeat offender" for
+exactly this reason: the count is a reason to look, not a conclusion.
+
+`is_repeat_fault` is shown beside the count (`2/3`) so a supervisor can see how
+many of the jobs the importer itself recognised as returns. It is deliberately
+**not** the trigger — see Phase 7 in the implementation plan for why a rule built
+on that flag needs a fourth fault to fire.
+
+## 7r. A shared phone number is never treated as a shared customer
+
+Identity is `line_number`. Two customers can share a phone number — a shop, a
+family, a borrowed handset — and a rule built on phone numbers would put an
+innocent household on a supervisor's list. The note under the watch list states
+this in both languages, because a list that silently ignores it invites the
+reader to assume the opposite.
+
+## 7s. A job with no line number cannot be escalated, and that is on purpose
+
+Jobs with a blank or whitespace-only `line_number` are excluded from grouping.
+Without that exclusion, every unattributable job in the group would look like a
+single customer with a serial fault — the worst false positive this feature can
+produce. The per-job lookup returns `known: false` in that case and the badge
+renders nothing.
+
+The cost: an anonymous job contributes no evidence either way. If blank line
+numbers are common in the sheets, they should be fixed at import rather than
+worked around here.
