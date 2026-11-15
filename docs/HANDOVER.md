@@ -189,6 +189,26 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.7.0 (15/11/2026) — which box keeps breaking
+
+Analytics gains "Box faults — last N days", worst first, for the same 7/30/90
+window as the rest of the page.
+
+* **Windowed, not lifetime.** `cableboxes.fault_count` cannot answer "this
+  month" and cannot be reset without losing the history behind it. The count is
+  computed from jobs at query time, so it can be recomputed for any window.
+* **Windowed on the report date, not the completion date.** Five faults reported
+  this week and none fixed yet is the *worst* box in the group; scoring on
+  completion would rank it zero.
+* **Cancelled faults are excluded; open faults are counted separately.**
+* **Faults that name no box are surfaced, not swallowed.**
+
+> **This panel is empty on today's data, and that is the finding.** Zero of the
+> eight jobs in the project carry either a `cablebox_id` or a
+> `cablebox_code_raw`. Until imports and manual entry record which box a job
+> belongs to, this leaderboard has nothing to rank — and the same gap limits any
+> per-box history.
+
 ### v1.6.0 (15/11/2026) — materials used
 
 A technician can record what a job consumed: metres of drop cable, connectors,

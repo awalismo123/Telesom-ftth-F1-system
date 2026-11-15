@@ -447,3 +447,46 @@ to record "the store issued 50 connectors to nobody in particular" — the recor
 The consequence: consumables that leave the store without a job (a broken drum, a return, a
 transfer between groups) have nowhere to go and will make the usage total understate what actually
 left. The store's own paperwork remains the authority; this figure is the job-level view.
+
+## 7o. **Jobs do not record which box they belong to** — this blocks per-box history
+
+Measured on the live project, 15/11/2026: of eight tasks, **zero** carry a
+`cablebox_id`, and **zero** carry a `cablebox_code_raw`. Both columns exist and
+both are null.
+
+**What this means:**
+
+* the box fault leaderboard (v1.7.0) is **empty**, correctly, because there is
+  nothing to rank;
+* any future "history for this box" screen has the same problem;
+* `cableboxes.fault_count` is incremented on completion, but only for jobs that
+  reference a box — so it too is unmoved by this data.
+
+**The fix is upstream, not in the app.** The import and the phone-in form both
+need to carry the box code, and the group's sheets need a column the OCR can map
+to `cablebox`. Where a job genuinely has no box (a backbone fault), that is fine
+— but it must be the exception, not all eight rows.
+
+`box_fault_history` matches a box **two ways** (the FK, then a case-insensitive
+match on the raw code) precisely so that a partially-filled import still
+attributes what it can. Faults that match neither are counted as
+`unassigned_faults` and shown as a warning, so this gap is visible rather than
+looking like a healthy estate.
+
+---
+
+## 7p. Box fault counts are reported faults, not confirmed faults
+
+The window applies to `reported_date` — when the customer reported the fault.
+That is deliberate: a fault is evidence about the hardware the moment it is
+reported, and waiting for completion would hide the box that is failing right
+now.
+
+The consequence: a fault reported by mistake and later cancelled is excluded,
+but a fault that turns out to be the customer's own router still counts against
+the box until somebody cancels it. If the group cancels mistakes reliably, the
+figure is sound. If it does not, the figure overstates boxes where customers
+misreport.
+
+`open_faults` is shown separately so an unfixed backlog is never hidden inside a
+total.

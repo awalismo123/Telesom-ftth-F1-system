@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Package,
   RefreshCw,
+  Server,
   ShieldAlert,
   Signal,
   Sparkles,
@@ -53,6 +54,14 @@ import { Skeleton, SkeletonCard } from '../ui/Skeleton';
 import { countLabel, formatDate, isoDaysAgo, todayKey } from '../../lib/format';
 import { NO_STOCK_NOTE, USAGE_LABEL, formatQuantity, type UsageRow } from '../../lib/materials';
 import { fetchMaterialsUsage } from '../../lib/materialsService';
+import {
+  BOX_HISTORY_NOTE,
+  boxHistoryLabel,
+  hasUnlinkedWork,
+  rankedBoxes,
+  type BoxFaultHistory,
+} from '../../lib/boxHistory';
+import { fetchBoxFaultHistory } from '../../lib/boxHistoryService';
 
 const WINDOWS = [7, 30, 90];
 
@@ -66,6 +75,7 @@ export function Analytics() {
 
   const [days, setDays] = useState(30);
   const [materials, setMaterials] = useState<UsageRow[] | null>(null);
+  const [boxHistory, setBoxHistory] = useState<BoxFaultHistory | null>(null);
   const [data, setData] = useState<AnalyticsResponse | null>(() =>
     groupId ? readCache<AnalyticsResponse>(cacheKeys.analytics(groupId, 30)) : null,
   );
@@ -94,6 +104,29 @@ export function Analytics() {
     } finally {
       setLoading(false);
     }
+  }, [token, groupId, days]);
+
+  /**
+   * Box fault history for the same window.
+   *
+   * Read-only and computed at query time — `cableboxes.fault_count` is a
+   * lifetime counter and cannot answer "this month". A failure leaves the card
+   * out rather than breaking the page.
+   */
+  useEffect(() => {
+    if (!token || !groupId) return;
+    let cancelled = false;
+    setBoxHistory(null);
+
+    void fetchBoxFaultHistory({ token, groupId, days })
+      .then((result) => !cancelled && setBoxHistory(result))
+      .catch(() => {
+        /* the rest of the page is still valid */
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [token, groupId, days]);
 
   /**
@@ -392,6 +425,72 @@ export function Analytics() {
               <span>{data.daily[data.daily.length - 1]?.date ?? ''}</span>
             </div>
           </div>
+
+          {/* Box fault history. The heading carries the window, always — "12
+              faults" on a box means nothing without "in 30 days". */}
+          {boxHistory && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+                  {boxHistoryLabel(boxHistory.days, lang)}
+                </span>
+                <span className="ml-auto text-[10px] font-bold text-slate-500">
+                  {formatDate(boxHistory.from)} – {formatDate(boxHistory.to)}
+                </span>
+              </div>
+
+              {rankedBoxes(boxHistory.boxes).length > 0 ? (
+                <ul className="divide-y divide-slate-100">
+                  {rankedBoxes(boxHistory.boxes)
+                    .slice(0, 10)
+                    .map((row) => (
+                      <li key={row.box_id} className="flex items-baseline gap-2 py-1.5">
+                        <span className="font-mono text-[12px] font-extrabold text-slate-900 truncate">
+                          {row.box_code}
+                        </span>
+                        {row.xaafada && (
+                          <span className="text-[10px] text-slate-500 truncate">{row.xaafada}</span>
+                        )}
+                        <span className="ml-auto font-mono text-[12px] font-extrabold text-slate-900 shrink-0">
+                          {row.faults}
+                        </span>
+                        {row.open_faults > 0 && (
+                          <span className="text-[10px] font-bold text-amber-700 shrink-0 w-20 text-right">
+                            {row.open_faults} {so ? 'furan' : 'open'}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className="text-[11px] italic text-slate-500 py-1">
+                  {so
+                    ? 'Cilad ma jirto muddadan.'
+                    : 'No faults reported in this window.'}
+                </p>
+              )}
+
+              {/* If faults exist that name no box, the table above is not the
+                  whole picture and must not be read as one. */}
+              {hasUnlinkedWork(boxHistory) && (
+                <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2 py-1.5 text-[10px] font-semibold text-amber-900">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    {so
+                      ? `${boxHistory.unassigned_faults} ciladood ayaan sanduuq la xiriirin, marka shaxda hoose dhamaystirna ma aha.`
+                      : `${boxHistory.unassigned_faults} fault${
+                          boxHistory.unassigned_faults === 1 ? '' : 's'
+                        } name no cable box, so this table is not the whole picture.`}
+                  </span>
+                </p>
+              )}
+
+              <p className="text-[10px] leading-snug text-slate-500 border-t border-slate-100 pt-1.5">
+                {BOX_HISTORY_NOTE[lang]}
+              </p>
+            </div>
+          )}
 
           {/* Materials used — the label and the footer sentence are constants
               shared with the tests, so no screen can quietly call this stock. */}

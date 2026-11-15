@@ -342,9 +342,32 @@ not stock.
 
 ---
 
-### Phase 6 — Equipment-box fault history
+### Phase 6 — Equipment-box fault history — ✅ DONE 15/11/2026
 
-**Effort:** ~3 hours. **Depends on:** nothing.
+**Effort:** ~3 hours. **Depends on:** nothing. **No table** — one read-only function.
+
+> **Result:** migration 027 applied live; `npm run verify` green at **386/386 tests, 195.4 kB**.
+> The panel lives inside the already-lazy Analytics tab, so the hot bundle did not move.
+>
+> **The plan was wrong about the date.** It said to window on `completed_at`. That scores the
+> *worst* box — five faults reported this week, none fixed yet — at **zero**. A fault is evidence
+> the moment it is reported, so the window applies to `reported_date` and the payload says
+> `basis: 'reported'`. A test fails the build if the window is ever applied to completion time.
+>
+> **A finding that matters more than the feature.** Measured live: **zero of eight tasks carry
+> either `cablebox_id` or `cablebox_code_raw`.** So on today's data this leaderboard is empty — and
+> it will stay empty until imports and manual entry actually record which box a job belongs to.
+> The function therefore matches a box **two ways** (FK, then case-insensitive raw code) and counts
+> faults that match neither as `unassigned_faults`, shown as a warning rather than swallowed. A
+> table that silently discards rows reads as a healthy estate.
+>
+> **Probed live inside `BEGIN…ROLLBACK`** with five manufactured faults: 2 attributed to `B6 (52)`
+> (one by FK, one by lowercase raw code), the **cancelled** one excluded, a fault **200 days old**
+> excluded by the 30-day window, `FAT48` returned with **0**, and `unassigned = 1`. Rollback left
+> no probe rows.
+>
+> **Still using the lifetime counter?** No. `cableboxes.fault_count` is untouched and unused here —
+> it cannot answer "this month" and cannot be reset without losing the history behind it.
 
 **What changes**
 
