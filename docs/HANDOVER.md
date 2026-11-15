@@ -187,7 +187,30 @@ Supabase dashboard can end sessions.
 
 ---
 
-## 4. Release notes — v1.1.0 (09/11/2026)
+## 4. Release notes
+
+### v1.2.0 (15/11/2026) — Telesom brand and usability
+
+The app becomes a Telesom product rather than a green internal tool.
+
+* **Real brand.** The published palette is wrong (it omits the emblem's royal
+  blue), so colours were sampled from the logo files and the emblem was fitted
+  to the artwork by least squares. One drawing, four encodings, with a test that
+  fails if they drift apart.
+* **480 colour utilities swapped without changing a single contrast ratio** —
+  every brand shade sits at the luminance of the emerald it replaced.
+* **An accessibility failure the rebrand exposed:** six surfaces carried 11 px
+  white text at 3.58:1 before this release. All moved to a passing shade, with a
+  lint to stop it returning.
+* **Larger-text mode** (`Aa`): Normal → Large → Extra large, scaling both the
+  rem system and ~390 px-locked labels.
+* **Next-job band** on the technician route: one job, one action, shown only
+  when no timer is already running.
+* **Letterhead** on the period report, printed in colour.
+* **Version labels now tell the truth.** 1.1.0 was still stamped on builds
+  that had shipped three merges of change; the label is part of the release.
+
+### v1.1.0 (09/11/2026) — the manager pack
 
 The manager pack. Nothing a technician does changes; four things are added.
 
