@@ -14,6 +14,7 @@ import {
   MapPin,
   KeyRound,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,6 +24,7 @@ import { fetchGroupOverview } from '../../lib/reads';
 import { flagDepartmentPins, flagPinsWarning, stalePinMembers, stalePinSentence } from '../../lib/pins';
 import { useToast } from '../ui/Toast';
 import type { Crew, Group, UserProfile, UserRole } from '../../types/database';
+import { CREW_MAX_MEMBERS, checkCrewSize } from '../../lib/crew';
 
 interface CrewMemberRow {
   crew_id: string;
@@ -210,16 +212,37 @@ export function TeamAndCrewManager() {
     setCrewModalOpen(true);
   };
 
+  /**
+   * A crew is one or two people — the vehicle, the partner, the shared timer.
+   * The database enforces the same cap (migration 023); this stops the click
+   * that would have failed, and says why instead of dropping it silently.
+   */
   const toggleCrewMemberSelection = (uid: string) => {
-    setCSelectedMembers((prev) =>
-      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
-    );
+    setFormError(null);
+    setCSelectedMembers((prev) => {
+      if (prev.includes(uid)) return prev.filter((id) => id !== uid);
+      if (prev.length >= CREW_MAX_MEMBERS) {
+        const size = checkCrewSize(prev.length + 1, true);
+        setFormError(size.message ? size.message[lang] : null);
+        return prev;
+      }
+      return [...prev, uid];
+    });
   };
 
   const handleSaveCrew = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.token || !activeGroup?.id) return;
     setFormError(null);
+
+    // Mirrors the database rule. Doing it here first means the supervisor gets
+    // a sentence in their own language instead of a constraint name.
+    const size = checkCrewSize(cSelectedMembers.length, cActive);
+    if (!size.ok) {
+      setFormError(size.message ? size.message[lang] : null);
+      return;
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase.rpc('upsert_crew', {
@@ -573,7 +596,23 @@ export function TeamAndCrewManager() {
                     {t('assignedTechnicians', { count: cMembers.length })}
                   </div>
                   {cMembers.length === 0 ? (
-                    <div className="text-xs text-slate-500 italic">{t('noTechniciansYet')}</div>
+                    <div className="space-y-1.5">
+                      <div className="text-xs text-slate-500 italic">{t('noTechniciansYet')}</div>
+                      {/* An active crew with nobody in it cannot be dispatched,
+                          but it still counts as a row in the crew list — which
+                          is how "crews out of N" came to look healthy while
+                          nobody was available. Say it here, where it is fixed. */}
+                      {c.is_active && (
+                        <div className="flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-[11px] font-semibold text-amber-900">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
+                          <span>
+                            {lang === 'so'
+                              ? 'Kooxdan cidna kuma jirto, marka lama qaybin karo. Ku dar farsamayaqaan ama ka dhig mid aan firfircoonayn.'
+                              : 'Nobody is in this crew, so it cannot be dispatched. Add a technician or mark it inactive.'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {cMembers.map((tech) => (

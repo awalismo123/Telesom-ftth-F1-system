@@ -66,21 +66,35 @@ export async function fetchDispatchLoad(token: string, groupId: string): Promise
   return (data ?? { users: [], crews: [] }) as DispatchLoad;
 }
 
+/**
+ * Crews with nobody in them.
+ *
+ * A crew is a two-person vehicle; an empty row in `crews` is a name with no
+ * people behind it. It still appears in the team screen so a supervisor can fix
+ * the roster, but it cannot be dispatched to — assigning a job to a crew that
+ * does not exist sends it nowhere while looking like it was sent.
+ */
+export function crewsWithoutMembers(load: DispatchLoad): LoadCrew[] {
+  return load.crews.filter((crew) => (crew.members?.length ?? 0) === 0);
+}
+
 /** Crews first (they are the normal unit), then individual technicians. */
 export function toTargets(load: DispatchLoad): DispatchTarget[] {
-  const crews: DispatchTarget[] = load.crews.map((crew) => ({
-    kind: 'crew',
-    id: crew.id,
-    name: crew.name,
-    subtitle: [crew.vehicle_tag, crew.members.map((m) => m.full_name.split(' ')[0]).join(' + ')]
-      .filter(Boolean)
-      .join(' · '),
-    zoneFocus: crew.zone_focus,
-    openJobs: Number(crew.open_jobs) || 0,
-    urgentJobs: Number(crew.urgent_jobs) || 0,
-    activeJobs: Number(crew.active_jobs) || 0,
-    doneToday: Number(crew.done_today) || 0,
-  }));
+  const crews: DispatchTarget[] = load.crews
+    .filter((crew) => (crew.members?.length ?? 0) > 0)
+    .map((crew) => ({
+      kind: 'crew',
+      id: crew.id,
+      name: crew.name,
+      subtitle: [crew.vehicle_tag, crew.members.map((m) => m.full_name.split(' ')[0]).join(' + ')]
+        .filter(Boolean)
+        .join(' · '),
+      zoneFocus: crew.zone_focus,
+      openJobs: Number(crew.open_jobs) || 0,
+      urgentJobs: Number(crew.urgent_jobs) || 0,
+      activeJobs: Number(crew.active_jobs) || 0,
+      doneToday: Number(crew.done_today) || 0,
+    }));
 
   const users: DispatchTarget[] = load.users.map((user) => ({
     kind: 'user',

@@ -30,7 +30,10 @@ export interface TodaySummary {
   created_today: number;
   completed_today: number;
   crews_out: number;
+  /** Active crews that have at least one member — the ones that can go out. */
   crews_total: number;
+  /** Active crews with nobody in them. Cannot be dispatched; a roster problem. */
+  crews_empty: number;
   people_out: number;
 }
 
@@ -111,7 +114,17 @@ export function headlineTone(summary: TodaySummary): TodayTone {
  */
 export function todayItems(summary: TodaySummary, lang: Language): TodayItem[] {
   const so = lang === 'so';
-  const { blocked, over_sla, unassigned, crews_out, crews_total, people_out, completed_today, in_progress } = summary;
+  const {
+    blocked,
+    over_sla,
+    unassigned,
+    crews_out,
+    crews_total,
+    crews_empty,
+    people_out,
+    completed_today,
+    in_progress,
+  } = summary;
 
   return [
     {
@@ -142,14 +155,27 @@ export function todayItems(summary: TodaySummary, lang: Language): TodayItem[] {
       id: 'out',
       label: so ? 'Duurka' : 'Crews out',
       value: `${formatNumber(crews_out)}/${formatNumber(crews_total)}`,
-      hint:
-        crews_out > 0
-          ? so
-            ? `${formatNumber(people_out)} qof, ${formatNumber(in_progress)} shaqo socda`
-            : `${formatNumber(people_out)} ${plural(people_out, 'person', 'people')}, ${formatNumber(in_progress)} running`
-          : so
-            ? 'Cidna duurka ma jirto'
-            : 'Nobody is out',
+      hint: (() => {
+        // An empty crew is not capacity. Saying "0/0" without explanation reads
+        // like nothing is wrong; naming the stranded crews is the difference
+        // between a blank screen and a task.
+        const stranded =
+          crews_empty > 0
+            ? so
+              ? ` · ${formatNumber(crews_empty)} kooxood oo cidlo ah`
+              : ` · ${formatNumber(crews_empty)} ${plural(crews_empty, 'crew has', 'crews have')} no members`
+            : '';
+
+        if (crews_out > 0) {
+          return (
+            (so
+              ? `${formatNumber(people_out)} qof, ${formatNumber(in_progress)} shaqo socda`
+              : `${formatNumber(people_out)} ${plural(people_out, 'person', 'people')}, ${formatNumber(in_progress)} running`) +
+            stranded
+          );
+        }
+        return (so ? 'Cidna duurka ma jirto' : 'Nobody is out') + stranded;
+      })(),
       tone: 'calm',
       tab: crews_total > 0 ? 'team' : null,
     },

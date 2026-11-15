@@ -21,6 +21,7 @@ import {
   assignTasks,
   fetchDispatchLoad,
   fetchDispatchTasks,
+  crewsWithoutMembers,
   toTargets,
   unassignTasks,
   type DispatchLoad,
@@ -162,6 +163,10 @@ export function DispatchBoard({
   });
 
   const targets = useMemo(() => toTargets(load), [load]);
+  // Crews that exist as rows but have nobody in them. They are filtered out of
+  // the dispatch targets, so without this line they would vanish silently and a
+  // supervisor would wonder where the crew went.
+  const strandedCrews = useMemo(() => crewsWithoutMembers(load), [load]);
   const targetByKey = useMemo(() => {
     const map = new Map<string, DispatchTarget>();
     for (const target of targets) map.set(targetKey(target), target);
@@ -500,6 +505,19 @@ export function DispatchBoard({
           <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 px-1">
             {t('dispatchLanes')} · {targets.length}
           </h3>
+          {strandedCrews.length > 0 && (
+            <p className="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mx-1">
+              {lang === 'so'
+                ? `${strandedCrews.length} kooxood cidna kuma jirto, marka lama qaybin karo: ${strandedCrews
+                    .map((crew) => crew.name)
+                    .join(', ')}. Ku dar farsamayaqaan Team & Crews.`
+                : `${strandedCrews.length} ${
+                    strandedCrews.length === 1 ? 'crew has' : 'crews have'
+                  } nobody in them, so cannot be dispatched: ${strandedCrews
+                    .map((crew) => crew.name)
+                    .join(', ')}. Add a technician in Team & Crews.`}
+            </p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {targets.map((target) => {

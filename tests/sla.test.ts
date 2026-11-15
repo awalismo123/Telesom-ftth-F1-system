@@ -57,15 +57,58 @@ interface SlaSite {
   days: number;
 }
 
-const sites: SlaSite[] = [];
+/**
+ * Which function a line belongs to.
+ *
+ * A migration may redefine a function that an earlier migration already
+ * defined — `today_summary` is redefined in 023 to fix the crew counts. Both
+ * copies contain the promise, but only one is live: the later definition
+ * replaces the earlier one at run time.
+ *
+ * Counting both would make this guard fire every time a function is corrected,
+ * and the natural reaction to that is to bump the expected number until the
+ * test means nothing. So the scan tracks function boundaries and keeps only the
+ * sites inside the newest definition of each function.
+ */
+const FUNCTION_HEADER = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)/i;
+
+interface RawSite extends SlaSite {
+  fn: string | null;
+}
+
+const rawSites: RawSite[] = [];
 
 for (const file of migrationFiles) {
   const lines = readFileSync(join(migrationsDir, file), 'utf8').split('\n');
+  let currentFn: string | null = null;
   lines.forEach((text, index) => {
+    const header = text.match(FUNCTION_HEADER);
+    if (header) currentFn = header[1];
+
     const match = text.match(SLA_COMPARISON);
-    if (match) sites.push({ file, line: index + 1, days: Number(match[1]) });
+    if (match) rawSites.push({ file, line: index + 1, days: Number(match[1]), fn: currentFn });
   });
 }
+
+/** The last migration file that defines each function, by name. */
+const latestDefinition = new Map<string, string>();
+for (const site of rawSites) {
+  if (site.fn) latestDefinition.set(site.fn, site.file);
+}
+
+// Migration filenames sort chronologically, so "latest" is the greatest name.
+for (const file of migrationFiles) {
+  for (const [, fn] of readFileSync(join(migrationsDir, file), 'utf8').matchAll(
+    new RegExp(FUNCTION_HEADER.source, 'gi'),
+  )) {
+    const current = latestDefinition.get(fn);
+    if (!current || file > current) latestDefinition.set(fn, file);
+  }
+}
+
+const sites: SlaSite[] = rawSites.filter(
+  (site) => site.fn === null || latestDefinition.get(site.fn) === site.file,
+);
 
 test('every overdue check uses the same number as the screen', () => {
   const drifted = sites.filter((site) => site.days !== SLA_DAYS);
@@ -79,15 +122,31 @@ test('every overdue check uses the same number as the screen', () => {
 
 test('the scan still finds every site', () => {
   // If a query is refactored and stops matching, the test above would pass by
-  // finding nothing. Five queries make this comparison: `period_report`,
-  // `report_jobs`, and the two manager reports, plus `today_summary.over_sla`
-  // added in migration 022 for the supervisor's landing screen.
-  assert.equal(
-    sites.length,
-    5,
-    `expected 4 overdue checks, found ${sites.length}. ` +
-      'If one was intentionally added or removed, update this count with it.',
-  );
+  // finding nothing. Asserting the *set of functions* rather than a bare count
+  // makes that failure name itself.
+  //
+  // This used to assert 5. That 5 was wrong: it counted `period_report` twice,
+  // because it is defined in 012 and replaced in 013, and only the 013 copy is
+  // live. Counting only live definitions gives four.
+  const live = [...new Set(sites.filter((site) => site.fn).map((site) => site.fn))].sort();
+  assert.deepEqual(live, [
+    'internal_period_stats',
+    'manager_portfolio',
+    'period_report',
+    'today_summary',
+  ]);
+});
+
+test('a redefined function is counted once, at its newest definition', () => {
+  // `today_summary` exists in both 022 and 023 with the same promise. Counting
+  // the superseded copy would make this guard fire on every correction and
+  // train whoever hits it to bump the number.
+  const todaySummarySites = rawSites.filter((site) => site.fn === 'today_summary');
+  assert.ok(todaySummarySites.length > 1, 'expected today_summary in more than one migration');
+
+  const counted = todaySummarySites.filter((site) => sites.includes(site));
+  assert.equal(counted.length, 1, 'today_summary must contribute exactly one live site');
+  assert.equal(counted[0].file, '023_crew_size_rules.sql');
 });
 
 test('the client constant is a whole number of days', () => {
