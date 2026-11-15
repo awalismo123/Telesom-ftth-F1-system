@@ -598,3 +598,20 @@ to say "more likely" for that reason.
 Readings are skipped when absent rather than treated as 0 dBm. Zero is a perfect
 signal, and reporting it for a job nobody measured would point a technician away
 from the fault.
+
+---
+
+## 7z. "Due today" counts the report date, not the dispatch date
+
+`sla_watch` puts a job on the list when the **customer reported it** exactly
+three days ago. It does not know when the job was assigned, and it makes no
+claim about how long anybody has been working on it.
+
+A job that was assigned yesterday and reaches its deadline today appears on the
+list alongside one that has sat unassigned since the call came in. That is
+correct — the customer measures from the day they called, which is the rule the
+whole app uses — but a supervisor reading the list should not conclude the crew
+sat on it.
+
+The unassigned count is shown separately and sorts to the top, because that is
+the case where nobody has taken responsibility.

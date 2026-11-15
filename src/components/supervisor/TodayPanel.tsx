@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { AlertTriangle, ArrowRight, CircleCheck, Clock, Truck, UserX } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
 import { todayHeadline, headlineTone, todayItems, type TodaySummary } from '../../lib/today';
 import { SkeletonCard } from '../ui/Skeleton';
+// Split out of the first screen's bundle. The card fetches on mount, so it is
+// never visible before the shell has rendered anyway, and the supervisor's
+// landing page has a hard size budget.
+const SlaWatchCard = lazy(() =>
+  import('./SlaWatchCard').then((m) => ({ default: m.SlaWatchCard })),
+);
 import { cx } from '../ui/cx';
 
 /**
@@ -129,6 +135,10 @@ export function TodayPanel({
           </button>
         )}
       </div>
+
+      <Suspense fallback={null}>
+        <SlaWatchCard />
+      </Suspense>
     </section>
   );
 }
