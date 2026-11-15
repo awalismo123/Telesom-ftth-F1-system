@@ -8,6 +8,8 @@
  */
 
 import type { BlockerReason, Task } from '../types/database';
+import { todayKey } from './format';
+import { isPlanned } from './schedule';
 
 /* -------------------------------------------------------------------------- */
 /* Route payload                                                               */
@@ -297,13 +299,26 @@ export interface RouteStats {
   doneSeconds: number;
 }
 
-export function routeStats(tasks: RouteTask[]): RouteStats {
-  const today = new Date().toISOString().slice(0, 10);
+export function routeStats(tasks: RouteTask[], now: Date = new Date()): RouteStats {
+  // The technician's own day, on both sides of the comparison.
+  //
+  // This used to slice the UTC date off `completed_at` and compare it to the
+  // UTC date of "now". Those two agreed with each other, so nothing went
+  // missing — but they disagreed with the *rest of the app* by up to a day:
+  // `today_summary`, the board and the header all use the phone's day. Between
+  // 21:00 and midnight in Hargeisa this tile read "2 done today" while the
+  // supervisor's header counted the same two jobs as yesterday's.
+  const today = todayKey(now);
+  const doneOn = (iso: string | null | undefined) => {
+    if (!iso) return '';
+    const at = new Date(iso);
+    return Number.isNaN(at.getTime()) ? '' : todayKey(at);
+  };
 
   return tasks.reduce<RouteStats>(
     (acc, task) => {
       if (task.status === 'completed') {
-        if ((task.completed_at ?? '').slice(0, 10) === today) {
+        if (doneOn(task.completed_at) === today) {
           acc.doneToday += 1;
           acc.doneSeconds += task.accumulated_seconds ?? 0;
         }
@@ -413,9 +428,24 @@ export interface NextJob {
   reason: NextJobReason;
 }
 
-export function nextJob(tasks: RouteTask[]): NextJob | null {
+/**
+ * The job to walk to next.
+ *
+ * A job planned for Thursday is not where anyone should go on Tuesday, so the
+ * choice skips days that have not arrived. The list still *shows* those jobs —
+ * hiding them risks a technician never learning they exist — they are just not
+ * the answer to "what now".
+ *
+ * `today` defaults to the phone's day. It is a parameter so tests can pin it and
+ * so a caller that already knows the day does not compute it twice.
+ */
+export function nextJob(tasks: RouteTask[], today: string = todayKey()): NextJob | null {
   const candidate = sortRoute(tasks).find(
-    (task) => task.status !== 'completed' && task.status !== 'cancelled' && task.status !== 'in_progress',
+    (task) =>
+      task.status !== 'completed' &&
+      task.status !== 'cancelled' &&
+      task.status !== 'in_progress' &&
+      !isPlanned(task.scheduled_date, today),
   );
 
   if (!candidate) return null;

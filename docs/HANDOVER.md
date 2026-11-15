@@ -189,6 +189,35 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.3.0 (15/11/2026) — crew size rules and job scheduling
+
+Two of the defects that made the app's numbers untrustworthy, and the first
+release where a job can be planned for another day.
+
+* **A crew is one or two people (migration 023).** Nothing enforced it. Measured
+  on the live project: both active crews had **zero** members, and earlier the
+  same day one had three. A trigger now rejects a third; `upsert_crew` refuses an
+  active crew with nobody in it. Inactive crews may still be empty — that is how
+  a vehicle is retired without deleting its history.
+* **"Crews out of N" stopped lying.** `crews_total` counted active crew *rows*,
+  so an empty crew counted as a crew you could send out. It now counts only crews
+  with a member, and `crews_empty` reports the stranded ones. The board names
+  them instead of letting them vanish.
+* **Scheduling (migration 024).** `scheduled_date` had existed since the first
+  schema and **nothing read it**. A job can now be planned for a later day: it
+  leaves today's pool, appears in a Planned list, and stays on the technician's
+  phone labelled — but is never offered as "next job" before its day.
+* **Two silent drifts found while doing the above.** The live `today_summary`
+  had a `due_today` key that existed in **no migration file**, so a replay from
+  scratch would have produced a different function than production. And
+  `tests/sla.test.ts` asserted five overdue checks when only four were live — it
+  was counting a `period_report` copy that a later migration replaces.
+* **An RPC that would have failed on a live job.** `task_work_logs.action` is a
+  CHECK allow-list and `'scheduled'` was not on it, so the audit line for a
+  reschedule would have raised a constraint violation at run time. Nothing in the
+  type check could catch it. The allow-list is widened and a test pins it to the
+  client's vocabulary.
+
 ### v1.2.0 (15/11/2026) — Telesom brand and usability
 
 The app becomes a Telesom product rather than a green internal tool.

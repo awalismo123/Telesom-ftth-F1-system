@@ -126,9 +126,34 @@ empty crew is allowed; the panel shows the empty-crew count.
 
 ---
 
-### Phase 2 — Job scheduling
+### Phase 2 — Job scheduling — ✅ DONE 15/11/2026
 
-**Effort:** ~3–4 hours. **Depends on:** Phase 1 (only for dispatch-lane layout).
+**Effort:** ~3–4 hours (took about that). **Depends on:** Phase 1.
+
+> **Result:** migration 024 applied live; `npm run verify` green at **308/308 tests, 194.9 kB of
+> 200 kB**. `set_task_schedule` probed inside `BEGIN…ROLLBACK` on a real job: moved it 5 days back
+> to +3 days, wrote exactly one `scheduled` audit line, refused a second identical call (no log
+> noise), refused a 1999 date, and refused to move a closed job. Rollback left 0 stray rows.
+>
+> **Two things inspection changed, and the plan was wrong about:**
+>
+> 1. **The sheets have no planned-date column** — only `DateIn` and `DateOut`. So "date taken from
+>    the plan when present" cannot mean "from the sheet". The date is a supervisor decision, and
+>    the import default (arrival day) is unchanged. Implementing the plan as written would have
+>    meant inventing a column that does not exist.
+> 2. **`task_work_logs.action` is a CHECK allow-list** and `'scheduled'` was not on it. The audit
+>    line the RPC writes would have failed at run time on a live job, with nothing in the type
+>    check to catch it. 024 widens the allow-list; a test now pins the DB list to the client's
+>    vocabulary so it cannot drift silently again.
+>
+> **Also dropped from the plan, deliberately:** the `ManualTaskSheet` date field. Creating a
+> phone-in job already opens the job-actions sheet, which now carries the planned-day control — a
+> second date field would have been a second way to do one thing.
+>
+> **A claim I had to retract mid-build:** I wrote a comment saying `routeStats` lost jobs across
+> midnight. It did not — both sides of that comparison were UTC, so they agreed with each other.
+> The real defect was milder: the tile disagreed with the header (which uses the phone's day) for
+> three hours a night. The comment now says that, and the test pins the actual property.
 
 **What changes**
 

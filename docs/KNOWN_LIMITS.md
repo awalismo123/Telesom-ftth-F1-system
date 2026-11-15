@@ -319,3 +319,28 @@ audience. The short version:
    step, written down in `RUNBOOK.md`.
 
 Anything in this file that is not in that list is a limitation, not a blocker.
+## 7h. A planned job leaves today's list, but stays on the phone
+
+**Behaviour, not a defect — recorded so nobody is surprised by it.**
+
+A job whose `scheduled_date` is in the future:
+
+* is **removed** from the dispatch board's pool and from every crew lane, because a job planned
+  for Thursday is not something to send a crew to on Tuesday;
+* appears in a **Planned** list on the board, with its date, and one tap opens the job where the
+  date can be changed;
+* stays on the **technician's phone**, labelled (`in 2 days`), but is never offered as "next job"
+  until its day arrives. Hiding it risks a technician never learning it exists; labelling it
+  cannot cause harm.
+
+`scheduled_date` is set by the supervisor or defaults to the day the job arrived. The department
+sheets have **no planned-date column** — only `DateIn` and `DateOut` — so a date cannot be
+imported. Anyone expecting the plan date to come from the sheet is expecting something that is
+not there.
+
+**The limit:** a job planned for a later day is still visible to the supervisor, but nothing
+reminds anyone on the morning it becomes due. It simply reappears in the pool. There is no
+notification.
+
+---
+

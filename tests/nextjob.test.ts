@@ -100,3 +100,29 @@ test('it agrees with the order the list is drawn in', () => {
 
   assert.equal(chosen, firstOpenInList?.id);
 });
+
+test('a job planned for a later day is not "next"', () => {
+  const today = '2026-11-15';
+  const future = task({ scheduled_date: '2026-11-20', priority: 'urgent' });
+  const now = task({ scheduled_date: today });
+
+  // The urgent future job would win on priority alone. It is not somewhere to
+  // send someone today.
+  assert.equal(nextJob([future, now], today)?.task.id, now.id);
+});
+
+test('when the only open job is a future one, there is no next job', () => {
+  assert.equal(nextJob([task({ scheduled_date: '2026-12-01' })], '2026-11-15'), null);
+});
+
+test('a late job still counts as next — late work is today\'s work', () => {
+  const late = task({ scheduled_date: '2026-11-01' });
+  assert.equal(nextJob([late], '2026-11-15')?.task.id, late.id);
+});
+
+test('a job with no date at all is not skipped', () => {
+  // Older payloads and test fixtures omit the column. "No date" must not be
+  // read as "not yet".
+  const undated = task({});
+  assert.equal(nextJob([undated], '2026-11-15')?.task.id, undated.id);
+});
