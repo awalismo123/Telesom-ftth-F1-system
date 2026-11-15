@@ -7,6 +7,7 @@
  */
 
 import { supabase } from './supabase';
+import { todayKey } from './format';
 import { uploadSheetImage } from './reads';
 import type { Task } from '../types/database';
 import type { ExtractedRow } from './ocr/extract';
@@ -269,7 +270,11 @@ export function toTaskPayload(plan: PlanRow, taskType: 'installation' | 'cilada'
     is_urgent: d.urgent,
     is_repeat_fault: plan.conflict === 'repeat',
     previous_task_id: plan.conflict === 'repeat' ? (plan.existing?.id ?? '') : '',
-    scheduled_date: new Date().toISOString().slice(0, 10), // always ISO
+    // The day the job arrived, as the *supervisor's* calendar day. `toISOString()`
+    // is UTC, so between 21:00 and midnight in Hargeisa it returns yesterday —
+    // which would file a fresh job as a day late the moment it was imported.
+    // `todayKey()` is local and is what the header and the board compare against.
+    scheduled_date: todayKey(),
   };
 }
 

@@ -171,3 +171,28 @@ export async function fetchSupervisorNotifications(
 }
 
 export type { SearchResponse, NotificationTask, ResumedLog };
+
+export interface ScheduleResult {
+  ok: boolean;
+  /** False when the job already had that day — nothing was written. */
+  changed: boolean;
+  task: Task;
+}
+
+/**
+ * Move a job to another day.
+ *
+ * The date is a calendar day string, not a Date: the RPC takes a `date` and the
+ * client compares day strings, so no timezone sits between the two.
+ */
+export async function setTaskSchedule(params: {
+  token: string;
+  taskId: string;
+  day: string;
+}): Promise<ScheduleResult> {
+  return rpc<ScheduleResult>('set_task_schedule', {
+    p_token: params.token,
+    p_task_id: params.taskId,
+    p_day: params.day,
+  });
+}

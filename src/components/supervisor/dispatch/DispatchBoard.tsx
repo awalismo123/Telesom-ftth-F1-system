@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeError } from '../../../lib/useErrorMessage';
 import {
+  CalendarClock,
   ChevronRight,
   MessageSquareText,
   PhoneCall,
@@ -16,6 +17,8 @@ import {
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../lib/i18n';
 import { truncatedNotice, OPEN_TASK_CAP } from '../../../lib/lists';
+import { plannedJobs, shortDay } from '../../../lib/schedule';
+import { todayKey } from '../../../lib/format';
 import type { Task } from '../../../types/database';
 import {
   assignTasks,
@@ -173,9 +176,40 @@ export function DispatchBoard({
     return map;
   }, [targets]);
 
+  /**
+   * One day for the whole board.
+   *
+   * The pool, the lanes and the planned list all decide "is this today?" from
+   * this one string. Computing it three times would let a board built across
+   * midnight put a job in two places.
+   */
+  const today = todayKey();
+
+  /**
+   * Work whose day has not arrived yet.
+   *
+   * It is removed from the pool and from the lanes below, because a job planned
+   * for Thursday is not something to send a crew to on Tuesday. It is shown in
+   * its own list instead of being hidden — a job nobody can see is a job that
+   * gets forgotten.
+   */
+  const planned = useMemo(
+    () =>
+      plannedJobs(
+        tasks.filter((task) => task.status !== 'completed' && task.status !== 'cancelled'),
+        today,
+      ),
+    [tasks, today],
+  );
+
+  const plannedIds = useMemo(() => new Set(planned.map((task) => task.id)), [planned]);
+
   const pool = useMemo(
-    () => tasks.filter((task) => task.status === 'unassigned'),
-    [tasks],
+    () =>
+      tasks.filter(
+        (task) => task.status === 'unassigned' && !plannedIds.has(task.id),
+      ),
+    [tasks, plannedIds],
   );
 
   /**
@@ -196,13 +230,13 @@ export function DispatchBoard({
       targets.map((target) => ({
         target,
         tasks: tasks.filter((task) => {
-          if (task.status === 'completed') return false;
+          if (task.status === 'completed' || plannedIds.has(task.id)) return false;
           return target.kind === 'crew'
             ? task.assigned_crew_id === target.id
             : task.assigned_user_id === target.id;
         }),
       })),
-    [tasks, targets],
+    [tasks, targets, plannedIds],
   );
 
   const assignedCount = lanes.reduce((sum, lane) => sum + lane.tasks.length, 0);
@@ -452,6 +486,54 @@ export function DispatchBoard({
               label={t('dispatchPool')}
             />
           </div>
+
+          {planned.length > 0 && (
+            <div className="bg-white rounded-2xl border border-amber-200 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-extrabold uppercase tracking-wide text-amber-800 flex items-center gap-1.5">
+                  <CalendarClock className="w-3.5 h-3.5" aria-hidden="true" />
+                  {so ? 'La qorsheeyay' : 'Planned'} · {planned.length}
+                </h3>
+                <span className="text-[11px] font-semibold text-amber-700">
+                  {so ? 'Maalmaha soo socda' : 'Not today'}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                {planned.slice(0, 12).map((task) => (
+                  <button
+                    key={task.id}
+                    type="button"
+                    onClick={() => setActionTaskId(task.id)}
+                    className="w-full flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-left hover:border-amber-300 hover:bg-amber-50/60 transition cursor-pointer"
+                  >
+                    <span className="font-mono text-[11px] font-bold text-slate-700 shrink-0">
+                      {shortDay(task.scheduled_date)}
+                    </span>
+                    <span className="text-[12px] font-bold text-slate-900 truncate">
+                      {task.customer_name || task.line_number}
+                    </span>
+                    <span className="ml-auto text-[10px] font-semibold text-slate-500 shrink-0">
+                      {task.status === 'unassigned' ? (so ? 'lama qaybin' : 'unassigned') : (so ? 'la qaybiyay' : 'assigned')}
+                    </span>
+                  </button>
+                ))}
+                {planned.length > 12 && (
+                  <p className="text-[11px] text-slate-500 px-1">
+                    {so
+                      ? `+${planned.length - 12} kale oo la qorsheeyay`
+                      : `+${planned.length - 12} more planned`}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-[11px] text-slate-500">
+                {so
+                  ? 'Taabo shaqo si aad maalinteeda u beddesho. Shaqooyinkan kama muuqdaan liiska maanta.'
+                  : 'Tap a job to change its day. These are not in today’s pool.'}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             {visiblePool.map((task) => (

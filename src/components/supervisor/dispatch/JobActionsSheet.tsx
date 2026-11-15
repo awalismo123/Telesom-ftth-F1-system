@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../../lib/i18n';
 import { CANCEL_REASONS, cancelReasonText, statusLabel, type Lang } from '../../../lib/ops';
-import { cancelTask, fetchTask, reopenTask } from '../../../lib/opsService';
+import { cancelTask, fetchTask, reopenTask, setTaskSchedule } from '../../../lib/opsService';
 import { assignTasks, unassignTasks } from '../../../lib/dispatchService';
 import type { DispatchTarget } from '../../../lib/dispatch';
 import type { Task } from '../../../types/database';
@@ -27,6 +27,8 @@ import { Skeleton } from '../../ui/Skeleton';
 import { useToast } from '../../ui/Toast';
 import { countLabel, formatDate } from '../../../lib/format';
 import { fetchTaskPhotos, type TaskPhotoMeta } from '../../../lib/reads';
+import { addDays, scheduleLabel, scheduleProblem, SCHEDULE_PROBLEM_COPY, todayLocal } from '../../../lib/schedule';
+import { todayKey } from '../../../lib/format';
 import { photoSizeLabel } from '../../../lib/photo';
 import { PhotoViewer } from '../../ui/PhotoViewer';
 
@@ -71,6 +73,8 @@ export function JobActionsSheet({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [photos, setPhotos] = useState<TaskPhotoMeta[]>([]);
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
+  const [plannedDay, setPlannedDay] = useState('');
+  const [scheduleBusy, setScheduleBusy] = useState(false);
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -94,6 +98,7 @@ export function JobActionsSheet({
       .then((row) => {
         if (cancelled) return;
         setTask(row);
+        setPlannedDay(row.scheduled_date ?? todayKey());
         setTargetKey(
           row.assigned_user_id
             ? `user:${row.assigned_user_id}`
@@ -189,6 +194,50 @@ export function JobActionsSheet({
   const status = task?.status ?? 'assigned';
   const open_ = task ? !['completed', 'cancelled'].includes(task.status) : false;
 
+  /**
+   * Move the job to `day`.
+   *
+   * The date is checked here first so a typo is answered instantly and in the
+   * right language, rather than as a Postgres error string. The database checks
+   * again — this is a convenience, not the guard.
+   */
+  async function saveDay(day: string) {
+    if (!task) return;
+
+    const problem = scheduleProblem(day, todayLocal());
+    if (problem) {
+      setError(SCHEDULE_PROBLEM_COPY[problem][lang]);
+      return;
+    }
+
+    setScheduleBusy(true);
+    setError(null);
+    try {
+      const result = await setTaskSchedule({ token, taskId: task.id, day });
+      setTask(result.task);
+      setPlannedDay(result.task.scheduled_date ?? day);
+      // `changed: false` means the job already had that day. Saying "moved"
+      // would be a small lie, and this app does not tell those.
+      toast.success(
+        result.changed
+          ? so
+            ? `Maalinta la beddelay: ${day}`
+            : `Moved to ${day}`
+          : so
+            ? 'Maalintaas horey ayay ugu jirtay'
+            : 'It was already on that day',
+      );
+      onChanged();
+    } catch (err) {
+      setError(describeError(err, lang));
+    } finally {
+      setScheduleBusy(false);
+    }
+  }
+
+  /** The next calendar day, as a key. Uses the shared day arithmetic. */
+  const tomorrowKey = () => addDays(todayKey(), 1);
+
   return (
     <Sheet
       open={open}
@@ -264,6 +313,52 @@ export function JobActionsSheet({
             <Alert tone="danger" onDismiss={() => setError(null)} dismissLabel={so ? 'Xir' : 'Dismiss'}>
               {error}
             </Alert>
+          )}
+
+          {status !== 'completed' && status !== 'cancelled' && (
+            <section className="space-y-2">
+              <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+                <CalendarClock className="w-3.5 h-3.5" aria-hidden="true" />
+                {so ? 'Maalinta la qorsheeyay' : 'Planned day'}
+              </h3>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="date"
+                  value={plannedDay}
+                  onChange={(event) => setPlannedDay(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800"
+                  aria-label={so ? 'Maalinta la qorsheeyay' : 'Planned day'}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={scheduleBusy || !plannedDay || plannedDay === task.scheduled_date}
+                  onClick={() => void saveDay(plannedDay)}
+                >
+                  {scheduleBusy ? (so ? 'Waa la kaydinayaa…' : 'Saving…') : so ? 'Kaydi' : 'Save'}
+                </Button>
+                <Button variant="ghost" size="sm" disabled={scheduleBusy} onClick={() => void saveDay(todayKey())}>
+                  {so ? 'Maanta' : 'Today'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={scheduleBusy}
+                  onClick={() => void saveDay(tomorrowKey())}
+                >
+                  {so ? 'Berri' : 'Tomorrow'}
+                </Button>
+              </div>
+
+              <p className="text-[11px] text-slate-500">
+                {scheduleLabel(task.scheduled_date, todayKey(), lang)}
+                {' · '}
+                {so
+                  ? 'Shaqo maalin dambe loo qorsheeyay kama muuqato liiska maanta, laakiin way ka muuqataa farsamayaqaanka oo calaamad leh.'
+                  : 'A job planned for a later day leaves today\'s list, but stays on the technician\'s phone, labelled.'}
+              </p>
+            </section>
           )}
 
           {photos.length > 0 && (

@@ -20,7 +20,8 @@ import {
   taskWarnings,
 } from '../../lib/execution';
 import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
-import { formatDbm } from '../../lib/format';
+import { formatDbm, todayKey } from '../../lib/format';
+import { isPlanned, scheduleLabel } from '../../lib/schedule';
 
 interface Props {
   task: RouteTask;
@@ -34,6 +35,8 @@ interface Props {
 
 export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResume }: Props) {
   const so = lang === 'so';
+  const today = todayKey();
+  const planned = isPlanned(task.scheduled_date, today);
   const running = task.status === 'in_progress';
   const blocked = task.status === 'blocked';
   const done = task.status === 'completed';
@@ -99,6 +102,14 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold">
                 <AlertTriangle className="w-2.5 h-2.5" />
                 {so ? 'DEGDEG' : 'URGENT'}
+              </span>
+            )}
+            {planned && (
+              // Shown, not hidden: a job planned for another day still has to be
+              // visible, or a technician may never learn it exists. The label is
+              // what stops it being mistaken for today's work.
+              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-extrabold">
+                {scheduleLabel(task.scheduled_date, today, lang).toUpperCase()}
               </span>
             )}
             {task.task_type === 'installation' ? (
