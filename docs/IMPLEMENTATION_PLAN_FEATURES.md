@@ -383,25 +383,60 @@ the label states the window.
 
 ---
 
-### Phase 7 — Repeat-fault escalation
+### Phase 7 — Repeat-fault escalation — ✅ DONE 15/11/2026
 
-**Effort:** ~2–3 hours. **Depends on:** Phase 6 for box grouping.
+**Effort:** ~3 hours. **Depends on:** nothing (identity is the line, not the box). **No table.**
+
+> **Result:** migration 028 applied live; `npm run verify` green at **414/414 tests, 195.5 kB**.
+> The supervisor card lives inside the already-lazy Analytics tab and the job-sheet badge is a
+> shared chunk both lazy panels already pull in, so the hot bundle moved 0.1 kB.
+
+> **The plan's rule could not work — this is the important finding.** The plan said to count jobs
+> where `is_repeat_fault = true` **or** `previous_task_id IS NOT NULL`. The importer sets that flag
+> in exactly one case (`src/lib/importer.ts:188`): a line coming back **after a completed job**.
+> The first fault on a line is never flagged, so **three real faults produce two flags** — the
+> escalation would need a *fourth* fault to fire. Worse, a fault that arrives while an earlier job
+> is still open is a carryover and is never flagged at all, so the rule silently depends on how
+> fast the crew closes work. Measured live: **0 of 28 tasks** carry the flag or a
+> `previous_task_id`, so the rule would never have fired on real data.
+>
+> The count is therefore of the **fault jobs themselves** — non-cancelled `cilada` jobs sharing a
+> `line_number` inside the window. `is_repeat_fault` is still returned, as `flagged_repeats`, and
+> shown as `2/3` beside the count: evidence on the row, never the trigger. A test fails the build
+> if anyone rebuilds the threshold on the flag.
+
+> **The plan was also too sure that the box would help.** It said "the customer's card and the box
+> both carry the flag". Boxes still carry nothing — all 28 jobs have a null box, the Phase 6
+> finding. The watch list shows the box when a job happens to name one and stays silent otherwise.
+
+> **Probed live inside `BEGIN…ROLLBACK`** with manufactured faults: a line with three in-window
+> faults plus a **cancelled** one plus a **200-day-old** one returned **3** (both excluded); a line
+> with two did not appear; three **blank** line numbers did not group into one customer; an
+> `installation` on a flagged line was not counted; and a 7-day window correctly found nothing.
+> `get_task`'s own rules gate the per-job call, so supervisors and managers follow existing
+> access, and the watch list refuses technicians. Rollback left 28 tasks and no probe rows.
 
 **What changes**
 
-* `repeatFaultCount(customerOrLine, windowDays = 90)` counting jobs that are genuinely repeat
-  evidence: `is_repeat_fault = true` **or** `previous_task_id IS NOT NULL` for the same
-  `line_number`. Nothing is labelled a repeat without that evidence.
-* At **3 within 90 days**, the customer's card and the box both carry an "investigate" flag with
-  the count, and it appears in a supervisor list.
+* `repeat_fault_watch(token, group, days = 90, threshold = 3)` — the supervisor watch list: one row
+  per line at or above the threshold, with the newest known name, phone, area and box, the fault
+  count, the open count and the last fault date.
+* `repeat_fault_count(token, task, days = 90)` — one job's line, for the job sheet. Returns
+  `known: false` when the job has no line number, so an unattributable job can never be escalated.
+* **Supervisor:** "Repeat faults — last 90 days" in Analytics, worst line first, with the note
+  explaining what is and is not counted.
+* **Job sheet (technician and supervisor):** a quiet grey line under the threshold, an amber
+  "N faults in 90 days — worth investigating" at or above it.
+
+**Tests (28):** two faults do not escalate, three do; a job with no line number never escalates;
+the heading always states its window; the fault count is not built on the importer flag, and the
+window is on `reported_date`; blank line numbers are never grouped; the threshold cannot be set
+below 2.
 
 **Explicitly not claimed:** "repeat" never means "the same phone number appeared twice" — two
 different customers can share a phone. Identity is `line_number`, which is what the sheet keys on.
-
-**Tests:** 2 faults do not flag; 3 do; the window excludes an old fault; a job without
-`previous_task_id` and without `is_repeat_fault` is never counted as a repeat.
-
----
+The copy says **"worth investigating"**, never "repeat offender", and no leaderboard ranks
+technicians by it.
 
 ### Phase 8 — Technician workload and performance
 

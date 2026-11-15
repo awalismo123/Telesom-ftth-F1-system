@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Package,
   RefreshCw,
+  RotateCcw,
   Server,
   ShieldAlert,
   Signal,
@@ -62,6 +63,14 @@ import {
   type BoxFaultHistory,
 } from '../../lib/boxHistory';
 import { fetchBoxFaultHistory } from '../../lib/boxHistoryService';
+import {
+  REPEAT_NOTE,
+  evidenceLine,
+  rankedRepeatLines,
+  repeatWatchLabel,
+  type RepeatWatch,
+} from '../../lib/repeatFaults';
+import { fetchRepeatFaultWatch } from '../../lib/repeatFaultsService';
 
 const WINDOWS = [7, 30, 90];
 
@@ -76,6 +85,7 @@ export function Analytics() {
   const [days, setDays] = useState(30);
   const [materials, setMaterials] = useState<UsageRow[] | null>(null);
   const [boxHistory, setBoxHistory] = useState<BoxFaultHistory | null>(null);
+  const [repeatWatch, setRepeatWatch] = useState<RepeatWatch | null>(null);
   const [data, setData] = useState<AnalyticsResponse | null>(() =>
     groupId ? readCache<AnalyticsResponse>(cacheKeys.analytics(groupId, 30)) : null,
   );
@@ -120,6 +130,29 @@ export function Analytics() {
 
     void fetchBoxFaultHistory({ token, groupId, days })
       .then((result) => !cancelled && setBoxHistory(result))
+      .catch(() => {
+        /* the rest of the page is still valid */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, groupId, days]);
+
+  /**
+   * Repeat-fault watch list for the same window.
+   *
+   * A line is listed at three non-cancelled fault jobs — the count is of the
+   * faults themselves, never of `is_repeat_fault` (see repeatFaults.ts). A
+   * failure leaves the card out rather than breaking the page.
+   */
+  useEffect(() => {
+    if (!token || !groupId) return;
+    let cancelled = false;
+    setRepeatWatch(null);
+
+    void fetchRepeatFaultWatch({ token, groupId, days })
+      .then((result) => !cancelled && setRepeatWatch(result))
       .catch(() => {
         /* the rest of the page is still valid */
       });
@@ -488,6 +521,78 @@ export function Analytics() {
 
               <p className="text-[10px] leading-snug text-slate-500 border-t border-slate-100 pt-1.5">
                 {BOX_HISTORY_NOTE[lang]}
+              </p>
+            </div>
+          )}
+
+          {/* Repeat faults. A line, not a customer — the note under the table
+              says so, because "repeat fault" is one step from a judgement about
+              the person living there. */}
+          {repeatWatch && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <RotateCcw className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+                  {repeatWatchLabel(repeatWatch.days, lang)}
+                </span>
+                <span className="ml-auto text-[10px] font-bold text-slate-500">
+                  {formatDate(repeatWatch.from)} – {formatDate(repeatWatch.to)}
+                </span>
+              </div>
+
+              {rankedRepeatLines(repeatWatch.lines).length > 0 ? (
+                <ul className="divide-y divide-slate-100">
+                  {rankedRepeatLines(repeatWatch.lines)
+                    .slice(0, 10)
+                    .map((row) => {
+                      const evidence = evidenceLine(row, lang);
+                      return (
+                        <li key={row.line_number} className="py-1.5 space-y-0.5">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-mono text-[12px] font-extrabold text-slate-900 truncate">
+                              {row.line_number}
+                            </span>
+                            {row.customer_name && (
+                              <span className="text-[10px] text-slate-500 truncate">
+                                {row.customer_name}
+                              </span>
+                            )}
+                            <span className="ml-auto font-mono text-[12px] font-extrabold text-slate-900 shrink-0">
+                              {row.faults}
+                            </span>
+                            {row.open_faults > 0 && (
+                              <span className="text-[10px] font-bold text-amber-700 shrink-0 w-20 text-right">
+                                {row.open_faults} {so ? 'furan' : 'open'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-baseline gap-2 text-[10px] text-slate-500">
+                            <span className="truncate">
+                              {[row.xaafada, row.cablebox_code].filter(Boolean).join(' · ') || '—'}
+                            </span>
+                            {row.last_fault_at && (
+                              <span className="ml-auto shrink-0 font-mono">
+                                {formatDate(row.last_fault_at)}
+                              </span>
+                            )}
+                          </div>
+                          {evidence && (
+                            <p className="text-[10px] text-slate-500 italic">{evidence}</p>
+                          )}
+                        </li>
+                      );
+                    })}
+                </ul>
+              ) : (
+                <p className="text-[11px] italic text-slate-500 py-1">
+                  {so
+                    ? `Cilad qoraan ma gaarin ${repeatWatch.threshold} muddadan.`
+                    : `No line reached ${repeatWatch.threshold} faults in this window.`}
+                </p>
+              )}
+
+              <p className="text-[10px] leading-snug text-slate-500 border-t border-slate-100 pt-1.5">
+                {REPEAT_NOTE[lang]}
               </p>
             </div>
           )}

@@ -189,6 +189,28 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.8.0 (15/11/2026) — the line that keeps coming back
+
+A line with three fault jobs in 90 days is now flagged, on the supervisor's
+Analytics tab and on the job sheet both roles open.
+
+* **Counted from the faults, not from the "repeat" flag.** The importer only
+  flags a line that comes back *after a completed job*, so three real faults
+  produce two flags — a rule built on the flag needs a fourth fault to fire, and
+  it misses any job that arrives while an earlier one is still open. The count
+  is of the non-cancelled fault jobs sharing a line number in the window.
+  `is_repeat_fault` is shown beside it as evidence (`2/3`), never as the trigger.
+* **Identity is the line number.** Never the phone: a shop, a family or a
+  borrowed handset would turn an innocent household into a repeat offender.
+  Blank line numbers are excluded, so anonymous jobs cannot all merge into one.
+* **It says "worth investigating".** Not "repeat offender" — that is a judgement
+  about the person, and the copy avoids it in both languages.
+* Cancelled faults are excluded and open faults are counted separately.
+
+> **On today's data this list is empty, and that is honest.** No line in the
+> project has three fault jobs in 90 days yet, and the importer flag has never
+> once been set. The feature is live and will populate as faults accumulate.
+
 ### v1.7.0 (15/11/2026) — which box keeps breaking
 
 Analytics gains "Box faults — last N days", worst first, for the same 7/30/90
