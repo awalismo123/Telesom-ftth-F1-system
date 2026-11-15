@@ -45,6 +45,7 @@ import { formatPhoneE164, formatPhoneLocal, whatsappLink } from '../../lib/dispa
 import { BoxSheet } from '../registry/BoxSheet';
 import { DirectionsButton } from '../ui/DirectionsButton';
 import { RepeatFaultBadge } from '../ui/RepeatFaultBadge';
+import { LineHistoryPanel } from '../ui/LineHistoryPanel';
 import { useToast } from '../ui/Toast';
 import {
   clearCompletionDraft,
@@ -540,6 +541,9 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
               happened to flag this job, because the flag misses the first fault
               on a line and any job that arrives while an earlier one is open */}
           <RepeatFaultBadge token={token} taskId={task.id} lang={lang} />
+
+          {/* somebody has usually been here before */}
+          <LineHistoryPanel taskId={task.id} lineNumber={task.line_number} lang={lang} />
 
           {/* warnings */}
           {warnings.length > 0 && (

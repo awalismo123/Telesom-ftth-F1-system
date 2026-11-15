@@ -189,6 +189,29 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.10.0 (15/11/2026) — somebody has been here before
+
+The job sheet gains "Earlier jobs on this line": every job recorded against the
+same line number, newest first, with its date, type, outcome, dBm reading,
+technician and notes.
+
+* **Collapsed, and it does not query until opened.** A technician opening a job
+  pays nothing for a lookup they did not ask for.
+* **Cancellations are included.** Somebody probably visited and found nothing;
+  leaving it out makes the history shorter than the customer's memory of it.
+* **Keyed on the line, never the name.** Names are typed from a photograph of a
+  spreadsheet and drift between sheets, so grouping on a name splits one
+  customer into two histories.
+* **A missing dBm is skipped, not read as 0.** Zero dBm is a perfect signal, and
+  saying that about a job nobody measured would be a lie.
+* When several visits show the same reading within 2 dB, the panel says the
+  fault is more likely in the drop or splitter than indoors.
+* A job with no line number says it cannot be looked up — a different sentence
+  from "no earlier jobs", because they are different facts.
+
+> **What it does not claim.** The list is what was recorded, not what happened.
+> A visit nobody wrote down is not in it.
+
 ### v1.9.0 (15/11/2026) — who is carrying too much
 
 Analytics gains "Technician workload — last N days": per person, open jobs,

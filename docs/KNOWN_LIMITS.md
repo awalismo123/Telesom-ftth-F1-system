@@ -574,3 +574,27 @@ separately and is never capped, so `completed` is always the true figure.
 
 In practice 500 completions in one window is far beyond this group's volume. If
 it is ever reached, the median describes the most recent 500 jobs only.
+
+---
+
+## 7x. Line history shows what was recorded, not what happened
+
+The "Earlier jobs on this line" panel lists rows in `tasks` matching that line
+number. A visit that nobody wrote on a sheet is not in the list, and neither is
+one recorded under a different line number — except the single carryover linked
+by `previous_task_id`, which is deliberately pulled in as well.
+
+The panel does not claim completeness, and a short history should not be read as
+"nobody has been here".
+
+## 7y. A repeated reading points at the line, not at a diagnosis
+
+When two or more visits show a dBm within 2 dB of each other, the panel says the
+fault is *more likely* in the drop or splitter than indoors. That is a hint for
+where to look first, not a finding: a customer whose router is unplugged three
+times produces exactly the same pattern of "no reading", and the copy is worded
+to say "more likely" for that reason.
+
+Readings are skipped when absent rather than treated as 0 dBm. Zero is a perfect
+signal, and reporting it for a job nobody measured would point a technician away
+from the fault.

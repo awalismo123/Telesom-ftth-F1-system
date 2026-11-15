@@ -493,20 +493,31 @@ and the completion count is not capped by the duration-array limit.
 jobs were marked running, which includes a technician's own delays and excludes several outside
 their control. That sentence is on the screen.
 
-### Phase 9 — Customer job history
+### Phase 9 — Customer job history — ✅ DONE 15/11/2026
 
-**Effort:** ~2–3 hours. **Depends on:** nothing.
+**Effort:** ~2 hours. **Depends on:** nothing. **No table** — one read-only function.
+
+> **Result:** migration 030 applied live; `npm run verify` green at **474/474 tests, 195.5 kB**.
 
 **What changes**
 
-* From a job, a **"Previous jobs for this line"** list: date, type, outcome, dBm, technician.
-* Keyed on `line_number` (the sheet's own key) plus `previous_task_id` when present.
-* Reached from the existing search palette and from the job sheet.
+* `line_history(token, group, line, exclude_task, limit)` — every job recorded against a line:
+  date, type, status, dBm, technician, notes, in newest-first order. Cancellations are **included**.
+* A collapsible **"Earlier jobs on this line"** panel on the job sheet, reached from the search
+  palette by opening a job. It does not query until it is opened, so a technician pays nothing for
+  a lookup they did not ask for.
+* When two or more readings sit within 2 dB of each other, the panel says so — a steady weak signal
+  points at the drop or splitter rather than at the customer's own equipment.
 
-**Tests:** history excludes the current job; results are ordered newest first; a line with no
-history says so rather than showing an empty box.
+**Tests (25):** the current job is excluded from its own history; entries are newest first and rows
+with no date fall to the end rather than to 1970; a line with no history says so instead of showing
+an empty box; a job with no line gets a *different* sentence, because "nothing recorded" and
+"cannot look it up" are not the same fact; a missing dBm is skipped rather than read as 0 (0 dBm is
+a perfect signal); the SQL is keyed on the line and never on the customer name; a blank line returns
+nothing rather than the whole group.
 
----
+**Explicitly not claimed:** the history shows what was recorded, not what happened. A job that was
+never written on a sheet is not in this list, and the panel does not imply the list is complete.
 
 ### Phase 10 — SLA warnings
 
