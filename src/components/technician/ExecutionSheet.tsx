@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Camera,
@@ -51,6 +51,8 @@ import {
   readCompletionDraft,
   saveCompletionDraft,
 } from '../../lib/drafts';
+
+const MaterialsPicker = React.lazy(() => import('./MaterialsPicker'));
 
 type Mode = 'idle' | 'blocker' | 'complete' | 'confirm-start';
 
@@ -997,6 +999,13 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                     : 'Only the technician and the supervisor can see it. Photos are resized to 640 px.'}
                 </p>
               </div>
+
+              {/* What the job consumed. Downloaded on demand and deliberately
+                  non-blocking: a failure here must never stop a technician
+                  recording the dBm reading and closing the work. */}
+              <Suspense fallback={null}>
+                <MaterialsPicker token={token} taskId={task.id} lang={lang} />
+              </Suspense>
 
               <div className="flex gap-2">
                 <button

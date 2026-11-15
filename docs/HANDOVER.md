@@ -189,6 +189,28 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.6.0 (15/11/2026) — materials used
+
+A technician can record what a job consumed: metres of drop cable, connectors,
+a router. The supervisor gets a usage figure per period in Analytics.
+
+* **Usage, never stock.** A stock figure is `received − used`, and nothing in
+  this system records a delivery. `0 − used` would be negative and drift from
+  the shelf weekly, and somebody would reorder against it. The screen says
+  *"This counts what was used, not what is left. Stock on hand is not
+  tracked."* — and a test fails the build if any label claims otherwise.
+* **One tap for the common items**, because the person recording this is
+  standing in a stairwell. The unit is remembered between lines.
+* **A failure never blocks completion.** Materials matter; they matter less
+  than recording the dBm reading and closing the work.
+* **Corrections are allowed on a completed job.** The shop is counted the next
+  morning and a missing line is found then; refusing the fix would leave the
+  record permanently short.
+* **Locked down like the photos.** RLS on, no policies, `REVOKE ALL` from
+  `anon` and `authenticated` — reachable only through token-checked functions.
+* **2.35 kB, on demand.** The picker is a lazy chunk; the hot bundle grew by
+  0.1 kB.
+
 ### v1.5.0 (15/11/2026) — directions, honestly
 
 A technician can now tap "Find on map" on a job and land on a map search for

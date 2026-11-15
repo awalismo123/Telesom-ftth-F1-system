@@ -10,6 +10,7 @@ import {
   Download,
   FileText,
   MessageCircle,
+  Package,
   RefreshCw,
   ShieldAlert,
   Signal,
@@ -49,7 +50,9 @@ import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
 import { Skeleton, SkeletonCard } from '../ui/Skeleton';
-import { countLabel, formatDate } from '../../lib/format';
+import { countLabel, formatDate, isoDaysAgo, todayKey } from '../../lib/format';
+import { NO_STOCK_NOTE, USAGE_LABEL, formatQuantity, type UsageRow } from '../../lib/materials';
+import { fetchMaterialsUsage } from '../../lib/materialsService';
 
 const WINDOWS = [7, 30, 90];
 
@@ -62,6 +65,7 @@ export function Analytics() {
   const groupId = activeGroup?.id ?? '';
 
   const [days, setDays] = useState(30);
+  const [materials, setMaterials] = useState<UsageRow[] | null>(null);
   const [data, setData] = useState<AnalyticsResponse | null>(() =>
     groupId ? readCache<AnalyticsResponse>(cacheKeys.analytics(groupId, 30)) : null,
   );
@@ -90,6 +94,38 @@ export function Analytics() {
     } finally {
       setLoading(false);
     }
+  }, [token, groupId, days]);
+
+  /**
+   * Materials used in the same window as the rest of the page.
+   *
+   * Its own call because `period_report` is already a 5 kB SQL function and
+   * adding a second, unrelated aggregation to it would make every analytics
+   * load pay for a figure some supervisors never look at.
+   *
+   * A failure leaves the card showing nothing rather than an error banner over
+   * the whole page: materials are a secondary figure, and the job numbers above
+   * are not wrong because this one did not load.
+   */
+  useEffect(() => {
+    if (!token || !groupId) return;
+    let cancelled = false;
+    setMaterials(null);
+
+    void fetchMaterialsUsage({
+      token,
+      groupId,
+      from: isoDaysAgo(days - 1),
+      to: todayKey(),
+    })
+      .then((result) => !cancelled && setMaterials(result.rows))
+      .catch(() => {
+        /* the rest of the page is still valid */
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [token, groupId, days]);
 
   useEffect(() => {
@@ -356,6 +392,40 @@ export function Analytics() {
               <span>{data.daily[data.daily.length - 1]?.date ?? ''}</span>
             </div>
           </div>
+
+          {/* Materials used — the label and the footer sentence are constants
+              shared with the tests, so no screen can quietly call this stock. */}
+          {materials && materials.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5 text-brand-700" aria-hidden="true" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+                  {USAGE_LABEL[lang]}
+                </span>
+                <span className="ml-auto text-[10px] font-bold text-slate-500">
+                  {countLabel(days, 'days', lang)}
+                </span>
+              </div>
+
+              <ul className="divide-y divide-slate-100">
+                {materials.map((row) => (
+                  <li key={`${row.item}-${row.unit}`} className="flex items-baseline gap-2 py-1.5">
+                    <span className="text-[12px] font-bold text-slate-800 truncate">{row.item}</span>
+                    <span className="ml-auto font-mono text-[12px] font-extrabold text-slate-900 shrink-0">
+                      {formatQuantity(row.quantity, row.unit, lang)}
+                    </span>
+                    <span className="text-[10px] text-slate-500 shrink-0 w-16 text-right">
+                      {row.jobs} {so ? 'shaqo' : row.jobs === 1 ? 'job' : 'jobs'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="text-[10px] leading-snug text-slate-500 border-t border-slate-100 pt-1.5">
+                {NO_STOCK_NOTE[lang]}
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {/* teams */}

@@ -284,9 +284,39 @@ per box, on site**, by a technician — a Phase 4b, not something to fake now.
 
 ---
 
-### Phase 5 — Materials tracking
+### Phase 5 — Materials tracking — ✅ DONE 15/11/2026
 
-**Effort:** ~4–5 hours. **Depends on:** nothing.
+**Effort:** ~4–5 hours (took about that). **Depends on:** nothing.
+
+> **Result:** migration 026 applied live (table + 3 functions, RLS on with **no policies**,
+> `REVOKE ALL` from anon/authenticated — verified `has_table_privilege` is false for select, insert
+> and delete). `npm run verify` green at **372/372 tests, 195.4 kB of 200 kB**.
+>
+> **Probed live inside `BEGIN…ROLLBACK`:** `"Drop   cable  "` was stored as `"Drop cable"`; 6 m +
+> 4.5 m aggregated to **10.5 m with `jobs = 1`**; a connector in `pcs` stayed in its own row; and
+> empty item, zero quantity and an unknown unit were all refused.
+>
+> **The number I refused to build.** "Stock on hand" is `received − used`, and **nothing records a
+> delivery**. `0 − used` gives a negative number that drifts from the shelf every week, and a
+> supervisor would eventually reorder against it. So this tracks **usage**, which is a fact. The
+> label is a shared constant (`USAGE_LABEL`) and a test fails the build if it ever says
+> "stock"/"remaining"/"on hand", or if the module grows a `stockLevel`/`received` identifier.
+>
+> **Bundle discipline.** The hot bundle had 4.7 kB of headroom. Everything materials-related is
+> `React.lazy` — `MaterialsPicker` ships as its own **2.35 kB gzip** chunk, fetched while the
+> completion form is already on screen. The measured cost to the hot bundle was **0.1 kB**. The
+> usage report went inside the already-lazy Analytics panel rather than a new chunk.
+>
+> **Caught by an existing test:** `tests/a11y.test.ts` rejected my 40 px Add button — the minimum
+> on a phone is 44. Fixed the whole row, not just the one control it named.
+>
+> **Deliberately allowed on a completed job:** the shop is counted the next morning, and a missing
+> line is discovered then. Refusing the correction would leave the record permanently short, which
+> is worse than a late entry with a timestamp on it.
+>
+> **Two of my own test regexes were wrong** and the failures were mine, not the code's: one matched
+> the word "received" inside the comment explaining why there is no stock figure, and one expected
+> `> 0` where the migration uses `BETWEEN 1 AND`. Both fixed to check code rather than prose.
 
 **What changes**
 
