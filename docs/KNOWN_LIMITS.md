@@ -379,3 +379,36 @@ needed to make.
 window ever reaches the text. The limitation is the mirror image: a customer cannot use the
 message to plan their afternoon precisely, and some will ask for a time on the phone. The honest
 answer is the one the message already gives.
+
+## 7k. Directions are a search, not a location
+
+**The limit, stated plainly: this app does not know where any cable box is.**
+
+`cableboxes` holds `box_code`, `xaafada` and `location_notes`. `tasks` holds the same text fields.
+**No latitude, no longitude, anywhere in the schema.** "Find on map" opens a map search for
+`<box code>, <neighbourhood>` and labels itself as a search.
+
+**Consequence:** a box code that is not unique in the city can resolve to the wrong place, and a
+neighbourhood name can resolve to the middle of that neighbourhood. The technician is expected to
+compare the box name on the map with the box name on the card — a check they are already able to
+make, which is why the feature is honest rather than merely approximate.
+
+**The cheapest real fix, if accuracy is ever needed:** capture a coordinate **once per box, on
+site**, from a technician's phone, stored on `cableboxes` with who and when. It requires a visit to
+each box and should be its own phase. Guessing a coordinate now would be worse than having none,
+because a pin on a map is believed.
+
+**Also missing here:** the supervisor's job sheet has no `cablebox_notes` (only the technician's
+route payload does), so a supervisor's "copy the address" is box code and area only.
+
+---
+
+## 7l. Map providers are free and cannot bill us
+
+Google Maps search URLs and OpenStreetMap search URLs are plain links opened in a browser. There
+is **no API key, no account, no SDK and no embedded map**, so there is no tile quota to exceed and
+nothing that can begin charging.
+
+The deliberate trade: an embedded map would look better and would introduce a quota and a key.
+A `wa.me`-style link cannot. If a supervisor ever wants a map drawn inside the app, that is a
+different decision with a bill attached, and it is not made here.

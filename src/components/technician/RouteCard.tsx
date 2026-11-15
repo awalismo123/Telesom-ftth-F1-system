@@ -22,6 +22,7 @@ import {
 } from '../../lib/execution';
 import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
 import { formatDbm, formatTime, todayKey } from '../../lib/format';
+import { DirectionsButton } from '../ui/DirectionsButton';
 import { isPlanned, scheduleLabel } from '../../lib/schedule';
 
 interface Props {
@@ -159,6 +160,23 @@ export function RouteCard({ task, lang, nowMs, onOpen, onQuickStart, onQuickResu
             )}
           </div>
         </button>
+
+        {/* The map link sits outside the card's button: an <a> inside a
+            <button> is invalid HTML, and a tap would both open the map and
+            open the job sheet. */}
+        {!done && (
+          <div className="flex justify-end -mt-1">
+            <DirectionsButton
+              place={{
+                boxCode: task.cablebox_code_raw,
+                xaafada: task.xaafada,
+                locationNotes: task.cablebox_notes,
+              }}
+              lang={lang}
+              variant="compact"
+            />
+          </div>
+        )}
 
         {/* warnings */}
         {warnings.length > 0 && (

@@ -238,9 +238,33 @@ stamps once and is idempotent; the link is `wa.me` with an encoded body and **no
 
 ---
 
-### Phase 4 — Directions for a job
+### Phase 4 — Directions for a job — ✅ DONE 15/11/2026
 
-**Effort:** ~1–2 hours. **Depends on:** nothing.
+**Effort:** ~1–2 hours. **Depends on:** nothing. **No migration** — this phase is a URL builder.
+
+> **Result:** `npm run verify` green at **347/347 tests, 195.3 kB of 200 kB**. Three screens carry
+> the link: the technician's job sheet, the technician's route card (compact), and the supervisor's
+> job sheet.
+>
+> **Checked the live data before designing:** `xaafada` really holds `Gantalaha` and `JIGJIGAYAR`,
+> and `location_notes` holds `"Port 7 connector clip loose — use Ports 1–6 or 8"`. That last one
+> settled a design question — location notes are written **for colleagues**, so they are excluded
+> from a map query (they would produce noise) and included in "copy the address", where they are
+> the "second gate on the left" detail that actually gets someone there.
+>
+> **A real bug I introduced and then guarded against:** the first version put the map link inside
+> the route card's outer `<button>`. An `<a>` inside a `<button>` is invalid HTML, and a tap would
+> open both the map and the job sheet. The type check cannot see it and browsers tolerate it. There
+> is now a scan test over every `.tsx` asserting no anchor is nested in a button — verified to fail
+> when the bug is re-injected.
+>
+> **A false positive worth recording:** the first version of that scan flagged the JSX comment that
+> *explains* the rule. The scan now blanks comments before matching. A lint that cries wolf gets
+> switched off.
+>
+> **What is honestly missing:** the supervisor's task payload has no `cablebox_notes` (only the
+> technician's route does), so the supervisor's copy-the-address includes box code and area but not
+> the notes. Widening a hot RPC for that was not worth it; recorded rather than silently dropped.
 
 **What changes**
 
