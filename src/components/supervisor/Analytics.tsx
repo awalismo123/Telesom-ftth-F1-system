@@ -71,6 +71,22 @@ import {
   type RepeatWatch,
 } from '../../lib/repeatFaults';
 import { fetchRepeatFaultWatch } from '../../lib/repeatFaultsService';
+import {
+  WORKLOAD_NOTE,
+  hasOutlier,
+  implausibleNote,
+  longestMinutes,
+  medianLabel,
+  medianMinutes,
+  noLoad,
+  nothingCompleted,
+  openTotal,
+  peakDay,
+  visibleTechs,
+  workloadLabel,
+  type TechWorkload,
+} from '../../lib/techWorkload';
+import { fetchTechWorkload } from '../../lib/techWorkloadService';
 
 const WINDOWS = [7, 30, 90];
 
@@ -86,6 +102,7 @@ export function Analytics() {
   const [materials, setMaterials] = useState<UsageRow[] | null>(null);
   const [boxHistory, setBoxHistory] = useState<BoxFaultHistory | null>(null);
   const [repeatWatch, setRepeatWatch] = useState<RepeatWatch | null>(null);
+  const [workload, setWorkload] = useState<TechWorkload | null>(null);
   const [data, setData] = useState<AnalyticsResponse | null>(() =>
     groupId ? readCache<AnalyticsResponse>(cacheKeys.analytics(groupId, 30)) : null,
   );
@@ -153,6 +170,29 @@ export function Analytics() {
 
     void fetchRepeatFaultWatch({ token, groupId, days })
       .then((result) => !cancelled && setRepeatWatch(result))
+      .catch(() => {
+        /* the rest of the page is still valid */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, groupId, days]);
+
+  /**
+   * Technician workload for the same window.
+   *
+   * Separate from the crew list above: `ops_analytics.techs` is keyed by crew
+   * and carries no user id, so it cannot be joined to people. A failure leaves
+   * the card out rather than breaking the page.
+   */
+  useEffect(() => {
+    if (!token || !groupId) return;
+    let cancelled = false;
+    setWorkload(null);
+
+    void fetchTechWorkload({ token, groupId, days })
+      .then((result) => !cancelled && setWorkload(result))
       .catch(() => {
         /* the rest of the page is still valid */
       });
@@ -597,6 +637,95 @@ export function Analytics() {
             </div>
           )}
 
+          {/* Technician workload. Alphabetical, with no bar and no rank: a
+              list ordered by output makes a technician close a job before it
+              is fixed. The note is printed in the card, not hidden in a
+              tooltip, because it is the only thing that makes these times
+              readable. */}
+          {workload && visibleTechs(workload.techs).length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-brand-700" aria-hidden="true" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+                  {workloadLabel(workload.days, lang)}
+                </span>
+                <span className="ml-auto text-[10px] font-bold text-slate-500">
+                  {formatDate(workload.from)} – {formatDate(workload.to)}
+                </span>
+              </div>
+
+              <ul className="divide-y divide-slate-100">
+                {visibleTechs(workload.techs).map((row) => {
+                  const mid = medianMinutes(row.durations);
+                  const longest = longestMinutes(row.durations);
+                  const setAside = implausibleNote(row.implausible_timers, lang);
+                  const peak = peakDay(row);
+                  return (
+                    <li key={row.user_id} className="py-1.5 space-y-0.5">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[11px] font-extrabold text-slate-800 truncate">
+                          {row.name}
+                        </span>
+                        {row.running_now > 0 && (
+                          <span className="px-1 rounded bg-brand-100 text-brand-800 text-[10px] font-extrabold shrink-0">
+                            {row.running_now} {so ? 'socda' : 'live'}
+                          </span>
+                        )}
+                        {row.blocked_now > 0 && (
+                          <span className="px-1 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold shrink-0">
+                            {row.blocked_now} {so ? 'caqabad' : 'blocked'}
+                          </span>
+                        )}
+                        <span className="ml-auto font-mono text-[11px] font-extrabold text-slate-900 shrink-0">
+                          {row.open_now} {so ? 'furan' : 'open'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-x-2.5 text-[10px] text-slate-500">
+                        {mid === null ? (
+                          <span className="italic">{nothingCompleted(lang)}</span>
+                        ) : (
+                          <>
+                            <span>
+                              {formatMinutes(mid, lang)} {medianLabel(lang)}
+                            </span>
+                            {longest !== null && longest !== mid && (
+                              <span
+                                className={
+                                  hasOutlier(row.durations)
+                                    ? 'font-bold text-amber-700'
+                                    : undefined
+                                }
+                              >
+                                {so ? 'ugu dheer' : 'longest'} {formatMinutes(longest, lang)}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        <span>
+                          {row.completed} {so ? 'la dhammeeyay' : 'completed'}
+                        </span>
+                        <span className="ml-auto shrink-0">
+                          {peak
+                            ? `${peak.open} ${so ? 'shaqo' : 'on'} ${formatDate(peak.date)}`
+                            : noLoad(lang)}
+                        </span>
+                      </div>
+
+                      {setAside && (
+                        <p className="text-[10px] text-amber-800">{setAside}</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <p className="text-[10px] leading-snug text-slate-500 border-t border-slate-100 pt-1.5">
+                {WORKLOAD_NOTE[lang]}
+              </p>
+            </div>
+          )}
+
           {/* Materials used — the label and the footer sentence are constants
               shared with the tests, so no screen can quietly call this stock. */}
           {materials && materials.length > 0 && (
@@ -646,8 +775,13 @@ export function Analytics() {
                 </p>
               ) : (
                 <div className="space-y-1.5">
-                  {data.techs.map((tech) => {
-                    const top = Math.max(1, ...data.techs.map((row) => row.completed));
+                  {/* Alphabetical, never by output. This list used to be sorted
+                      by jobs closed with a bar scaled to whoever closed the
+                      most — a leaderboard, which makes a crew close a job
+                      before it is fixed. The numbers are all still here. */}
+                  {[...data.techs]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((tech) => {
                     return (
                       <div key={tech.name} className="rounded-xl border border-slate-100 px-2.5 py-1.5">
                         <div className="flex items-center gap-1.5">
@@ -667,12 +801,6 @@ export function Analytics() {
                           <span className="font-mono text-[11px] font-extrabold text-slate-900">
                             {tech.completed}
                           </span>
-                        </div>
-                        <div className="mt-1 h-1 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className="h-full bg-sky-500"
-                            style={{ width: `${(tech.completed / top) * 100}%` }}
-                          />
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-2.5 text-[10px] text-slate-500">
                           <span>

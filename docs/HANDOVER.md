@@ -189,6 +189,34 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.9.0 (15/11/2026) — who is carrying too much
+
+Analytics gains "Technician workload — last N days": per person, open jobs,
+running, blocked, completed, the **median** time on a job, the longest, and the
+day they are busiest.
+
+* **A leaderboard was removed.** The existing "Teams & technicians" card sorted
+  by jobs closed and drew a bar scaled to whoever closed the most. A technician
+  measured on jobs closed will close a job before it is fixed. It is now
+  alphabetical, the bar is gone, and every number is still there.
+* **Median, not average.** The live average is 916 minutes because one timer
+  was left running for 45.7 hours. The median of the same three jobs is 3
+  minutes, which describes the job instead of the accident.
+* **Impossible timers are counted, not hidden.** A completion whose recorded
+  time exceeds the job's own age is set aside — nobody can work on a job for
+  longer than it has existed — and the card says how many were set aside.
+* **The 45-hour outlier is still visible.** It sits on a job old enough to
+  "plausibly" take that long, so it is not impossible; the card prints the
+  longest time beside the median and flags it when it is more than four times
+  the middle figure.
+* **The note is printed in the card, not in a tooltip**, and it is accurate: a
+  blocker *pauses* the clock, and travel before Start and the gaps between jobs
+  are not counted.
+
+> **What this does not say.** It does not measure effort, speed or quality. It
+> measures how long jobs were marked running — which includes a technician's own
+> delays and excludes several outside their control. Nobody is ranked.
+
 ### v1.8.0 (15/11/2026) — the line that keeps coming back
 
 A line with three fault jobs in 90 days is now flagged, on the supervisor's
