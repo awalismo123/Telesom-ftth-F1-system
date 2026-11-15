@@ -177,11 +177,28 @@ both looked like success:
   failed because `node_modules` was missing — the pipe returned `tail`'s status.
   Caught by looking at `dist/`, which was empty.
 
-**Still open in Phase 0:** production redeploy. Merged to `main` as `2d25184`;
-Vercel built the PR preview successfully (status *Ready*), so the branch compiles
-in their environment — but ~15 minutes later the production URL still served the
-old login copy. The preview is access-protected, so the deployed bundle could not
-be inspected directly.
+**Phase 0 production redeploy — CLOSED 15/11/2026.** Merged to `main` as
+`2d25184`; Vercel built the PR preview successfully (status *Ready*), so the
+branch compiled in their environment — but ~15 minutes later the production URL
+still served the old login copy. The preview is access-protected, so the deployed
+bundle could not be inspected directly.
+
+**It resolved by itself.** At the 1.2.0 release (PR #33, `612451f`) the
+production URL served the new build: the login screen carried the new copy, and
+`/manifest.webmanifest` returned the new brand values (`theme_color #172a1d`),
+which only exist in the redesign. Vercel's commit status read *Deployment has
+completed* at 17:11:08Z.
+
+The original diagnosis was probably wrong in one respect worth recording: the
+stack was not blocked on a production-branch setting. It was slow, and the
+earlier checks were too impatient — the same build pipeline that looked broken
+had in fact deployed, just not within the fifteen minutes it was given.
+
+**CI is a separate matter and is still down** (GitHub Actions is billing-locked,
+owner-only to fix). That is worth stating plainly because it is easy to
+misread: **CI failing does not block Vercel.** The two pipelines are
+independent, and the 1.2.0 deployment is the proof — Vercel shipped while every
+Actions run on the same commit failed.
 
 Two things to do in the Vercel dashboard, neither of which is reachable from
 here: check whether the `main` commit appears in *Deployments* at all, and if it
