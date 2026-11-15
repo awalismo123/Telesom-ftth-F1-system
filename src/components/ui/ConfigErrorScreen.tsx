@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Globe, RefreshCw, Wifi } from 'lucide-react';
+import { AlertTriangle, Globe, RefreshCw } from 'lucide-react';
+import { TelesomEmblem } from '../brand/TelesomLogo';
 import { useLanguage } from '../../lib/i18n';
 import { describeConnection, getConfigNotes, type SupabaseProbe } from '../../lib/supabase';
 
@@ -68,11 +69,11 @@ export function ConfigErrorScreen({
       <div className="w-full max-w-md">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-brand-400 flex items-center justify-center shadow">
-              <Wifi className="w-5 h-5 text-brand-950 stroke-[2.5]" />
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow">
+              <TelesomEmblem className="w-7 h-[18px]" title="Telesom" />
             </div>
             <div>
-              <div className="text-white font-bold text-sm leading-tight">TELESOM FBB</div>
+              <div className="text-white font-bold text-sm leading-tight">Telesom Fiber</div>
               <div className="text-brand-300 text-[11px] font-medium">Group F1 Operations</div>
             </div>
           </div>

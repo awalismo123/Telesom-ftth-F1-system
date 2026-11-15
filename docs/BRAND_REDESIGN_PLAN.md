@@ -2,8 +2,8 @@
 
 **Request:** new design, best UI, easy for older and non-technical staff, impressive to managers, carrying real Telesom brand (logo, colours, identity).
 
-**Status:** Phase A shipped 09/11/2026 — see `BRAND.md` for the system and
-`git log` for the change. Phases B–E not started.
+**Status:** Phase A and the first half of Phase B shipped 09/11/2026 — see
+`BRAND.md` for the system. Phases C–E not started.
 **Supersedes:** the earlier "keep emerald/slate, refine, do not redesign" constraint. This is an explicit design change, so that rule no longer applies.
 
 ---
@@ -131,11 +131,24 @@ Ordered so that something presentable exists early, and each phase ships indepen
 
 **Deliverable:** a live, branded login screen on 5173 that you can show someone in 30 seconds.
 
-### Phase B — Field simplicity (technician)
+**Shipped.** Plus, once the palette was in place: the real mark in the app
+header, the splash and the connection-error screen (all three still showed a
+Wi-Fi glyph), and the PWA icon set regenerated from the emblem.
+
+### Phase B — Field simplicity (technician) — **partly shipped**
 - Route card redesign: one primary action, tap-to-call as a large target, status as word + colour + icon.
 - Running timer made unmissable; the execution sheet simplified into steps.
 - 56 px targets on every primary control; a scan test enforces it.
 - Plain-language pass over the technician copy in both languages.
+
+**Shipped so far.** The route screen listed jobs grouped by cablebox — right
+for planning a vehicle, wrong for the moment someone opens the app and wants
+one answer: *which job now*. A **next-job band** now answers it once, above the
+list, using the order the list already uses (`sortRoute`: running → blocked →
+open, urgent before routine, older before newer) rather than a second rule that
+could drift. The band carries a reason — blocked, urgent, routine — because the
+three need different verbs, and it is hidden while a timer is running, because
+a live timer plus a second Start button is how a technician begins two jobs.
 
 ### Phase C — Office polish (supervisor / manager)
 - Branded header and navigation; the "today" panel restyled with brand numbers.

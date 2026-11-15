@@ -1,19 +1,19 @@
 import React from 'react';
-import { Wifi } from 'lucide-react';
+import { TelesomEmblem } from '../brand/TelesomLogo';
 
 /** First paint while the saved session is verified — branded, not a blank page. */
 export function Splash({ message }: { message?: string }) {
   return (
     <div className="min-h-screen bg-brand-950 flex flex-col items-center justify-center gap-4 px-6">
       <div className="relative">
-        <div className="absolute inset-0 rounded-3xl bg-brand-400/30 blur-xl animate-pulse" />
-        <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-400 to-teal-600 flex items-center justify-center shadow-lg">
-          <Wifi className="w-8 h-8 text-brand-950 stroke-[2.5]" />
+        <div className="absolute inset-0 rounded-3xl bg-brand-400/25 blur-xl animate-pulse" />
+        <div className="relative w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-lg">
+          <TelesomEmblem className="w-14 h-[37px]" title="Telesom" />
         </div>
       </div>
 
       <div className="text-center">
-        <p className="text-brand-100 font-extrabold tracking-tight">Telesom FTTH</p>
+        <p className="text-brand-100 font-extrabold tracking-tight">Telesom Fiber</p>
         <p className="text-brand-400/80 text-[11px] font-semibold mt-0.5">
           Fixed Broadband · Group F1
         </p>

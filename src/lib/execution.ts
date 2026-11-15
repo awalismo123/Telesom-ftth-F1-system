@@ -391,3 +391,38 @@ export function taskWarnings(task: RouteTask): TaskWarning[] {
 
   return warnings;
 }
+
+/**
+ * The one job a technician should do next, and why.
+ *
+ * The route screen lists everything grouped by box, which is right for planning
+ * and wrong for the moment a technician opens the app at 07:30 and wants one
+ * answer. `sortRoute` already encodes the rule — running, then blocked, then
+ * everything else, urgent before routine and older before newer — so this reads
+ * that order rather than inventing a second one that could drift from the list
+ * underneath it.
+ *
+ * A running job is excluded on purpose: it is already shown by the timer strip,
+ * and giving a second primary action next to a live timer is how people start
+ * two jobs by accident.
+ */
+export type NextJobReason = 'blocked' | 'urgent' | 'routine';
+
+export interface NextJob {
+  task: RouteTask;
+  reason: NextJobReason;
+}
+
+export function nextJob(tasks: RouteTask[]): NextJob | null {
+  const candidate = sortRoute(tasks).find(
+    (task) => task.status !== 'completed' && task.status !== 'cancelled' && task.status !== 'in_progress',
+  );
+
+  if (!candidate) return null;
+
+  return {
+    task: candidate,
+    reason:
+      candidate.status === 'blocked' ? 'blocked' : candidate.priority === 'urgent' ? 'urgent' : 'routine',
+  };
+}

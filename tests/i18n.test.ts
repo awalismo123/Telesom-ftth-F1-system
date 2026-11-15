@@ -128,6 +128,7 @@ const COPY_ALLOWLIST = new Set([
   // Brand and product identity — the same in both languages.
   'TELESOM FBB',
   'Telesom FTTH',
+  'Telesom Fiber',
   'Group F1 Operations',
   'FTTH • GROUP F1',
   'Fixed Broadband · Group F1',

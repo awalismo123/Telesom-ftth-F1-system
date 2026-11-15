@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Wifi,
   LogOut,
   KeyRound,
   Globe,
@@ -20,6 +19,7 @@ import { describeError } from '../lib/useErrorMessage';
 import { SearchPalette } from './ui/SearchPalette';
 import { NotificationsBell } from './ui/NotificationsBell';
 import { useNavigation } from '../lib/navigation';
+import { TelesomEmblem } from './brand/TelesomLogo';
 
 /**
  * Who is signed in, in one chip.
@@ -196,8 +196,8 @@ export function HeaderBar() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
           {/* Left Brand + Group Badge */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-teal-600 flex items-center justify-center shadow-inner shrink-0">
-              <Wifi className="w-5 h-5 text-brand-950 stroke-[2.5]" />
+            <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
+              <TelesomEmblem className="w-8 h-[21px]" title="Telesom" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">

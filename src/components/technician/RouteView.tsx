@@ -19,6 +19,7 @@ import {
   elapsedSeconds,
   formatClock,
   groupRoute,
+  nextJob,
   routeStats,
   serverOffsetMs,
   sortRoute,
@@ -27,6 +28,7 @@ import { fetchRoute, resumeTask, startTask } from '../../lib/executionService';
 import { useNow } from '../../lib/useNow';
 import { useTableChanges, useVisibleInterval } from '../../lib/realtime';
 import { RouteCard } from './RouteCard';
+import { NextJobBand } from './NextJobBand';
 import { ExecutionSheet } from './ExecutionSheet';
 import { useToast } from '../ui/Toast';
 import { Alert } from '../ui/Alert';
@@ -123,6 +125,7 @@ export function RouteView({
   const nowMs = now + offset;
 
   const stats = useMemo(() => routeStats(tasks), [tasks]);
+  const upcoming = useMemo(() => nextJob(tasks), [tasks]);
   const sections = useMemo(() => groupRoute(tasks, lang), [tasks, lang]);
   const completedToday = useMemo(
     () =>
@@ -230,6 +233,22 @@ export function RouteView({
           <div className="text-2xl font-extrabold text-brand-700">{stats.doneToday}</div>
         </div>
       </div>
+
+      {/* One job, one action — and only when no timer is already running, so the
+          screen never offers two things to start at once. */}
+      {!loading && stats.running === 0 && upcoming && (
+        <NextJobBand
+          next={upcoming}
+          lang={lang}
+          nowMs={nowMs}
+          onOpen={() => setOpenTaskId(upcoming.task.id)}
+          onStart={() =>
+            upcoming.reason === 'blocked'
+              ? void quickResume(upcoming.task)
+              : void quickStart(upcoming.task)
+          }
+        />
+      )}
 
       {error && (
         <Alert
