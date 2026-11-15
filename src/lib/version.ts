@@ -11,7 +11,7 @@
  * bundle for a label would be a poor trade.
  */
 
-export const APP_VERSION = '1.12.0';
+export const APP_VERSION = '1.13.0';
 
 /**
  * The date this build was published.
