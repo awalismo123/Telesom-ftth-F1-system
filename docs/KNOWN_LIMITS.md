@@ -187,25 +187,37 @@ dominating.
 
 ---
 
-## 7e. A crew can have three members, or none
+## 7e. A crew is one or two people — **CLOSED** (migration 023)
 
-The app models a crew as a vehicle with a **partner** — two people — and the
-second-member copy says so. Nothing enforces it: `crew_members` has no cap and no
-minimum, and the crew screen adds whoever is selected.
+**This was an open defect.** The model says a two-person vehicle and the copy
+calls the second member a partner, but nothing enforced either bound. Measured
+on 15/11/2026: both active crews had **zero** members, and earlier the same day
+one had three.
 
-Measured on the live project, 09/11/2026: **Crew A had 0 members, Crew B had 3.**
+It mattered because `today_summary` reported "crews out of N" by counting active
+crew rows. An empty crew counted toward N, so the supervisor's first screen
+could read `0/2` while nobody was available — or `2/2` while a three-person crew
+had taken the only vehicle.
 
-Two consequences:
+Closed by migration 023:
 
-* the first screen reports "crews out of N", where a crew with no members still
-  counts toward N, so `0/2` can be true while three people are in the field;
-* a job assigned to a three-person crew shows on all three phones, and whoever
-  starts it starts one shared timer — the design assumes two people working one
-  job, not three.
+* a trigger rejects a third member on any crew;
+* `upsert_crew` refuses to save an **active** crew with nobody in it (inactive
+  crews may be empty — that is how a vehicle is retired without deleting its
+  history);
+* `crews_total` counts only crews with at least one member, and `crews_empty`
+  reports the stranded ones so the screen can say so instead of hiding it;
+* an empty crew is not offered as a dispatch target, and both the team screen
+  and the dispatch board name it.
 
-This is a roster problem, not a code bug, and it is the supervisor's to fix on
-*Team & Crews*. It is written down because the number on the landing screen
-inherits it, and somebody will eventually ask why "2 crews" does not add up.
+**What is still not enforced:** nothing stops a crew being *deactivated* while
+jobs are assigned to it. Those jobs keep their `assigned_crew_id` and stay
+visible to the members, which is the desirable behaviour — but the crew will not
+appear in the dispatch target list.
+
+**Live data as of 15/11/2026:** both crews still have zero members. The
+supervisor has to add technicians; the system now says so rather than quietly
+counting them as capacity.
 
 ---
 

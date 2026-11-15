@@ -1,0 +1,434 @@
+# Implementation plan — product improvements
+
+Written 15/11/2026 against `main` @ `3cc6d83`, branch `arena/192e0685-telesom-ftth-f1-system`.
+
+**Baseline measured before any change:** `npm run verify` → **268/268 tests, 0 fail**, bundle
+**194.0 kB** of a 200 kB budget, credentials clean.
+
+---
+
+## 0. What the code inspection changed about the plan
+
+The earlier review (`MISSING_FEATURES.md`) was written from a read of the code, and four of its
+conclusions do not survive re-checking against live data and the current UI. These matter because
+three of the thirteen requested features are **partly or wholly already built**.
+
+| Earlier claim | What the code actually shows | Effect on this plan |
+| :--- | :--- | :--- |
+| "Crew A has 0 members, Crew B has 3" | **Both crews now have 0 members.** `crew_members` holds 0 rows. | Phase 1 must not assume any crew has members; the *fix* must not block the supervisor from repairing an empty roster. |
+| "Bulk reassignment is missing" | **It exists.** `DispatchBoard` has multi-select (`selected`), a picker, and calls `assignTasks({ taskIds: selected })`. `assign_tasks` already takes `p_task_ids uuid[]` and writes `task_work_logs` rows. | Phase 12 shrinks to a **confirmation step**. No new RPC, no new audit — the audit already fires. |
+| "SLA is displayed and never acts" | **Partly false.** `TaskCard` already renders `agingBand` → `due` / `late` labels, and `today_summary` counts `over_sla`. | Phase 10 shrinks to surfacing **approaching** jobs (due today) in the supervisor panel, plus a warning list. |
+| "Box health is a port list" | `cableboxes.fault_count` **is** maintained — incremented on `cilada` completion (`005_execution.sql:289`, `007:104`). It is a *lifetime* counter with no time window. | Phase 6 adds **windowed** counts computed from `tasks`; it does not need a new counter. |
+
+Two further findings that shape the design:
+
+* **`scheduled_date` already exists** (`001_initial_schema.sql:149`, `NOT NULL DEFAULT CURRENT_DATE`)
+  but nothing reads it. `src/lib/importer.ts:271` hardcodes it to today, and neither
+  `list_open_tasks` nor `technician_route` filters on it. Live: **all 8 tasks have a
+  `scheduled_date` that is not today** — they carry the date they were imported.
+* **There are no coordinates anywhere.** `cableboxes` has `location_notes` but no latitude or
+  longitude, and no geolocation code exists. Phase 4 therefore **cannot** offer a real map pin and
+  must not pretend to.
+
+### Live data state (read-only, no writes made)
+
+| | |
+| :--- | ---: |
+| Tasks | 8 |
+| Active users | 6 |
+| Crews | 2 — **0 members each** |
+| `crew_members` rows | **0** |
+| Tasks with `scheduled_date <> today` | 8 |
+| Tasks with `is_repeat_fault` | 0 |
+| Photos | 0 |
+| Cableboxes | 2 |
+| `task_work_logs` rows | 41 |
+
+---
+
+## 1. Cost and dependency position
+
+**No new vendors, no paid tiers, no external services.** Everything below uses:
+
+* PostgreSQL features the project already has (Supabase Free — already paid for, already configured).
+* The existing `wa.me` link helper (`src/lib/dispatch.ts:435`) — a plain URL, no API key, no quota,
+  no message cost to us. The supervisor's own WhatsApp app sends it.
+* Existing storage (`task_photos`, bytea + token-checked RPC) for before/after photos.
+
+**One thing I will not do without asking:** nothing here needs a paid service. If a future phase
+would, I will stop and say so rather than install it quietly.
+
+**Usage limits worth naming:**
+
+| Tool | Free? | Limit that matters |
+| :--- | :--- | :--- |
+| Supabase Free (existing) | yes | 500 MB database. Photos live *in* the DB as bytea, capped at 2 MB each, max 3 per job. Adding a second photo kind raises the ceiling to 6/job — see Phase 13 risk. |
+| `wa.me` deep link | yes | Opens the user's WhatsApp. No API, no quota. Cannot send without a human tap. |
+| Google Maps / `geo:` link | yes | A URL, not an API — no key, no billing. `geo:` opens the phone's map app; a `maps.google.com/?q=` URL is the fallback. |
+| GitHub Actions | **broken** (billing) | Not used by this plan. Verification is local `npm run verify`. |
+
+---
+
+## 2. Phases
+
+Ordered as requested. Each phase is independently shippable and reversible.
+
+Estimated effort assumes one working session per phase of roughly the size of this one.
+
+---
+
+### Phase 1 — Crew size rules — ✅ DONE 15/11/2026
+
+**Effort:** ~1–2 hours (took about that). **Depends on:** nothing.
+
+> **Result:** migration 023 applied to the live project; 16 new tests; `npm run verify` green at
+> **285/285 tests, 194.1 kB of a 200 kB budget**. Confirmed live: `crews_total=0`, `crews_empty=2`
+> — the two real crews are reported as unusable instead of as capacity. The rebuilt
+> `today_summary` was diffed against the live function key-by-key: **15 keys in, 15 keys out, none
+> dropped**.
+>
+> **Drift found and healed while doing this:** the live `today_summary` had a `due_today` key that
+> existed in **no migration file**. Replaying the migrations from scratch would have produced a
+> different function than production. 023 now records it, so the repo and the database agree again.
+>
+> **Also found:** `tests/sla.test.ts` was asserting "5 overdue checks" when only 4 were live — it
+> was counting a `period_report` copy from 012 that 013 replaces. The scan now resolves the newest
+> definition of each function and asserts the *set of function names*, so a superseded copy can no
+> longer inflate the count and a missing one names itself.
+
+**What changes**
+
+1. **Database (`023_crew_size_rules.sql`)**
+   * A `BEFORE INSERT/UPDATE` trigger on `crew_members` rejecting a **third** member on any crew.
+     A hard cap of 2.
+   * `upsert_crew` gains a check: an **active** crew must have between 1 and 2 members. Inactive
+     crews may have zero (that is how you retire a crew without deleting its history).
+2. **Honest counts `today_summary`**
+   * `crews_total` counts only crews that have **at least one member**. An empty crew is not a crew
+     you can send out, and counting it is what produced `0/2` while nobody was actually available.
+   * Add `crews_empty` so the panel can say so out loud rather than hiding it.
+3. **UI**
+   * *Team & Crews*: a crew with 0 members shows an inline warning and cannot be saved as active.
+   * *Today panel*: if any active crew is empty, one quiet line says how many.
+   * *Dispatch*: an empty crew is not offered as a target (it cannot be dispatched meaningfully).
+
+**Data safety:** read-only plus constraints. **No rows are deleted or rewritten.** Existing crews
+keep their 0 members; the supervisor is prompted to fix them, not forced.
+
+**Rollback:** `DROP TRIGGER`, restore the previous `today_summary` from `022`. One file, one
+re-run.
+
+**Risk:** the cap is enforced on write. If someone legitimately needs 3 on a vehicle, the constraint
+now says no — which is the point, but it is a policy the user should confirm (see Decisions).
+
+**Tests:** crew cap accepts 1 and 2, rejects 3; `crews_total` excludes empty crews; an inactive
+empty crew is allowed; the panel shows the empty-crew count.
+
+---
+
+### Phase 2 — Job scheduling
+
+**Effort:** ~3–4 hours. **Depends on:** Phase 1 (only for dispatch-lane layout).
+
+**What changes**
+
+1. **Database (`024_scheduling.sql`)**
+   * `CREATE INDEX idx_tasks_scheduled ON tasks(group_id, scheduled_date)`.
+   * `list_open_tasks` orders by `scheduled_date, reported_date` instead of `reported_date` alone,
+     so the pool reads in the order work is due.
+2. **Importer**
+   * `src/lib/importer.ts:271` stops hardcoding today. Date is taken from the plan when present,
+     else today. Existing rows are untouched.
+3. **Manual entry** — `ManualTaskSheet` gains a date field, defaulting to today.
+4. **Dispatch board** — a **"Planned" lane** listing jobs whose `scheduled_date` is in the future.
+   The existing pool and lanes are unchanged; today's jobs behave exactly as now.
+5. **Workload by day** — a small strip: per technician, count of assigned jobs for today / next 3
+   days, from `scheduled_date`.
+6. **Technician route** — a future-dated job is shown with its date and **not** offered as "next
+   job" until its day arrives (`nextJob` gains a date filter).
+
+**Conservative choice, stated:** a future job still appears on the technician's list (labelled),
+rather than being hidden. Hiding it risks a technician never learning it exists; labelling it
+cannot cause harm. This can be tightened once the supervisor has used it.
+
+**Rollback:** drop the index, restore `list_open_tasks` and the importer line. Rows unaffected.
+
+**Risk:** `list_open_tasks` is called on every board load. Changing its `ORDER BY` is low risk but
+touches a hot path — the 600-row `LIMIT` and its test (`OPEN_TASK_CAP`) must keep passing.
+
+**Tests:** a past, today and future job sort correctly; `nextJob` ignores a future job; the
+planned lane excludes today; importer keeps a supplied date and defaults to today otherwise.
+
+---
+
+### Phase 3 — Customer updates (WhatsApp)
+
+**Effort:** ~3–4 hours. **Depends on:** Phase 2 for the date in the message.
+
+**What changes**
+
+1. **Supervisor: one-tap message per job.** Built on the existing `whatsappLink()`:
+   `https://wa.me/?text=…`. No number in the URL means WhatsApp opens its own picker, so the
+   supervisor chooses the contact — no customer phone book leaves the app.
+2. **Technician: "On my way".** New RPC `mark_en_route(token, task_id)` recording
+   `en_route_at timestamptz` on the task, returning the prepared text. The button records the time
+   and **opens** WhatsApp; it never sends. The route card then shows "travelling since 09:41".
+3. **Wording** is plain, bilingual, and says the day — never a precise time the department cannot
+   keep: *"Telesom technician is coming today (Tue 18 Nov)."*
+
+**Data safety:** one nullable column, additive.
+
+**Rollback:** drop the column and function; the button disappears.
+
+**Risk:** `wa.me` needs the recipient's number. Without it WhatsApp opens a picker — acceptable,
+and it is how the dispatch summary already works. **We do not store a customer WhatsApp number
+separately from `customer_phone`**, and I will not add one.
+
+**Tests:** message text contains the date and the line number, both languages; `mark_en_route`
+stamps once and is idempotent; the link is `wa.me` with an encoded body and **no** auto-send path.
+
+---
+
+### Phase 4 — Directions for a job
+
+**Effort:** ~1–2 hours. **Depends on:** nothing.
+
+**What changes**
+
+* A **"Find on map"** link on the job sheet and route card, built from what we actually have:
+  the cablebox code and the neighbourhood. It opens a **map search**, labelled as a search.
+* Copy is explicit: *"Opens a map search for the box name — not a saved pin."*
+
+**Why not coordinates:** none exist, and inventing them would send a technician to the wrong
+street while looking authoritative. The lowest-cost honest option is a text search the technician
+can visually confirm against the box name they already have.
+
+**Consequence to accept:** a box name that is not unique in the city can resolve to the wrong
+place. The label says so. If accuracy is needed later, the fix is capturing a coordinate **once
+per box, on site**, by a technician — a Phase 4b, not something to fake now.
+
+**Tests:** the URL is a search URL, never a coordinate pair; the label states it is not a saved pin.
+
+---
+
+### Phase 5 — Materials tracking
+
+**Effort:** ~4–5 hours. **Depends on:** nothing.
+
+**What changes**
+
+1. **New table `task_materials`** (`025_materials.sql`): `task_id`, `item` (text), `quantity`
+   (numeric > 0), `unit`, `recorded_by`, `created_at`. RLS on, reachable only through
+   token-checked functions, matching how `task_photos` is locked down.
+2. **Recording:** on a completed job, a short list — add item + quantity. Free text with a small
+   set of common items as suggestions (router, ONT, patch cord, drop cable, connector).
+3. **Reporting:** a **usage summary** per period and per technician.
+
+**The honest limit, stated up front:** a *stock-on-hand* figure requires stock to be **received**
+into the system as well as issued. Nothing records receipts today. A number computed only from
+usage would drift from the shelf and be worse than no number.
+
+So this phase delivers **usage tracking, which can be reliable**, and a clearly-labelled
+**"usage in period"**. Stock-on-hand is offered as **Phase 5b only if** the department agrees to
+record deliveries too; until then the screen says *"Stock on hand is not tracked — only usage."*
+
+**Rollback:** drop the table. Nothing else references it.
+
+**Tests:** quantity must be positive; a job's materials sum; the report labels itself as usage,
+not stock.
+
+---
+
+### Phase 6 — Equipment-box fault history
+
+**Effort:** ~3 hours. **Depends on:** nothing.
+
+**What changes**
+
+* A **box fault leaderboard** on the supervisor screen: fault jobs per cablebox over a chosen
+  window (7 / 30 / 90 days), ranked worst first.
+* The window is computed from `tasks` by `cablebox_id` and `completed_at` — windowed and honest,
+  rather than the lifetime `fault_count` counter, which cannot answer "since when".
+* The period is printed on the screen and in the CSV, so the number can never be quoted without
+  its window.
+
+**Tests:** counts respect the window boundaries; a box with no faults still appears with 0;
+the label states the window.
+
+---
+
+### Phase 7 — Repeat-fault escalation
+
+**Effort:** ~2–3 hours. **Depends on:** Phase 6 for box grouping.
+
+**What changes**
+
+* `repeatFaultCount(customerOrLine, windowDays = 90)` counting jobs that are genuinely repeat
+  evidence: `is_repeat_fault = true` **or** `previous_task_id IS NOT NULL` for the same
+  `line_number`. Nothing is labelled a repeat without that evidence.
+* At **3 within 90 days**, the customer's card and the box both carry an "investigate" flag with
+  the count, and it appears in a supervisor list.
+
+**Explicitly not claimed:** "repeat" never means "the same phone number appeared twice" — two
+different customers can share a phone. Identity is `line_number`, which is what the sheet keys on.
+
+**Tests:** 2 faults do not flag; 3 do; the window excludes an old fault; a job without
+`previous_task_id` and without `is_repeat_fault` is never counted as a repeat.
+
+---
+
+### Phase 8 — Technician workload and performance
+
+**Effort:** ~3–4 hours. **Depends on:** Phases 2 and 6 for data.
+
+**What changes**
+
+* Per technician: open jobs, closed in the period, median time on job, and current load by day.
+* A **fixed disclaimer in the panel itself**, not a tooltip: *"Recorded time includes travel,
+  waiting for access and blockers. It measures the job, not the person."*
+* No ranking, no colours that imply worse/better, alphabetical order.
+
+**Why median not average:** `KNOWN_LIMITS` §7d already records that one job left running overnight
+makes the average meaningless. A median survives that.
+
+**Tests:** median handles an even count and a single job; a blocked job's time is not excluded
+silently but the disclaimer is asserted to be present.
+
+---
+
+### Phase 9 — Customer job history
+
+**Effort:** ~2–3 hours. **Depends on:** nothing.
+
+**What changes**
+
+* From a job, a **"Previous jobs for this line"** list: date, type, outcome, dBm, technician.
+* Keyed on `line_number` (the sheet's own key) plus `previous_task_id` when present.
+* Reached from the existing search palette and from the job sheet.
+
+**Tests:** history excludes the current job; results are ordered newest first; a line with no
+history says so rather than showing an empty box.
+
+---
+
+### Phase 10 — SLA warnings
+
+**Effort:** ~1–2 hours. **Depends on:** nothing.
+
+**What already exists:** `agingBand` → `due` / `late` labels on every card; `over_sla` in
+`today_summary`.
+
+**What is added:** a supervisor **warning list of jobs due today** (at the deadline, not past it),
+and a headline sentence for it. `SLA_DAYS = 3` is **not changed** — there is no evidence to change
+a promise made to customers, and `tests/sla.test.ts` pins it across five sites.
+
+**Tests:** a job at exactly 3 days is "due", at 4 is "late"; the panel shows due-today counts;
+`SLA_DAYS` still 3 everywhere.
+
+---
+
+### Phase 11 — Printable job sheet
+
+**Effort:** ~2–3 hours. **Depends on:** Phase 4 (map line) and Phase 6 (box fault count).
+
+**What changes**
+
+* A print view per job: line, customer, phone, type, box, port, target dBm vs achieved, notes,
+  technician, timestamps — reusing the existing `print:` classes and `.print-colour` rule added in
+  the brand work.
+* Reachable from the job sheet; nothing else prints differently.
+
+**Risk:** a job sheet contains customer name and phone. It prints only on explicit action, same as
+the period report, and there is no bulk "print all".
+
+**Tests:** the sheet renders the port and dBm; it omits empty fields rather than printing "—".
+
+---
+
+### Phase 12 — Bulk reassignment confirmation
+
+**Effort:** ~1 hour. **Depends on:** nothing.
+
+**What already exists:** multi-select, `assignTasks(uuid[])`, and `task_work_logs` audit rows
+written by `assign_tasks`.
+
+**What is added:** a confirmation before the assignment commits — target name, job count, and the
+first few line numbers — because a mis-tap currently reassigns everyone's day silently.
+
+**Tests:** the confirm names the target and the count; cancelling performs no call.
+
+---
+
+### Phase 13 — Before-and-after photos
+
+**Effort:** ~3–4 hours. **Depends on:** nothing.
+
+**What changes**
+
+1. **`026_photo_kind.sql`**: `task_photos.kind text NOT NULL DEFAULT 'after'`
+   (`before` | `after`), so **every existing and future photo defaults to `after`** — no backfill,
+   no data rewrite.
+2. `add_task_photo` gains a `kind` parameter with a default, so the old call signature keeps
+   working.
+3. The execution sheet gets an **optional** before photo beside the existing completion proof.
+   Optional means optional: a technician is never blocked from closing a job because they did not
+   photograph the "before".
+
+**Risk — storage.** Photos are `bytea` inside a 500 MB free database, max 3 per job today. Allowing
+a second kind raises the ceiling to 6. That is a real capacity consideration on a free tier and is
+stated in `KNOWN_LIMITS`; if photo volume grows, the honest fix is Supabase Storage (free tier,
+1 GB) rather than shrinking proof.
+
+**Rollback:** the `kind` column can stay in place (defaulted, harmless) and the UI reverted.
+
+**Tests:** an old-shape two-argument upload still succeeds and lands as `after`; a `before` upload
+is stored as `before`; the per-job cap counts both kinds; closing a job without a before photo
+still succeeds.
+
+---
+
+## 3. Decisions I need from you
+
+I have made conservative choices on all of these and will proceed with them unless told otherwise.
+They are listed because each is a policy call, not a technical one.
+
+| # | Question | My conservative default |
+| :--- | :--- | :--- |
+| 1 | **Max crew size** — is 2 a hard rule, or should a 3-person crew be allowed? | Hard cap **2**, matching the "2-tech crew/vehicle" model. |
+| 2 | **Empty crews blocked** — should an active crew with no members be forbidden, or just warned? | **Forbidden to save as active**, warned where it already exists. Nothing deleted. |
+| 3 | **Future-dated jobs on the technician's phone** — hidden until the day, or shown and labelled? | **Shown and labelled.** Hiding risks a job nobody knows exists. |
+| 4 | **Stock-on-hand** — do you want deliveries recorded so stock can be real? | **No for now.** Usage is tracked and honestly labelled; stock needs receipts first. |
+| 5 | **Repeat-fault threshold** — 3 faults in 90 days, as specified? | **Yes**, keyed on `line_number`. |
+| 6 | **Before photos** — optional or required for certain job types? | **Optional everywhere**; requiring them would block closing a job. |
+| 7 | **WhatsApp recipient** — open the picker, or pre-fill the customer's number? | **Open the picker** (the existing behaviour). Pre-filling risks messaging the wrong person if a phone number is shared. |
+
+---
+
+## 4. What I will not do
+
+Restating the exclusions so they are not quietly reintroduced:
+
+* No customer portal, no offline/sync engine, no third-party AI OCR, no in-app chat, no technician
+  leaderboards, no scheduler beyond basic dates.
+* No paid backups, no restore drills, no CI billing work — per instruction.
+* No new vendor, no new dependency, no key that could start billing.
+* No deletion or rewrite of production rows. Every migration here is additive; rollbacks are
+  documented per phase.
+
+---
+
+## 5. Verification, every phase
+
+Each phase ends with the same evidence, reported with real output rather than a claim:
+
+```
+npm run typecheck
+npm test              # must stay green; count should grow
+npm run verify        # includes bundle budget (200 kB) and the credential scan
+```
+
+Plus, where a migration is involved: applied to the live project **read-first**, verified with a
+`BEGIN … ROLLBACK` probe before committing the change, and a stated rollback.
+
+Production data is not modified. Where a probe needs a write, it runs inside a transaction that is
+always rolled back.
