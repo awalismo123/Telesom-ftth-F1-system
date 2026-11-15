@@ -189,6 +189,23 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.12.0 (15/11/2026) — a job sheet you can carry
+
+The execution sheet gains **"Job sheet"**: a one-page print view for a single
+job — line, customer, phone, area, box, port, type, times, time on job, dBm,
+blocker and notes, with a signature block.
+
+* **Empty fields are left out, not printed as "—".** A page of dashes teaches
+  the reader that dashes are noise, and then a genuinely missing port number
+  looks like everything else.
+* **It prints the reading against the app's healthy window** (−27 … −8 dBm),
+  because there is no per-job target in the data and inventing one would be
+  worse than saying which window is used.
+* **Explicit action, one job at a time.** The sheet carries a name, phone and
+  address; there is no bulk print.
+* Uses the browser's own print dialogue — no new dependency, and the same
+  mechanism as the period report.
+
 ### v1.11.0 (15/11/2026) — the jobs still worth saving
 
 The supervisor's landing page gains **"Due today"**: the jobs that reach the

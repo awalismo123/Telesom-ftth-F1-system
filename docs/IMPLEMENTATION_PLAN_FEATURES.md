@@ -557,23 +557,38 @@ singular at one, mentions unassigned work first, and never says "SLA"; the SQL u
 **Explicitly not claimed:** "due today" means the customer reported it three days ago. It does not
 mean the job was assigned three days ago, and it is not a measure of anybody's speed.
 
-### Phase 11 — Printable job sheet
+### Phase 11 — Printable job sheet — ✅ DONE 15/11/2026
 
-**Effort:** ~2–3 hours. **Depends on:** Phase 4 (map line) and Phase 6 (box fault count).
+**Effort:** ~2 hours. **Depends on:** nothing new (reads the job already on screen). **No migration.**
+
+> **Result:** `npm run verify` green at **521/521 tests, 195.8 kB**. No database change at all.
+
+> **A real defect was caught before it shipped.** The print stylesheet hides the app behind a sheet by
+> keying on `.print-root` (`index.css`: `body:has(.print-root) > #root { display: none }`). The first
+> version of this view lacked that class, so printing would have put a screenshot of the whole app on
+> the paper behind the job sheet. A test now pins the class.
+
+> **Three accessibility failures were also caught by the existing design tests**, not by review:
+> `text-[9px]` (below the legible floor) and `bg-brand-600` with white text (3.58:1). Both corrected
+> to 10 px and `brand-700`.
 
 **What changes**
 
-* A print view per job: line, customer, phone, type, box, port, target dBm vs achieved, notes,
-  technician, timestamps — reusing the existing `print:` classes and `.print-colour` rule added in
-  the brand work.
-* Reachable from the job sheet; nothing else prints differently.
+* A **"Job sheet"** button on the execution sheet opens a one-page print view: line, customer, phone,
+  area, cable box, port, type, priority, technician, reported/started/completed times, time on job,
+  dBm reading, blocker and notes.
+* Reuses the letterhead, `print-colour` emblem rule, `BUILD_LABEL` footnote and the browser's own
+  print dialogue — no new dependency, no bundle cost beyond the view itself.
+* **There is no per-job dBm target in the data**, so the sheet prints the reading against the
+  app-wide healthy window (−27 … −8 dBm) and says which. Inventing a target would be worse.
 
-**Risk:** a job sheet contains customer name and phone. It prints only on explicit action, same as
-the period report, and there is no bulk "print all".
+**Tests (22):** the port and the dBm are on the sheet; a field with no value is **omitted**, never
+printed as "—"; port 0 is not a port; a zero duration is not "0 min"; an unparseable timestamp is
+dropped rather than printed as `Invalid Date`; a job with nothing recorded produces almost no fields;
+the view carries `print-root`; printing is an explicit action with no bulk print.
 
-**Tests:** the sheet renders the port and dBm; it omits empty fields rather than printing "—".
-
----
+**Privacy:** the sheet carries a name, phone and address. It opens only for the job in front of you,
+on an explicit button press, and nothing else prints differently.
 
 ### Phase 12 — Bulk reassignment confirmation
 
