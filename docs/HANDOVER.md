@@ -189,6 +189,23 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.11.0 (15/11/2026) — the jobs still worth saving
+
+The supervisor's landing page gains **"Due today"**: the jobs that reach the
+three-day promise today, with the customer, the phone number and who — if
+anyone — is assigned.
+
+* **The list is the ones that are not late yet.** `over_sla` and the red `late`
+  badge count promises already broken. These are the jobs where doing something
+  now still keeps the promise.
+* **`SLA_DAYS` is still 3.** A warning list is not evidence for changing a
+  promise made to customers, and the migration hard-codes the constant rather
+  than reading a setting.
+* **The boundary matches everywhere else**: due at exactly three days, late at
+  four — the same rule `agingBand` puts on every job card.
+* Unassigned jobs sort first, then urgent, then the oldest report. A late count
+  is shown separately so the two are never confused.
+
 ### v1.10.0 (15/11/2026) — somebody has been here before
 
 The job sheet gains "Earlier jobs on this line": every job recorded against the

@@ -519,21 +519,43 @@ nothing rather than the whole group.
 **Explicitly not claimed:** the history shows what was recorded, not what happened. A job that was
 never written on a sheet is not in this list, and the panel does not imply the list is complete.
 
-### Phase 10 — SLA warnings
+### Phase 10 — SLA warnings — ✅ DONE 15/11/2026
 
-**Effort:** ~1–2 hours. **Depends on:** nothing.
+**Effort:** ~1.5 hours. **Depends on:** nothing. **No table** — one read-only function.
 
-**What already exists:** `agingBand` → `due` / `late` labels on every card; `over_sla` in
-`today_summary`.
+> **Result:** migration 031 applied live; `npm run verify` green at **499/499 tests, 195.8 kB**.
 
-**What is added:** a supervisor **warning list of jobs due today** (at the deadline, not past it),
-and a headline sentence for it. `SLA_DAYS = 3` is **not changed** — there is no evidence to change
-a promise made to customers, and `tests/sla.test.ts` pins it across five sites.
+> **`SLA_DAYS` was not touched.** It is still 3 in `src/lib/activity.ts`, and the migration
+> declares its own `v_sla constant int := 3` rather than reading a setting. A warning list is not
+> evidence for changing a promise made to customers, and a test fails if an `ALTER` or an `UPDATE
+> public.tasks` ever appears in this migration.
 
-**Tests:** a job at exactly 3 days is "due", at 4 is "late"; the panel shows due-today counts;
-`SLA_DAYS` still 3 everywhere.
+> **Every other number on the screen measures a promise already broken.** `over_sla`,
+> `waiting_over_sla` and the red `late` badge all count jobs that have *passed* three days. Nothing
+> counted the jobs that reach three days **today** — which is the only group where acting now still
+> keeps the promise. That is what this adds.
 
----
+> **The boundary matches the rest of the app, deliberately.** `agingBand` says `days === sla` → due
+> and `days > sla` → late; 013's `waiting_over_sla` uses `< now() - interval '3 days'`, strictly
+> less. The SQL uses `= CURRENT_DATE - 3` for due and `< CURRENT_DATE - 3` for late, and a test pins
+> both, because reversing either one moves the deadline.
+
+**What changes**
+
+* `sla_watch(token, group)` — the jobs at the deadline today, with customer, phone, area, box,
+  assignee and whether anybody is assigned at all.
+* **Supervisor landing page:** a "Due today" card with a one-sentence headline, the list ordered
+  unassigned → urgent → oldest, a `tel:` link per row, and the late count stated separately.
+* The card is `React.lazy`-loaded: it moved the first screen's bundle by 1.2 kB when bundled
+  directly, and the supervisor's landing page has a hard budget.
+
+**Tests (25):** a job at exactly 3 days is due and at 4 is late; a late job is never shown as due
+today even if the server sends it; unassigned sorts first; the headline leads with the number, is
+singular at one, mentions unassigned work first, and never says "SLA"; the SQL uses `=` for due and
+`<` for late and counts from the report date.
+
+**Explicitly not claimed:** "due today" means the customer reported it three days ago. It does not
+mean the job was assigned three days ago, and it is not a measure of anybody's speed.
 
 ### Phase 11 — Printable job sheet
 
