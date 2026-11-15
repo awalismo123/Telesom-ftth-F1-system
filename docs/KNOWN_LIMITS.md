@@ -615,3 +615,26 @@ sat on it.
 
 The unassigned count is shown separately and sorts to the top, because that is
 the case where nobody has taken responsibility.
+
+---
+
+## 8a. The job sheet has no per-job dBm target
+
+Nobody recorded a target against an individual job, so the printed sheet cannot
+compare "target vs achieved". It prints the reading and the window the rest of
+the app treats as healthy (−27 … −8 dBm), and says so in words. That is a
+weaker claim than a target would be, and it is the strongest one the data
+supports.
+
+If the department wants a per-job target, it needs a column and a decision about
+what the target is — not a number invented in the print view.
+
+## 8b. The printed sheet shows what the database holds at that moment
+
+Printing before the job is completed produces a sheet with no completion time,
+no reading and no notes — because none exist yet. The sheet omits them rather
+than printing blanks.
+
+A sheet printed mid-job is a snapshot. If the job changes afterwards, the paper
+does not update, and the reference at the top (`#A1B2C3D4`) is what ties it back
+to the record.

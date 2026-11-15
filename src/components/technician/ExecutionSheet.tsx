@@ -11,6 +11,7 @@ import {
   PauseCircle,
   Phone,
   Play,
+  Printer,
   RotateCcw,
   Signal,
   User,
@@ -46,6 +47,7 @@ import { BoxSheet } from '../registry/BoxSheet';
 import { DirectionsButton } from '../ui/DirectionsButton';
 import { RepeatFaultBadge } from '../ui/RepeatFaultBadge';
 import { LineHistoryPanel } from '../ui/LineHistoryPanel';
+import { JobSheetPrint } from './JobSheetPrint';
 import { useToast } from '../ui/Toast';
 import {
   clearCompletionDraft,
@@ -137,6 +139,8 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
   const [otherRunning, setOtherRunning] = useState<
     { id: string; line_number: string; customer_name: string }[]
   >([]);
+
+  const [showSheet, setShowSheet] = useState(false);
 
   const elapsed = elapsedSeconds(task, nowMs);
   const warnings = taskWarnings(task);
@@ -536,6 +540,17 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                 : toast.error(so ? 'Nuqul ma suurtagalin' : 'Could not copy')
             }
           />
+
+          {/* Print this job. Explicit action only, this job only — there is no
+              "print all", because the sheet carries a name, phone and address. */}
+          <button
+            type="button"
+            onClick={() => setShowSheet(true)}
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 min-h-11 rounded-2xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 active:scale-[0.99] transition cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" aria-hidden="true" />
+            {so ? 'Warqadda shaqada' : 'Job sheet'}
+          </button>
 
           {/* this line's own fault history — shown whether or not the importer
               happened to flag this job, because the flag misses the first fault
