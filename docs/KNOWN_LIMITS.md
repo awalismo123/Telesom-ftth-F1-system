@@ -412,3 +412,38 @@ nothing that can begin charging.
 The deliberate trade: an embedded map would look better and would introduce a quota and a key.
 A `wa.me`-style link cannot. If a supervisor ever wants a map drawn inside the app, that is a
 different decision with a bill attached, and it is not made here.
+
+## 7m. Materials are usage, not inventory
+
+**There is no stock figure anywhere in this app, and this is deliberate.**
+
+A stock level is `received − used`. Nothing records a delivery: no purchase order, no goods-in
+step, no delivery note. A number computed as `0 − used` would be negative from the first job and
+drift further from the shelf every week, and it would look exactly like a real figure on a screen.
+
+So `task_materials` records what was **consumed**, which is a verifiable fact, and every screen
+calls it usage. The line *"This counts what was used, not what is left"* appears wherever a total
+does, and `tests/materials.test.ts` fails the build if a label or an identifier claims otherwise.
+
+**What this can do:** tell the department what a period consumed, per item and per job count, so a
+reorder can be based on evidence.
+
+**What this cannot do:** say how many routers are on the shelf. Answering that needs a
+`material_deliveries` table and one person to record arrivals — a different feature with a
+different failure mode, not a missing column here.
+
+**Also not tracked:** which technician used what. `recorded_by` exists on each line, so a per-tech
+breakdown is *possible*, but the plan asked for per-period usage and a per-tech report invites
+ranking technicians on consumption, which is not a measure of anything useful.
+
+---
+
+## 7n. Materials are attached to a job, not a store
+
+`add_task_material` requires a task that the caller may act on (`is_task_worker`). There is no way
+to record "the store issued 50 connectors to nobody in particular" — the recording is always
+"this job used these".
+
+The consequence: consumables that leave the store without a job (a broken drum, a return, a
+transfer between groups) have nowhere to go and will make the usage total understate what actually
+left. The store's own paperwork remains the authority; this figure is the job-level view.
