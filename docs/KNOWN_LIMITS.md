@@ -528,3 +528,49 @@ renders nothing.
 The cost: an anonymous job contributes no evidence either way. If blank line
 numbers are common in the sheets, they should be fixed at import rather than
 worked around here.
+
+---
+
+## 7t. The workload panel measures the job, not the person
+
+`tech_workload` counts only the minutes a job was marked **running**. It
+therefore includes a technician's own pauses and excludes several things that
+are not their fault: travel before Start, waiting for access without pressing
+Block, and the gaps between jobs. It says nothing about effort, skill or
+quality, and it deliberately does not rank anybody.
+
+The standing warning in the card is printed, not hidden in a tooltip.
+
+## 7u. An impossible timer is set aside; merely enormous ones are shown
+
+A completion is **impossible** when its recorded time is longer than the job has
+existed — arithmetic, not opinion. Those are counted as `implausible_timers`,
+excluded from the median, and stated on screen.
+
+The rule deliberately does **not** catch the other case: the real 45.7-hour timer
+from §7d belongs to a job old enough that 45 hours is technically possible. It
+passes into the set. The median absorbs it (3 minutes), and the card prints the
+**longest** job beside the median, in amber above four times the median, so a
+forgotten timer is visible rather than quietly averaged away.
+
+The consequence to keep in mind: if most timers in a window were forgotten, the
+median is measured over a set that contains them. It is more robust than the
+mean, not immune.
+
+## 7v. A crew's number is not a person's number
+
+`ops_analytics.techs` is keyed by **crew** ("F1 - Crew A") and carries no user
+id. The workload panel is a separate function keyed by person. The two lists can
+disagree, and that is expected: two people in one crew will each show the jobs
+they personally closed, while the crew row shows the crew's total.
+
+Neither is wrong. Do not add the two columns together.
+
+## 7w. A duration is capped at 500 completions per person for the median
+
+The duration array returned per technician stops at 500 completions, newest
+first, to keep the payload bounded. The completion **count** is computed
+separately and is never capped, so `completed` is always the true figure.
+
+In practice 500 completions in one window is far beyond this group's volume. If
+it is ever reached, the median describes the most recent 500 jobs only.

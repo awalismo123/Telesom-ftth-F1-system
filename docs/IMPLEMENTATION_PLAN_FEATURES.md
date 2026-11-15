@@ -438,24 +438,60 @@ different customers can share a phone. Identity is `line_number`, which is what 
 The copy says **"worth investigating"**, never "repeat offender", and no leaderboard ranks
 technicians by it.
 
-### Phase 8 — Technician workload and performance
+### Phase 8 — Technician workload and performance — ✅ DONE 15/11/2026
 
-**Effort:** ~3–4 hours. **Depends on:** Phases 2 and 6 for data.
+**Effort:** ~3 hours. **Depends on:** nothing new. **No table** — one read-only function.
+
+> **Result:** migration 029 applied live; `npm run verify` green at **449/449 tests, 195.5 kB**.
+> The card lives inside the already-lazy Analytics tab, so the hot bundle did not move at all.
+
+> **A leaderboard was already shipping, and it is now gone.** The existing "Teams & technicians" card
+> sorted by `completed DESC` and drew a progress bar scaled to whoever closed the most jobs that
+> window. That is precisely the thing the group asked not to have: a technician measured on jobs
+> closed will close a job before it is fixed. The card is now **alphabetical**, the bar is deleted,
+> and every number (completed, live, blocked, avg, urgent, dBm, repeat) is still there. A test pins
+> the absence of the ratio.
+
+> **The plan's disclaimer text was wrong, so it was not used.** The draft said recorded time
+> *"includes travel, waiting for access and blockers"*. In this app a blocker **pauses** the clock —
+> `005_execution.sql` banks the accumulated seconds and clears `active_started_at` — and travel is
+> counted only if the technician pressed Start before setting off. A disclaimer that misdescribes its
+> own number is worse than none, so the printed note now says what is actually counted. The test
+> asserts the blocker-pauses wording in both languages.
+
+> **Where the plan says nothing, and this does:** the median is computed over *plausible* timers
+> only, and the ones set aside are **counted and shown**, never silently dropped or capped —
+> `KNOWN_LIMITS` §7d asked for exactly that. A completion is impossible when its recorded time
+> exceeds the job's own age, which is arithmetic rather than opinion.
+
+> **What that rule does not catch, and the screen shows anyway.** The real 45.7-hour timer from §7d
+> sits on a job old enough to "plausibly" take 45 hours, so it is *not* impossible and passes into
+> the set. The median absorbs it (3 minutes) — and the card prints the **longest** job beside the
+> median, flagged amber when it is more than four times the median, so the outlier is visible rather
+> than averaged away.
+
+> **`ops_analytics.techs` could not be reused.** It is keyed by **crew** ("F1 - Crew A") and carries
+> no user id, so it cannot be joined to people. The people-level panel is therefore its own card and
+> its own function, rather than a second interpretation of the same field.
 
 **What changes**
 
-* Per technician: open jobs, closed in the period, median time on job, and current load by day.
-* A **fixed disclaimer in the panel itself**, not a tooltip: *"Recorded time includes travel,
-  waiting for access and blockers. It measures the job, not the person."*
-* No ranking, no colours that imply worse/better, alphabetical order.
+* `tech_workload(token, group, days = 30)` — per active technician: open now, running, blocked,
+  completed in the window, plausible completion durations, impossible-timer count, and open jobs by
+  day (scheduled date, falling back to the report date).
+* **Supervisor Analytics:** "Technician workload — last N days", alphabetical, with the fixed note
+  printed inside the card.
+* Crew and crew-mates are handled: a job assigned to a crew counts toward each member.
 
-**Why median not average:** `KNOWN_LIMITS` §7d already records that one job left running overnight
-makes the average meaningless. A median survives that.
+**Tests (34):** median of an odd count, an even count and a single job; empty is `null`, not zero;
+the median survives the 45.7-hour case that breaks the average; the outlier rule fires at 4× the
+median with a one-hour floor; alphabetical order is not influenced by completed counts; an idle
+supervisor is not a row of zeros but one who closed jobs is shown; the server's `ORDER BY` is by name
+and the completion count is not capped by the duration-array limit.
 
-**Tests:** median handles an even count and a single job; a blocked job's time is not excluded
-silently but the disclaimer is asserted to be present.
-
----
+**Explicitly not claimed:** this does not measure effort, speed or quality. It measures how long
+jobs were marked running, which includes a technician's own delays and excludes several outside
+their control. That sentence is on the screen.
 
 ### Phase 9 — Customer job history
 
