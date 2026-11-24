@@ -958,3 +958,51 @@ pluralisation, in-progress wording, the crew path, capacity counting including a
 retired crew's members, and three guards that the *database* enforces the rule
 rather than only the screen, because a client-side check is what another
 supervisor's stale tab will bypass.
+
+### Phase 18 — A PIN that signs in, and a fault that says what it is — ✅ DONE 25/11/2026
+
+Started from two complaints that looked like two small bugs and turned out to be
+five, four of them invisible from the code.
+
+**The PIN.** "When I change a PIN in the supervisor it does not apply." It did not,
+for three separate reasons, each hiding the next. A busy account was locked from
+wrong sign-ins, and issuing a PIN left the lock in place — so a byte-for-byte
+correct new PIN returned `locked`. The banner counted people who had *finished*
+the job, not people who had not started it. And its only button could set a flag
+but never clear one. All three are fixed: a supplied PIN clears the lock, the
+banner reads a column that is set and cleared by the same actions that issue and
+replace a PIN, and there is a second button for the honest case — everybody has
+changed theirs and the flag is simply stale.
+
+`pin_status` exposes both facts a supervisor needs: who is still on a department
+PIN, and which accounts are locked out. The second one was invisible, which is why
+"I gave him a new PIN" looked like a bug in the PIN and not a bug in the lock.
+
+**The fault type.** The complaint column was already read from the sheet and
+already stored, so the plumbing the request implied did not need doing. What was
+wrong was the content: thirteen values, none of them a fault type — "CILAD" (the
+word for *fault*), "degdeg" (urgent), a phone number, `c`, `dd`, `ok`. A mapper
+now turns what it recognises into the eight types and returns nothing for the rest,
+because guessing is worse than an honest blank. `set_fault_type` lets the
+technician at the box answer it on their own job, which is the point: the customer
+often cannot say whether it is slow speed or a cut cable until they have been
+called.
+
+**The fourth bug, found by reading the audit log.** All thirteen open faults had
+`fault_type = 'no_signal'` and all thirteen complaints were junk, which does not
+follow. The work log had the answer: every one was edited inside three seconds with
+`before.fault_type = null`. `BulkEditSheet` defaulted its action to "Fault type"
+and its select to `'no_signal'`, so opening it and pressing the primary button
+reformed every unclassified fault into "No signal" with nobody choosing it. They
+are back to "not recorded", which is honest, and the sheet now starts blank.
+
+**Also:** Team & Crews lists a person's open jobs and can open the dispatch board's
+own edit and action sheets on them, so a supervisor no longer leaves the screen to
+correct a job. `team_workload` carries enough columns to show a job instead of only
+counting it.
+
+**Tests added:** 21 — 11 in `tests/pins.test.ts` (the flag decides, the count
+reaches zero, the PIN length rule, lockout wording, and that the removed sentence is
+gone from the screen), 10 in `tests/faultType.test.ts` (the client list equals the
+database CHECK, junk maps to nothing, a set type is never overwritten by an import,
+the technician can only touch their own job, the bulk sheet cannot invent a type).

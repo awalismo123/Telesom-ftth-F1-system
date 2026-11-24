@@ -496,6 +496,20 @@ export interface TeamWorkloadJob {
   task_type: string;
   assigned_user_id: string | null;
   assigned_crew_id: string | null;
+  /**
+   * Enough to *show* a job, not just count it.
+   *
+   * The team screen only needed a number until a supervisor could open a
+   * person's work from it. Optional because the RPC predates them and an older
+   * function still returns the short shape.
+   */
+  customer_phone?: string | null;
+  xaafada?: string | null;
+  cablebox_code_raw?: string | null;
+  fault_type?: string | null;
+  priority?: string | null;
+  reported_date?: string | null;
+  created_at?: string | null;
 }
 
 export async function fetchTeamWorkload(token: string, groupId: string): Promise<TeamWorkloadJob[]> {

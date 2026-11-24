@@ -59,7 +59,18 @@ export function BulkEditSheet({
   const toast = useToast();
 
   const [action, setAction] = useState<BulkAction>('type');
-  const [faultType, setFaultType] = useState<string>('no_signal');
+  /**
+   * Empty, deliberately, and it must stay that way.
+   *
+   * This used to start at 'no_signal'. The action above also defaults to
+   * 'type', so opening this sheet and pressing the primary button stamped
+   * "No signal" on every ticked fault without anybody choosing it — which is
+   * exactly what happened to all thirteen open faults on 24/11, three seconds
+   * of writes with `before.fault_type = null` in the audit log. A fault type
+   * is a fact about a customer's connection; a default is a guess wearing the
+   * same clothes. Start blank and make the choice explicit.
+   */
+  const [faultType, setFaultType] = useState<string>('');
   const [priority, setPriority] = useState<'normal' | 'urgent'>('urgent');
   const [area, setArea] = useState('');
   const [box, setBox] = useState('');
@@ -77,6 +88,18 @@ export function BulkEditSheet({
    * of jobs that will become plannable — not the number of jobs that look
    * incomplete.
    */
+  /**
+   * Faults that already carry a type, which this would overwrite.
+   *
+   * Counted so the sheet can say so before the button is pressed. Silently
+   * replacing a type somebody worked out on site is the same fault as inventing
+   * one, only later.
+   */
+  const alreadyTyped = useMemo(
+    () => faults.filter((task) => Boolean(task.fault_type)),
+    [faults],
+  );
+
   const placeless = useMemo(() => tasks.filter((task) => !hasRoute(task)), [tasks]);
 
   /**
@@ -95,7 +118,7 @@ export function BulkEditSheet({
     !busy &&
     tasks.length > 0 &&
     (!needsReason || reason.trim().length >= 3) &&
-    (action !== 'type' || faults.length > 0) &&
+    (action !== 'type' || (faults.length > 0 && faultType !== '')) &&
     (action !== 'place' || area.trim().length > 0 || box.trim().length > 0) &&
     (action !== 'delete' || deletable.length > 0);
 
@@ -293,16 +316,31 @@ export function BulkEditSheet({
           <div className="space-y-1">
             <Select
               label={so ? 'Nooca cilada' : 'Fault type'}
-              hint={FAULT_TYPE_LABEL[faultType as keyof typeof FAULT_TYPE_LABEL]?.hint[lang]}
+              hint={
+                faultType
+                  ? FAULT_TYPE_LABEL[faultType as keyof typeof FAULT_TYPE_LABEL]?.hint[lang]
+                  : so
+                    ? 'Dooro nooca — ma jiro mid si toos ah loo doortay'
+                    : 'Choose the type — nothing is selected by default'
+              }
               value={faultType}
               onChange={(e) => setFaultType(e.target.value)}
             >
+              <option value="">{so ? 'Dooro nooca…' : 'Choose a type…'}</option>
               {FAULT_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {FAULT_TYPE_LABEL[type][lang]}
                 </option>
               ))}
             </Select>
+
+            {alreadyTyped.length > 0 && faultType !== '' && (
+              <Alert tone="warning" className="mt-2">
+                {so
+                  ? `${alreadyTyped.length} cilad hore ayaa nooc u leh. Tan ayaa beddeli doonta.`
+                  : `${alreadyTyped.length} of these already ${alreadyTyped.length === 1 ? 'has a type' : 'have a type'}. This will replace ${alreadyTyped.length === 1 ? 'it' : 'them'}.`}
+              </Alert>
+            )}
           </div>
         )}
 

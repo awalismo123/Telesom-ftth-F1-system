@@ -237,6 +237,35 @@ export async function editTask(params: EditTaskParams): Promise<Task> {
   });
 }
 
+export interface SetFaultTypeResult {
+  task_id: string;
+  before: string | null;
+  fault_type: string | null;
+}
+
+/**
+ * Say what kind of fault this is.
+ *
+ * Separate from `editTask` because it is separate *work*: the person who knows
+ * the fault type is often the technician standing at the box, and `edit_task`
+ * is supervisor-only. This one accepts either role — a supervisor for any job in
+ * the group, a technician for their own — and records the previous value, so
+ * "who first said cut cable" is answerable later.
+ *
+ * `null` clears it, which is the honest correction for a type set by mistake.
+ */
+export async function setFaultType(params: {
+  token: string;
+  taskId: string;
+  faultType: string | null;
+}): Promise<SetFaultTypeResult> {
+  return rpc<SetFaultTypeResult>('set_fault_type', {
+    p_token: params.token,
+    p_task_id: params.taskId,
+    p_fault_type: params.faultType,
+  });
+}
+
 export interface DeleteTaskResult {
   ok: boolean;
   deleted: number;
@@ -309,7 +338,7 @@ export async function setFaultTypeBulk(params: {
 
   for (const taskId of params.taskIds) {
     try {
-      await editTask({ token: params.token, taskId, faultType: params.faultType });
+      await setFaultType({ token: params.token, taskId, faultType: params.faultType });
       updated += 1;
     } catch (err) {
       refused.push({ taskId, message: err instanceof Error ? err.message : String(err) });

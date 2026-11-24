@@ -47,6 +47,14 @@ export interface UserProfile {
    * several people know is not a credential.
    */
   must_change_pin?: boolean;
+  /**
+   * True while this account still signs in with a PIN somebody else chose.
+   *
+   * The honest version of `must_change_pin`: set when a supervisor issues a
+   * PIN, cleared when the person replaces it. The banner on the team screen
+   * reads this and nothing else, which is why it can finally go away.
+   */
+  seed_pin_flag?: boolean;
   created_at?: string;
 }
 

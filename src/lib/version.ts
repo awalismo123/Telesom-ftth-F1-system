@@ -11,7 +11,7 @@
  * bundle for a label would be a poor trade.
  */
 
-export const APP_VERSION = '1.18.0';
+export const APP_VERSION = '1.19.0';
 
 /**
  * The date this build was published.
@@ -20,13 +20,15 @@ export const APP_VERSION = '1.18.0';
  * the record, photo proof and the read-only manager; 1.2.0 is the Telesom brand
  * and the usability work (larger text, the next-job band, the letterhead); 1.17.0
  * split faults from installations and made a job editable, and 1.17.1 fixed the
- * two import bugs that the first live import exposed.
+ * two import bugs that the first live import exposed. 1.19.0 is the one where a
+ * supervisor-issued PIN finally signs somebody in, and a fault can be given a
+ * type by the person standing at the box.
  *
  * All of them are on the sign-in screen and on the printed report, because a
  * report that a head manager files is worth nothing if nobody can tell which
  * build produced it — and because "I did not see the changes" is usually a stale
  * tab, which a version number settles in one look.
  */
-export const BUILD_DATE = '2026-11-24';
+export const BUILD_DATE = '2026-11-25';
 
 export const BUILD_LABEL = `v${APP_VERSION} · ${BUILD_DATE}`;

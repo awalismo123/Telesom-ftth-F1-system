@@ -3,7 +3,7 @@ import { useLanguage } from '../../../lib/i18n';
 import { describeError } from '../../../lib/useErrorMessage';
 import type { Task } from '../../../types/database';
 import { FAULT_TYPE_LABEL, FAULT_TYPES, asFaultType, taskKind } from '../../../lib/faults';
-import { editTask } from '../../../lib/opsService';
+import { editTask, setFaultType } from '../../../lib/opsService';
 import { Alert } from '../../ui/Alert';
 import { Button } from '../../ui/Button';
 import { Input, Select } from '../../ui/Field';
@@ -69,13 +69,21 @@ export function EditJobSheet({
 
   const isFault = taskKind(task) === 'fault';
   const changed = diff(task, form);
+  const faultTypeChanged = isFault && form.faultType !== (task.fault_type ?? '');
 
   const submit = async () => {
-    if (changed === null) return;
+    if (changed === null && !faultTypeChanged) return;
     setBusy(true);
     setError(null);
     try {
-      await editTask({ token, taskId: task.id, ...changed });
+      if (changed !== null) await editTask({ token, taskId: task.id, ...changed });
+      if (faultTypeChanged) {
+        await setFaultType({
+          token,
+          taskId: task.id,
+          faultType: form.faultType === '' ? null : form.faultType,
+        });
+      }
       toast.success(so ? 'Shaqada waa la cusboonaysiiyay' : 'Job updated', {
         description: `${task.line_number} · ${task.customer_name}`,
       });
@@ -99,7 +107,11 @@ export function EditJobSheet({
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             {so ? 'Jooji' : 'Cancel'}
           </Button>
-          <Button loading={busy} disabled={changed === null} onClick={() => void submit()}>
+          <Button
+            loading={busy}
+            disabled={changed === null && !faultTypeChanged}
+            onClick={() => void submit()}
+          >
             {so ? 'Kaydi' : 'Save'}
           </Button>
         </div>
@@ -238,8 +250,10 @@ function seed(task: Task | null): EditForm {
  * Sending every field on every save would write an audit row for a form opened
  * and closed without a change, which makes the history useless.
  *
- * Clearing is a distinct signal: `faultType` going from a value to `''` must
- * send `clearFaultType`, because `faultType: null` means "leave it alone".
+ * The fault type is deliberately absent here. It is written by `set_fault_type`
+ * instead — the same function the technician uses — because that one records the
+ * previous value under its own log action, and "who decided this was a cut
+ * cable" is a question the history has to be able to answer.
  */
 /** The editable half of an edit call — everything but the token and the id. */
 type EditChanges = Omit<Parameters<typeof editTask>[0], 'token' | 'taskId'>;
@@ -256,12 +270,6 @@ function diff(task: Task, form: EditForm): EditChanges | null {
   }
   if (form.priority !== (task.priority ?? 'normal')) out.priority = form.priority;
   if (form.reportedDate !== (task.reported_date ?? '')) out.reportedDate = form.reportedDate || null;
-
-  const currentType = task.fault_type ?? '';
-  if (form.faultType !== currentType) {
-    if (form.faultType === '') out.clearFaultType = true;
-    else out.faultType = form.faultType;
-  }
 
   return Object.keys(out).length === 0 ? null : out;
 }

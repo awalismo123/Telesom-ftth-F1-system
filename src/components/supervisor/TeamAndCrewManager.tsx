@@ -15,12 +15,18 @@ import {
   KeyRound,
   RefreshCw,
   AlertTriangle,
+  Lock as LockIcon,
+  ListChecks,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import { useTableChanges } from '../../lib/realtime';
 import { fetchGroupOverview, fetchTeamWorkload, type TeamWorkloadJob } from '../../lib/reads';
+import { fetchTask } from '../../lib/opsService';
+import { JobActionsSheet } from './dispatch/JobActionsSheet';
+import { EditJobSheet } from './dispatch/EditJobSheet';
+import { faultTypeLabel } from '../../lib/faults';
 import {
   capacityCounts,
   capacitySentence,
@@ -31,9 +37,20 @@ import {
   workloadLine,
   type HeldJob,
 } from '../../lib/roster';
-import { flagDepartmentPins, flagPinsWarning, stalePinMembers, stalePinSentence } from '../../lib/pins';
+import {
+  clearDepartmentPins,
+  fetchPinStatus,
+  flagDepartmentPins,
+  flagPinsExplanation,
+  lockedSentence,
+  pinProblem,
+  setMemberPin,
+  stalePinMembers,
+  stalePinSentence,
+  type PinStatus,
+} from '../../lib/pins';
 import { useToast } from '../ui/Toast';
-import type { Crew, Group, UserProfile, UserRole } from '../../types/database';
+import type { Crew, Group, Task, UserProfile, UserRole } from '../../types/database';
 import { CREW_MAX_MEMBERS, checkCrewSize } from '../../lib/crew';
 
 interface CrewMemberRow {
@@ -88,11 +105,27 @@ export function TeamAndCrewManager() {
 
   const toast = useToast();
   const [flaggingPins, setFlaggingPins] = useState(false);
+  /** Who is on a department PIN and who is locked out — one read, two facts. */
+  const [pinStatus, setPinStatus] = useState<PinStatus>({ onDepartmentPin: [], locked: [] });
+  /** The member whose PIN sheet is open, and what has been typed into it. */
+  const [pinMember, setPinMember] = useState<UserProfile | null>(null);
+  const [pinDraft, setPinDraft] = useState('');
+  const [pinBusy, setPinBusy] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  /** Which member's job list is open, and the job being acted on. */
+  const [jobsFor, setJobsFor] = useState<UserProfile | null>(null);
+  const [actionTaskId, setActionTaskId] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<TeamWorkloadJob | null>(null);
+  /** The full row behind `editingTask`, fetched rather than assembled. */
+  const [openTask, setOpenTask] = useState<Task | null>(null);
+  const [openTaskError, setOpenTaskError] = useState<string | null>(null);
 
   /**
-   * The department's PINs are printed in the README, and until Batch H nothing
-   * ever forced anyone to replace one. This is the switch that does, pressed by
-   * the supervisor the day before real customers arrive.
+   * Ask everyone on a department PIN to choose their own at next sign-in.
+   *
+   * Says what actually happened rather than a reassuring number: this can
+   * legitimately change nobody, and claiming otherwise is how the old banner
+   * became permanent.
    */
   const flagPins = async () => {
     if (!session?.token) return;
@@ -101,13 +134,13 @@ export function TeamAndCrewManager() {
       const flagged = await flagDepartmentPins(session.token);
       toast.success(
         flagged === 0
-          ? lang === 'so' ? 'Qofna lama beddelin' : 'Nobody needed flagging'
+          ? lang === 'so' ? 'Qofna looma baahnayn calaamad' : 'Nobody needed flagging'
           : lang === 'so'
             ? `${flagged} qof waa la calaamadeeyay`
             : `${flagged} ${flagged === 1 ? 'account' : 'accounts'} flagged`,
-        { description: flagPinsWarning(lang) },
+        { description: flagPinsExplanation(lang) },
       );
-      await loadData(true);
+      await loadPins();
     } catch (error) {
       toast.error(
         lang === 'so' ? 'Lama calaamadeyn karin' : 'Could not flag the PINs',
@@ -117,6 +150,102 @@ export function TeamAndCrewManager() {
       setFlaggingPins(false);
     }
   };
+
+  /**
+   * The exit that never existed: everybody here has their own PIN now.
+   *
+   * Used when the flag is stale rather than true — somebody changed their PIN
+   * out of band, or an account was seeded before the flag was tracked.
+   */
+  const clearPins = async () => {
+    if (!session?.token) return;
+    setFlaggingPins(true);
+    try {
+      const changed = await clearDepartmentPins(session.token);
+      toast.success(
+        lang === 'so'
+          ? `${changed} qof loo calaamadeeyay inuu PIN-kiisa isticmaalo`
+          : `${changed} ${changed === 1 ? 'account' : 'accounts'} marked as using their own PIN`,
+      );
+      await loadPins();
+    } catch (error) {
+      toast.error(
+        lang === 'so' ? 'Lama beddeli karin' : 'Could not update the PIN state',
+        { description: describeError(error, lang) },
+      );
+    } finally {
+      setFlaggingPins(false);
+    }
+  };
+
+  /**
+   * Issue somebody a PIN.
+   *
+   * This is the whole point of the screen: a technician who cannot sign in
+   * calls the supervisor, and the supervisor needs to fix it from here, now,
+   * without the database console. It also clears any lockout — the reason the
+   * same action used to leave the person still unable to get in.
+   */
+  const savePin = async () => {
+    if (!pinMember || !session?.token || !activeGroup?.id) return;
+
+    const problem = pinProblem(pinDraft, lang);
+    if (problem) {
+      setPinError(problem);
+      return;
+    }
+
+    setPinBusy(true);
+    setPinError(null);
+    try {
+      await setMemberPin({
+        token: session.token,
+        memberId: pinMember.id,
+        groupId: activeGroup.id,
+        username: pinMember.username,
+        fullName: pinMember.full_name,
+        phone: pinMember.phone,
+        role: pinMember.role,
+        isActive: pinMember.is_active,
+        pin: pinDraft,
+      });
+      toast.success(
+        lang === 'so'
+          ? `PIN-ka ${pinMember.full_name} waa la beddelay`
+          : `${pinMember.full_name} has a new PIN`,
+        {
+          description:
+            lang === 'so'
+              ? 'Wuxuu dooran doonaa mid gaar ah marka uu soo galo.'
+              : 'They will choose their own at next sign-in.',
+        },
+      );
+      setPinMember(null);
+      setPinDraft('');
+      await loadData(true);
+      await loadPins();
+    } catch (error) {
+      setPinError(describeError(error, lang));
+    } finally {
+      setPinBusy(false);
+    }
+  };
+
+  /**
+   * The PIN state, read separately from the roster.
+   *
+   * Deliberately its own call and its own failure: if this read fails the page
+   * still shows the members, and — importantly — the banner does not fall back
+   * to a guess. A missing answer is not "nobody is on a department PIN".
+   */
+  const loadPins = useCallback(async () => {
+    if (!activeGroup?.id || !session?.token) return;
+    try {
+      setPinStatus(await fetchPinStatus(session.token, activeGroup.id));
+    } catch {
+      // Left as-is rather than cleared: an empty list would read as "all clear".
+    }
+  }, [activeGroup?.id, session?.token]);
 
   const loadData = useCallback(async (silent = false) => {
     if (!activeGroup?.id || !session?.token) return;
@@ -143,7 +272,8 @@ export function TeamAndCrewManager() {
 
   useEffect(() => {
     void loadData();
-  }, [loadData]);
+    void loadPins();
+  }, [loadData, loadPins]);
 
   /**
    * Staff, crews and crew membership land live — a technician added on another
@@ -158,6 +288,8 @@ export function TeamAndCrewManager() {
   useTableChanges({ table: 'users', onChange: () => void loadData(true) });
   useTableChanges({ table: 'crews', onChange: () => void loadData(true) });
   useTableChanges({ table: 'crew_members', onChange: () => void loadData(true) });
+  // A PIN being issued or replaced elsewhere changes the badge and the banner.
+  useTableChanges({ table: 'user_credentials', onChange: () => void loadPins() });
 
   const openAddMember = () => {
     setEditingMember(null);
@@ -182,6 +314,28 @@ export function TeamAndCrewManager() {
     setFormError(null);
     setMemberModalOpen(true);
   };
+
+  /**
+   * Open one job for editing.
+   *
+   * Fetches the real row first. The failure is surfaced on the panel rather
+   * than swallowed: if the row cannot be read, the supervisor must not be
+   * shown a form that would overwrite it with blanks.
+   */
+  const editJob = useCallback(
+    async (job: TeamWorkloadJob) => {
+      if (!session?.token) return;
+      setOpenTaskError(null);
+      setEditingTask(job);
+      setOpenTask(null);
+      try {
+        setOpenTask(await fetchTask(session.token, job.id));
+      } catch (error) {
+        setOpenTaskError(describeError(error, lang));
+      }
+    },
+    [session?.token, lang],
+  );
 
   /** The open jobs assigned to one person, in the shape the rule wants. */
   const jobsForUser = (userId: string): HeldJob[] =>
@@ -523,33 +677,90 @@ export function TeamAndCrewManager() {
         </button>
       </div>
 
-      {/* Department PINs: the rule exists, but nothing ever set the flag on the
-          accounts that already had one. Say it, and fix it in one action. */}
+      {/* Who still signs in with a PIN the department chose.
+       *
+       * Three things this block used to get wrong, all of which made it a
+       * permanent feature of the page:
+       *   • it counted finished accounts (anyone whose must_change flag was not
+       *     true), so the number could never reach zero — the supervisor, who
+       *     had already changed his, was the one it kept naming;
+       *   • its only button could set the flag, never clear it;
+       *   • it printed a paragraph of instructions instead of an action, so the
+       *     sentence never changed no matter what anybody did.
+       *
+       * It now reads one fact from the database, offers both directions, and
+       * says nothing at all when there is nothing to say. */}
       {!loading && staleCount > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-start gap-2 min-w-0 flex-1">
-            <KeyRound className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
-            <div className="min-w-0">
+            <KeyRound className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="min-w-0 space-y-1">
               <div className="text-xs font-extrabold text-amber-900">
                 {lang === 'so' ? 'PIN-yada waaxda' : 'Department PINs still in use'}
               </div>
-              <div className="text-[11px] text-amber-800">{stalePinSentence(staleCount, lang)}</div>
-              <div className="text-[10px] text-amber-700 mt-0.5">{flagPinsWarning(lang)}</div>
+              <div className="text-[11px] font-semibold text-amber-800">
+                {stalePinSentence(staleCount, lang)}
+              </div>
+              <ul className="text-[11px] text-amber-900 font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
+                {stalePinMembers(members).map((m) => (
+                  <li key={m.full_name} className="inline-flex items-center gap-1">
+                    <span aria-hidden="true">·</span>
+                    {m.full_name}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-amber-800 leading-snug">{flagPinsExplanation(lang)}</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => void flagPins()}
-            disabled={flaggingPins}
-            className="shrink-0 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-extrabold disabled:opacity-60 cursor-pointer"
-          >
-            {flaggingPins ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <KeyRound className="w-3.5 h-3.5" />
-            )}
-            {lang === 'so' ? 'Calaamadee dhammaan' : 'Flag all of them'}
-          </button>
+          <div className="shrink-0 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => void flagPins()}
+              disabled={flaggingPins}
+              className="inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-extrabold disabled:opacity-60 cursor-pointer"
+            >
+              {flaggingPins ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
+              )}
+              {lang === 'so' ? 'Weydii PIN cusub' : 'Ask for a new PIN'}
+            </button>
+            {/* The exit. Without it this box was a one-way door. */}
+            <button
+              type="button"
+              onClick={() => void clearPins()}
+              disabled={flaggingPins}
+              className="inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl bg-white border border-amber-300 text-amber-900 text-[11px] font-bold disabled:opacity-60 cursor-pointer"
+            >
+              {lang === 'so' ? 'Dhammaan way beddeleen' : 'They have all changed theirs'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Locked out after wrong PINs. Invisible before this, and the reason a
+          supervisor could issue a correct new PIN and watch it do nothing. */}
+      {!loading && pinStatus.locked.length > 0 && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 flex items-start gap-2">
+          <LockIcon className="w-4 h-4 text-rose-700 mt-0.5 shrink-0" aria-hidden="true" />
+          <div className="min-w-0">
+            <div className="text-xs font-extrabold text-rose-900">
+              {lang === 'so' ? 'Waa la xannibay' : 'Locked out'}
+            </div>
+            <ul className="mt-0.5 text-[11px] text-rose-800 font-semibold">
+              {pinStatus.locked.map((row) => (
+                <li key={row.id}>
+                  {row.full_name} — {lockedSentence(row.until, lang)}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-rose-800 leading-snug">
+              {lang === 'so'
+                ? 'Haddii aad siiso PIN cusub, xannibaadda waa la tirtirayaa isla markiiba.'
+                : 'Issuing a new PIN clears the lock immediately, from the member’s card below.'}
+            </p>
+          </div>
         </div>
       )}
 
@@ -587,15 +798,38 @@ export function TeamAndCrewManager() {
                     <div className="min-w-0">
                       <h3 className="font-bold text-slate-900 text-sm truncate">{m.full_name}</h3>
                       <div className="text-xs text-slate-500 font-medium">@{m.username}</div>
-                      {m.must_change_pin && (
+                      {m.seed_pin_flag ? (
                         <div className="mt-0.5 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
                           <KeyRound className="w-3 h-3" aria-hidden="true" />
                           {t('pinMustChange')}
+                        </div>
+                      ) : null}
+                      {pinStatus.locked.some((row) => row.id === m.id) && (
+                        <div className="mt-0.5 inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                          <LockIcon className="w-3 h-3" aria-hidden="true" />
+                          {lang === 'so' ? 'Xanniban' : 'Locked out'}
                         </div>
                       )}
                     </div>
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPinMember(m);
+                      setPinDraft('');
+                      setPinError(null);
+                    }}
+                    className={`p-2 rounded-lg transition cursor-pointer ${
+                      pinStatus.locked.some((row) => row.id === m.id)
+                        ? 'text-rose-600 hover:bg-rose-50'
+                        : 'text-slate-500 hover:text-amber-700 hover:bg-amber-50'
+                    }`}
+                    title={lang === 'so' ? 'Beddeli PIN-ka' : 'Change PIN'}
+                    aria-label={`${lang === 'so' ? 'Beddeli PIN-ka' : 'Change PIN'} — ${m.full_name}`}
+                  >
+                    <KeyRound className="w-4 h-4" aria-hidden="true" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => openEditMember(m)}
@@ -648,14 +882,33 @@ export function TeamAndCrewManager() {
                       held.filter((row) => row.status === 'in_progress').length,
                       lang,
                     );
-                    return line ? (
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-slate-500 shrink-0">
-                          {lang === 'so' ? 'Shaqo:' : 'Work:'}
-                        </span>
-                        <span className="font-bold text-slate-800 tabular">{line}</span>
+                    if (!line) return null;
+                    return (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-slate-500 shrink-0">
+                            {lang === 'so' ? 'Shaqo:' : 'Work:'}
+                          </span>
+                          <span className="font-bold text-slate-800 tabular">{line}</span>
+                        </div>
+                        {/*
+                          The jobs themselves, which this card could only count
+                          before. Opening one from here is the difference between
+                          "he has three" and being able to fix them without
+                          leaving Team & Crews for the dispatch board.
+                        */}
+                        <button
+                          type="button"
+                          onClick={() => setJobsFor(m)}
+                          className="w-full inline-flex items-center justify-center gap-1.5 min-h-11 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                        >
+                          <ListChecks className="w-3.5 h-3.5" aria-hidden="true" />
+                          {lang === 'so'
+                            ? `Fur shaqooyinka (${held.length})`
+                            : `Open the jobs (${held.length})`}
+                        </button>
                       </div>
-                    ) : null;
+                    );
                   })()}
 
                   {m.role === 'technician' && (
@@ -846,6 +1099,335 @@ export function TeamAndCrewManager() {
       )}
 
       {/* Member Modal */}
+      {/* Issuing a PIN.
+       *
+       * The one action that fixes "he cannot sign in", and it did not exist on
+       * any screen: a supervisor had to go to the database console. The modal
+       * member form technically had a PIN box, but using it to reset a PIN also
+       * re-submitted the whole member record, which is not what the supervisor
+       * is trying to do.
+       *
+       * Says plainly what will happen next, because the old behaviour — a
+       * correct new PIN that still would not sign in — looked like a bug in
+       * exactly this form. */}
+      {pinMember && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 text-sm">
+                {lang === 'so' ? 'Beddeli PIN-ka' : 'Change PIN'} — {pinMember.full_name}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPinMember(null)}
+                className="p-1 text-slate-500 hover:text-slate-600 cursor-pointer"
+                aria-label={lang === 'so' ? 'Xir' : 'Close'}
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void savePin();
+              }}
+              className="p-5 space-y-4"
+            >
+              <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2">
+                <div className="text-[11px] font-bold text-slate-700 tabular">
+                  @{pinMember.username}
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  {pinMember.role === 'supervisor' ? t('supervisorRole') : t('technicianRole')}
+                  {pinStatus.locked.some((row) => row.id === pinMember.id) && (
+                    <> · {lang === 'so' ? 'hadda xanniban' : 'currently locked out'}</>
+                  )}
+                </div>
+              </div>
+
+              {pinError && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
+                >
+                  {pinError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="new-pin">
+                  {lang === 'so' ? 'PIN cusub (4–6 lambar)' : 'New PIN (4–6 digits)'}
+                </label>
+                <input
+                  id="new-pin"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={6}
+                  value={pinDraft}
+                  onChange={(e) => {
+                    setPinDraft(e.target.value.replace(/\D/g, ''));
+                    setPinError(null);
+                  }}
+                  placeholder="••••"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-lg font-bold tracking-[0.4em] tabular focus:outline-none focus:ring-2 focus:ring-brand-600"
+                />
+              </div>
+
+              <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 space-y-1">
+                <p className="text-[11px] font-bold text-amber-900">
+                  {lang === 'so' ? 'Waxa dhacaya marka la kaydiyo' : 'What happens when you save'}
+                </p>
+                <ul className="text-[11px] text-amber-800 leading-snug list-disc pl-4 space-y-0.5">
+                  <li>
+                    {lang === 'so'
+                      ? 'PIN-kan ayaa si degdeg ah u shaqeyn doona.'
+                      : 'This PIN signs them in immediately.'}
+                  </li>
+                  <li>
+                    {lang === 'so'
+                      ? 'Xannibaad kasta waa la tirtirayaa.'
+                      : 'Any lockout is cleared.'}
+                  </li>
+                  <li>
+                    {lang === 'so'
+                      ? 'Waxaa laga codsan doonaa inay doortaan mid gaar ah marka ay soo galaan.'
+                      : 'They are asked to choose their own at next sign-in.'}
+                  </li>
+                </ul>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPinMember(null)}
+                  disabled={pinBusy}
+                  className="min-h-11 px-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-60 cursor-pointer"
+                >
+                  {lang === 'so' ? 'Jooji' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={pinBusy || pinDraft.length < 4}
+                  className="inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl bg-brand-900 hover:bg-brand-950 text-white text-xs font-extrabold disabled:opacity-60 cursor-pointer"
+                >
+                  {pinBusy && <RefreshCw className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
+                  {lang === 'so' ? 'Kaydi PIN-ka' : 'Save PIN'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* One person's open work.
+       *
+       * Everything here is the same rule the dispatch board uses — `edit_task`
+       * and `delete_task` decide, not this screen — so a refusal arrives with
+       * the database's own reason and can be acted on. Read-only rows are
+       * deliberate: a finished or cancelled job is evidence, and if this list
+       * quietly offered to delete one it would be a promise the server breaks.
+       */}
+      {jobsFor && (() => {
+        const held = workload.filter((job) => job.assigned_user_id === jobsFor.id);
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900 text-sm truncate">
+                    {lang === 'so' ? 'Shaqooyinka' : 'Jobs'} — {jobsFor.full_name}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {held.length === 0
+                      ? lang === 'so'
+                        ? 'Wax shaqo ah ma hayo'
+                        : 'Nothing open'
+                      : workloadLine(held.length, held.filter((r) => r.status === 'in_progress').length, lang)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setJobsFor(null)}
+                  className="p-1 text-slate-500 hover:text-slate-600 cursor-pointer shrink-0"
+                  aria-label={lang === 'so' ? 'Xir' : 'Close'}
+                >
+                  <X className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="p-3 overflow-y-auto space-y-2">
+                {held.length === 0 && (
+                  <p className="px-2 py-6 text-center text-xs text-slate-500">
+                    {lang === 'so'
+                      ? 'Shaqadan qofkan wax shaqo ah kuma xidhna.'
+                      : 'No open jobs are assigned to this person.'}
+                  </p>
+                )}
+
+                {held.map((job) => {
+                  const isFault = job.task_type === 'cilada';
+                  return (
+                    <div
+                      key={job.id}
+                      className="rounded-xl border border-slate-200 px-3 py-2 space-y-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {job.line_number}
+                            </span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                isFault
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : 'bg-sky-50 text-sky-800 border border-sky-200'
+                              }`}
+                            >
+                              {isFault
+                                ? lang === 'so' ? 'Cilad' : 'Fault'
+                                : lang === 'so' ? 'Galinta' : 'Install'}
+                            </span>
+                            {job.priority === 'urgent' && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold">
+                                {lang === 'so' ? 'DEGDEG' : 'URGENT'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 text-xs font-bold text-slate-900 truncate">
+                            {job.customer_name || '—'}
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">
+                            {job.xaafada || job.cablebox_code_raw || '—'}
+                            {isFault && (
+                              <>
+                                {' · '}
+                                <span
+                                  className={job.fault_type ? 'font-semibold' : 'text-amber-700 font-semibold'}
+                                >
+                                  {faultTypeLabel(job.fault_type, lang) ??
+                                    (lang === 'so' ? 'nooc ma leh' : 'no type')}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => void editJob(job)}
+                          className="flex-1 inline-flex items-center justify-center gap-1 min-h-11 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
+                          {lang === 'so' ? 'Wax ka beddel' : 'Edit'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActionTaskId(job.id)}
+                          className="flex-1 inline-flex items-center justify-center gap-1 min-h-11 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <ListChecks className="w-3.5 h-3.5" aria-hidden="true" />
+                          {lang === 'so' ? 'Ficil' : 'Actions'}
+                        </button>
+                        {job.customer_phone && (
+                          <a
+                            href={`tel:${job.customer_phone}`}
+                            className="inline-flex items-center justify-center min-h-11 w-11 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                            aria-label={lang === 'so' ? 'Wac' : 'Call'}
+                          >
+                            <Phone className="w-3.5 h-3.5" aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Edit and act, from this screen.
+       *
+       * `EditJobSheet` is the dispatch board's own form rather than a second
+       * copy, so the two cannot drift: the same validation, the same refusals,
+       * the same audit row. It needs a full `Task` and the roster read carries
+       * only a summary, so the real row is fetched on open.
+       *
+       * Fetching matters: handing the form a half-filled object would show
+       * blank fields for values that exist, and save those blanks back over
+       * them. A short wait is the honest trade.
+       */}
+      {editingTask && openTaskError && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm p-5 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" aria-hidden="true" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  {lang === 'so' ? 'Shaqadan lama akhrin karin' : 'Could not read this job'}
+                </h3>
+                <p className="mt-1 text-[11px] text-slate-600 leading-snug">{openTaskError}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingTask(null);
+                setOpenTaskError(null);
+              }}
+              className="w-full min-h-11 rounded-xl bg-slate-100 text-xs font-bold text-slate-700 cursor-pointer"
+            >
+              {lang === 'so' ? 'Xir' : 'Close'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingTask && !openTaskError && !openTask && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 px-5 py-4 flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-brand-700" aria-hidden="true" />
+            <span className="text-xs font-bold text-slate-700">
+              {lang === 'so' ? 'Waa la soo qaadayaa…' : 'Loading the job…'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {editingTask && openTask && session?.token && (
+        <EditJobSheet
+          open
+          onClose={() => setEditingTask(null)}
+          task={openTask}
+          token={session.token}
+          onSaved={() => {
+            setOpenTask(null);
+            void loadData(true);
+            void loadPins();
+          }}
+        />
+      )}
+
+      {actionTaskId && activeGroup?.id && session?.token && (
+        <JobActionsSheet
+          open
+          taskId={actionTaskId}
+          onClose={() => setActionTaskId(null)}
+          onChanged={() => {
+            void loadData(true);
+          }}
+          token={session.token}
+          groupId={activeGroup.id}
+          targets={[]}
+        />
+      )}
+
       {memberModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
