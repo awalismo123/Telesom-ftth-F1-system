@@ -189,6 +189,27 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.17.1 (24/11/2026) — two import bugs the fresh data exposed
+
+Deployed on the same day as v1.17.0, after the first real import under the new
+code. Both were found by looking at the data, not by a test.
+
+* **A sheet listing one line twice created two jobs.** Line 575666 was imported
+  twice in one installation batch, so two technicians could have been sent to one
+  address. Duplicate detection only compared against the database, and the first
+  copy is not in the database when the second is checked. It now checks earlier
+  rows of the same sheet, denies the repeat any decision but "skip", and warns
+  before the import is committed.
+* **Nothing freshly imported could be deleted.** The importer writes an `imported`
+  work log for every job it creates, and `delete_task` treated any work log as
+  proof somebody had worked on it — so the delete rule refused every imported job.
+  That is the one case delete exists for. `imported` is now treated as provenance
+  and excluded; real work still refuses.
+* **Bulk placement.** With 13 of 15 open faults arriving with no area and no box,
+  fixing them one sheet at a time was not viable. Selection → *Area and box* now
+  sets either or both across the selection, and the fault board has a button that
+  selects exactly the unroutable ones.
+
 ### v1.17.0 (24/11/2026) — faults are their own system
 
 * **Faults and installations are two screens now.** They keep different

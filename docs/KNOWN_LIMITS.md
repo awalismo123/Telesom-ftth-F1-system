@@ -807,3 +807,42 @@ Faults come first because the business cost of a late fault compounds hourly and
 late installation does not. If a technician is standing next to an installation
 and a mile from the next fault, the sensible order is the opposite of the list.
 The list is a default, not an instruction, and nothing in the app enforces it.
+
+## 8p. A sheet that lists one line twice is only caught now
+
+Deduplication compared an incoming row against what was **already in the
+database**. The first copy of a row is not in the database when the second copy is
+checked, so a sheet listing one customer twice produced two jobs.
+
+On 24/11/2026 this created line **575666** twice in one installation batch — same
+customer, same date, same batch — and the batch summary correctly reported "0
+duplicates", because against the database it was true. Two technicians could have
+been sent to one address for one installation. The duplicate row has been removed.
+
+`findInSheetRepeats` now detects this before anything is written, the row is denied
+any decision but "skip", and the wizard shows a warning naming the count. If a line
+genuinely needs two jobs, they must be distinguished on the sheet (a different
+reported date is enough) rather than imported twice under one number.
+
+What this still cannot do: detect a sheet listing the same **customer** twice under
+two different line numbers. There is no reliable customer key — names are
+free text and half of them are company names — so the line number remains the only
+identity the importer trusts.
+
+## 8q. An `imported` work log is provenance, not work
+
+`delete_task` refused any job with a work log. But the importer writes an
+`imported` row for **every** job it creates, so the refusal applied to every
+freshly imported job — including the exact case delete exists for, removing a bad
+import. The function now ignores `imported` rows when deciding whether a job has
+been worked on, and counts everything else.
+
+The distinction is worth stating plainly: `imported` says "this row came from a
+sheet", which the batch already records. `started`, `paused`, `completed`,
+`blocked`, `reopened` and `edited` say "a person did something", and those still
+refuse deletion. Editing a job therefore makes it undeletable, which is correct —
+an edit is somebody's decision recorded against the job.
+
+The client mirror (`whyNoDelete`) takes the count it is given, so every caller must
+pass non-`imported` rows. `delete_task` applies the filter itself; a client that
+counts all rows will be more conservative than the server, never less.

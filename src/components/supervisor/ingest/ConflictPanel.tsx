@@ -23,6 +23,11 @@ const CONFLICT_STYLES: Record<ConflictKind, { bg: string; text: string; border: 
   carryover: { bg: 'bg-sky-50', text: 'text-sky-800', border: 'border-sky-200' },
   repeat: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   duplicate_today: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
+  // A row repeating an earlier row of the same sheet. Shown in the same grey as
+  // an already-imported duplicate because the consequence is the same — one
+  // customer, one visit — but labelled so the supervisor knows the sheet is at
+  // fault, not yesterday's import.
+  duplicate_in_sheet: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
   invalid: { bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-200' },
 };
 
@@ -35,6 +40,7 @@ function conflictIcon(kind: ConflictKind) {
     case 'repeat':
       return <RotateCcw className="w-3.5 h-3.5" />;
     case 'duplicate_today':
+    case 'duplicate_in_sheet':
       return <Copy className="w-3.5 h-3.5" />;
     default:
       return <AlertTriangle className="w-3.5 h-3.5" />;
@@ -50,6 +56,7 @@ export function ConflictPanel({ plan, onChange }: Props) {
     carryover: so ? 'Baaqi (weliba furan)' : 'Carry-over (still open)',
     repeat: so ? 'Cilad soo noqotay' : 'Repeat fault',
     duplicate_today: so ? 'Hore loo soo geliyay maanta' : 'Already imported today',
+    duplicate_in_sheet: so ? 'Labo jeer xaashidan' : 'Listed twice in this sheet',
     invalid: so ? 'Aan la aqoonsan' : 'Unreadable',
   };
 
@@ -100,6 +107,17 @@ export function ConflictPanel({ plan, onChange }: Props) {
             value: 'refresh',
             label: so ? 'Cusboonaysii' : 'Refresh existing',
             hint: so ? 'Beddel xogta la hayo' : 'Overwrite details of today’s task',
+          },
+        ];
+      case 'duplicate_in_sheet':
+        // No way back to "create". The other conflict kinds describe a choice a
+        // supervisor is entitled to make; this one describes a sheet that lists
+        // one customer twice, and creating both means two visits to one address.
+        return [
+          {
+            value: 'skip',
+            label: so ? 'Iska dhaaf (labo jeer)' : 'Skip (listed twice)',
+            hint: so ? 'Sadarka hore ayaa la soo gelinayaa' : 'The earlier row is the one imported',
           },
         ];
       case 'invalid':

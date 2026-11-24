@@ -18,6 +18,7 @@ export type ConflictKind =
   | 'carryover' // still open from an earlier day
   | 'repeat' // previously completed → this is a fresh fault
   | 'duplicate_today' // already imported today
+  | 'duplicate_in_sheet' // the same line appears twice in the sheet being imported
   | 'invalid'; // missing line number, unreadable
 
 export type RowDecision = 'create' | 'refresh' | 'reopen' | 'skip';
@@ -44,6 +45,14 @@ export interface ImportPlan {
     carryovers: number;
     repeats: number;
     duplicates: number;
+    /**
+     * Rows repeating an earlier row *in the same sheet*.
+     *
+     * Counted separately from `duplicates` so the summary can say which of the
+     * two problems the supervisor has: a re-import of yesterday's sheet, or a
+     * sheet that lists one customer twice.
+     */
+    duplicatesInSheet: number;
   };
 }
 
@@ -67,6 +76,56 @@ export function isoDate(value: string | null | undefined): string {
 function dayKey(value: string | null | undefined): string {
   if (!value) return '';
   return new Date(value).toISOString().slice(0, 10);
+}
+
+/**
+ * Which rows repeat a line number an **earlier row of the same sheet** already
+ * claimed.
+ *
+ * ## The bug this exists for
+ *
+ * Deduplication used to compare an incoming row only against what was already in
+ * the database. A sheet that listed one customer twice therefore produced two
+ * jobs: the first row was "new", and the second row matched nothing, because the
+ * first had not been written yet. On the 24/11 fault import this happened to
+ * line 575666 — two installations, same customer, same date, same batch — and
+ * the batch summary reported "0 duplicates". Two technicians could have been
+ * sent to one address for one installation.
+ *
+ * ## Why the *later* row is the one dropped
+ *
+ * The first appearance is the one the supervisor read first, and its position
+ * carries no less information than the second's. Dropping the later one also
+ * keeps the plan stable when rows are re-ordered: the same input always yields
+ * the same kept row.
+ *
+ * Blank line numbers are not repeats of each other. Several unreadable rows are
+ * several problems, not one customer listed many times; they are already handled
+ * by the `invalid` path.
+ *
+ * @returns the set of array indices to skip, and the line numbers involved.
+ */
+export function findInSheetRepeats(lineNumbers: readonly (string | null | undefined)[]): {
+  indices: Set<number>;
+  lines: string[];
+} {
+  const firstSeenAt = new Map<string, number>();
+  const indices = new Set<number>();
+  const lines: string[] = [];
+
+  lineNumbers.forEach((raw, index) => {
+    const key = (raw ?? '').trim();
+    if (!key) return;
+
+    if (firstSeenAt.has(key)) {
+      indices.add(index);
+      if (!lines.includes(key)) lines.push(key);
+    } else {
+      firstSeenAt.set(key, index);
+    }
+  });
+
+  return { indices, lines };
 }
 
 /**
@@ -116,9 +175,18 @@ export async function buildImportPlan(params: {
   let carryovers = 0;
   let repeats = 0;
   let duplicates = 0;
+  let duplicatesInSheet = 0;
   let f1 = 0;
 
-  const planRows: PlanRow[] = rows.map((row) => {
+  /**
+   * Lines already claimed by an earlier row in *this* sheet.
+   *
+   * Computed up front rather than while mapping, so the rule is a pure function
+   * that can be tested without a database. See `findInSheetRepeats`.
+   */
+  const repeatsInSheet = findInSheetRepeats(rows.map((row) => row.derived.lineNumber));
+
+  const planRows: PlanRow[] = rows.map((row, rowIndex) => {
     const { lineNumber, groupCode: rowGroup } = row.derived;
 
     // Group filter — only Group F1 (or the supervisor's active group).
@@ -147,6 +215,25 @@ export async function buildImportPlan(params: {
     }
 
     f1++;
+
+    /**
+     * A line already claimed by an earlier row of this sheet.
+     *
+     * The first occurrence keeps whatever decision its data warrants; every
+     * later one is skipped and cannot be re-ticked, because two jobs for one
+     * line means two visits to one address and a customer called twice.
+     */
+    if (repeatsInSheet.indices.has(rowIndex)) {
+      duplicatesInSheet++;
+      return {
+        id: row.id,
+        row,
+        conflict: 'duplicate_in_sheet',
+        existing: null,
+        decision: 'skip',
+        included: false,
+      };
+    }
 
     const candidates = (byLine.get(lineNumber) ?? []).filter((t) => t.task_type === taskType);
     // A cancelled job is finished: the line appearing on today's sheet must be
@@ -214,6 +301,7 @@ export async function buildImportPlan(params: {
       carryovers,
       repeats,
       duplicates,
+      duplicatesInSheet,
     },
   };
 }

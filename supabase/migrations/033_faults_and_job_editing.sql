@@ -468,7 +468,14 @@ BEGIN
     RAISE EXCEPTION 'This job has been worked on. Cancel it instead — the history is evidence.';
   END IF;
 
-  SELECT count(*) INTO v_logs FROM public.task_work_logs WHERE task_id = p_task_id;
+  -- An `imported` row is provenance, not work: every job created by the wizard
+  -- gets one, and counting it made every freshly imported job undeletable —
+  -- which broke delete for its main use case, removing a bad import. Only rows
+  -- that record somebody doing something count against deletion.
+  SELECT count(*) INTO v_logs
+  FROM public.task_work_logs
+  WHERE task_id = p_task_id
+    AND action <> 'imported';
   IF v_logs > 0 THEN
     RAISE EXCEPTION 'This job has work logs. Cancel it instead — the history is evidence.';
   END IF;

@@ -16,6 +16,7 @@ import {
   faultSentence,
   faultTypeLabel,
   faultUrgency,
+  hasPlace,
   slaDays,
   summariseFaults,
   taskKind,
@@ -358,7 +359,10 @@ test('the migration enforces exactly the policy the client mirrors', () => {
     'v_task.accumulated_seconds',
     'v_task.blocked_at IS NOT NULL',
     'v_task.proof_photo_id IS NOT NULL',
-    'FROM public.task_work_logs WHERE task_id = p_task_id',
+    // Provenance is excluded: every imported job carries an `imported` row, so
+    // counting it made freshly imported jobs undeletable — the one case delete
+    // exists for.
+    "FROM public.task_work_logs\n  WHERE task_id = p_task_id\n    AND action <> 'imported'",
     'FROM public.task_photos WHERE task_id = p_task_id',
     'FROM public.task_materials WHERE task_id = p_task_id',
     'FROM public.cablebox_logs WHERE task_id = p_task_id',
@@ -451,4 +455,63 @@ test('an empty selection plans nothing and promises nothing', () => {
   const plan = bulkDeletePlan([]);
   assert.equal(plan.deletable.length, 0);
   assert.equal(plan.kept.length, 0);
+});
+
+// --- placement ---------------------------------------------------------------
+//
+// `hasPlace` here and `hasRoute` in dispatchBoard answer the same question, and
+// two definitions of "can this be routed" is exactly the kind of drift that lets
+// a board promise a plan it cannot make. They are duplicated only to keep
+// faults.ts free of the board's imports, so they are pinned to each other.
+
+test('hasPlace and hasRoute agree on every combination of area and box', async () => {
+  const { hasRoute } = await import('../src/lib/dispatchBoard');
+
+  const cases: [string | null, string | null][] = [
+    ['Jigjigayar', 'CB190-229 (06)'],
+    ['Jigjigayar', null],
+    [null, 'CB190-229 (06)'],
+    [null, null],
+    ['   ', '   '],
+    ['', ''],
+    [' Jigjigayar ', null],
+  ];
+
+  for (const [area, box] of cases) {
+    const row = task({ xaafada: area, cablebox_code_raw: box });
+    assert.equal(
+      hasPlace(row),
+      hasRoute(row),
+      `area=${JSON.stringify(area)} box=${JSON.stringify(box)} must be judged the same`,
+    );
+  }
+});
+
+test('the live census: a fault with no area and no box is unplaceable', () => {
+  // The 24/11 sheet: 13 of 15 open faults looked like this.
+  const rule = { xaafada: null, cablebox_code_raw: null };
+  assert.equal(hasPlace(task(rule)), false);
+
+  // Two of the fifteen had a box and no area, which is enough.
+  assert.equal(hasPlace(task({ xaafada: null, cablebox_code_raw: 'B5 (241)' })), true);
+  assert.equal(hasPlace(task({ xaafada: null, cablebox_code_raw: 'CB230-318 (64)' })), true);
+});
+
+test('a fault queue row carries its own placement verdict', () => {
+  const rows = faultQueue(
+    [
+      task({ id: 'placed', xaafada: 'Jigjigayar', cablebox_code_raw: null }),
+      task({ id: 'placeless', xaafada: null, cablebox_code_raw: null }),
+    ],
+    TODAY,
+  );
+
+  const placed = rows.find((row) => row.task.id === 'placed')!;
+  const placeless = rows.find((row) => row.task.id === 'placeless')!;
+  assert.equal(placed.place, true);
+  assert.equal(placeless.place, false);
+
+  // And the summary counts agree with the rows, so the button's number and the
+  // rows it selects cannot disagree.
+  assert.equal(summariseFaults(rows).unplaceable, 1);
 });
