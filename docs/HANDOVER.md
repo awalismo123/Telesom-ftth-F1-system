@@ -189,6 +189,24 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.18.0 (24/11/2026) — Team & Crews cannot lose work
+
+* **Deactivating somebody with open jobs is refused.** It used to succeed silently,
+  and because the dispatch board only builds lanes for *active* people, their jobs
+  vanished from every lane while staying assigned. The message names the line
+  numbers and says to move the work first. A job being worked on right now gets a
+  harder message than one waiting to be picked up.
+* **So is retiring a crew holding work**, for the same reason.
+* **An active crew can no longer contain somebody who is off duty.** That produced
+  a staffed-looking vehicle on the roster that could not take a job.
+* **The real capacity is printed next to the crew count.** The board lists every
+  crew *and* every technician, so two crews of two appeared as six lanes. The team
+  screen now says "2 crews — 2 real units of capacity".
+* **A crew's status can be changed at all.** It could previously only be set when
+  the crew was created; the form had no way to retire one.
+* **Each person's held work is shown on their card** — "2 open · 1 in progress" —
+  which is the number that decides whether they can go off duty.
+
 ### v1.17.2 (24/11/2026) — the app tells you when your tab is old
 
 * **A quiet bar at the top when the deployment has moved on** — "You are on

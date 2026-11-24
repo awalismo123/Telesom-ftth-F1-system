@@ -20,7 +20,17 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
 import { useTableChanges } from '../../lib/realtime';
-import { fetchGroupOverview } from '../../lib/reads';
+import { fetchGroupOverview, fetchTeamWorkload, type TeamWorkloadJob } from '../../lib/reads';
+import {
+  capacityCounts,
+  capacitySentence,
+  inactiveMembersInActiveCrew,
+  crewRetirementProblem,
+  lineNumbersOf,
+  retirementProblem,
+  workloadLine,
+  type HeldJob,
+} from '../../lib/roster';
 import { flagDepartmentPins, flagPinsWarning, stalePinMembers, stalePinSentence } from '../../lib/pins';
 import { useToast } from '../ui/Toast';
 import type { Crew, Group, UserProfile, UserRole } from '../../types/database';
@@ -39,6 +49,13 @@ export function TeamAndCrewManager() {
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [crews, setCrews] = useState<Crew[]>([]);
   const [crewLinks, setCrewLinks] = useState<CrewMemberRow[]>([]);
+  /**
+   * The open jobs the board is currently showing, per person and per crew.
+   *
+   * Without this the retirement rule would be asked about an empty list and
+   * always pass — a guard that looks present and does nothing.
+   */
+  const [workload, setWorkload] = useState<TeamWorkloadJob[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Member modal state
@@ -107,10 +124,16 @@ export function TeamAndCrewManager() {
     // replace the table with a skeleton under the reader's finger.
     if (!silent) setLoading(true);
     try {
-      const overview = await fetchGroupOverview(session.token, activeGroup.id);
+      const [overview, jobs] = await Promise.all([
+        fetchGroupOverview(session.token, activeGroup.id),
+        // A workload read failure must not blank the roster: the screen still
+        // lists everybody, and the rule degrades to the database's own refusal.
+        fetchTeamWorkload(session.token, activeGroup.id).catch(() => [] as TeamWorkloadJob[]),
+      ]);
       setMembers(overview.members);
       setCrews(overview.crews);
       setCrewLinks(overview.crew_members as CrewMemberRow[]);
+      setWorkload(jobs);
     } catch (error) {
       if (!silent) setLoadError(describeError(error, lang));
     } finally {
@@ -160,9 +183,62 @@ export function TeamAndCrewManager() {
     setMemberModalOpen(true);
   };
 
+  /** The open jobs assigned to one person, in the shape the rule wants. */
+  const jobsForUser = (userId: string): HeldJob[] =>
+    workload
+      .filter((job) => job.assigned_user_id === userId)
+      .map((job) => ({
+        id: job.id,
+        line_number: job.line_number,
+        customer_name: job.customer_name,
+        status: job.status,
+      }));
+
+  const jobsForCrew = (crewId: string): HeldJob[] =>
+    workload
+      .filter((job) => job.assigned_crew_id === crewId)
+      .map((job) => ({
+        id: job.id,
+        line_number: job.line_number,
+        customer_name: job.customer_name,
+        status: job.status,
+      }));
+
+  /**
+   * Refuse the save that would hide work.
+   *
+   * The database refuses it too (migration 034); this exists so the sentence is
+   * in the supervisor's language, names the line numbers, and arrives before the
+   * round trip rather than as a constraint name afterwards.
+   */
+  const retirementRefusal = (jobs: HeldJob[]): string | null => {
+    const check = retirementProblem(jobs);
+    return check.ok ? null : check.message![lang];
+  };
+
+  /**
+   * Members of this crew who are off duty.
+   *
+   * Saving an active crew with one of these produces a staffed-looking vehicle
+   * that cannot take a job. The database refuses it; this says which person.
+   */
+  const offDutyInCrew = (memberIds: string[]) =>
+    members.filter((member) => memberIds.includes(member.id) && !member.is_active);
+
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.token || !activeGroup?.id) return;
+    // Only a *deactivation* is refused. Editing a name, phone, PIN or role is
+    // untouched by the rule, and a supervisor must always be able to correct a
+    // record without first emptying somebody's hands.
+    if (editingMember && editingMember.is_active && !mActive) {
+      const refusal = retirementRefusal(jobsForUser(editingMember.id));
+      if (refusal) {
+        setFormError(`${refusal}\n${lineNumbersOf(jobsForUser(editingMember.id))}`);
+        return;
+      }
+    }
+
     setFormError(null);
     setSaving(true);
     try {
@@ -241,6 +317,25 @@ export function TeamAndCrewManager() {
     if (!size.ok) {
       setFormError(size.message ? size.message[lang] : null);
       return;
+    }
+
+    // An active crew whose members are off duty is a vehicle on the roster that
+    // cannot work. Refused here for the same reason the database refuses it.
+    const offDuty = inactiveMembersInActiveCrew(cActive, offDutyInCrew(cSelectedMembers));
+    if (offDuty) {
+      setFormError(offDuty[lang]);
+      return;
+    }
+
+    // Retiring a crew hides its jobs from every lane exactly as deactivating a
+    // person does, because `dispatch_load` filters on `is_active`.
+    if (editingCrew && editingCrew.is_active && !cActive) {
+      const held = jobsForCrew(editingCrew.id);
+      const check = crewRetirementProblem(held);
+      if (!check.ok) {
+        setFormError(`${check.message![lang]}\n${lineNumbersOf(held)}`);
+        return;
+      }
     }
 
     setSaving(true);
@@ -329,6 +424,19 @@ export function TeamAndCrewManager() {
         <div>
           <h2 className="text-lg font-extrabold text-slate-900">{t('teamHeader')}</h2>
           <p className="text-xs text-slate-500 mt-1">{t('teamSubheader')}</p>
+          {/*
+            The board's lanes are crews *and* every technician, so two crews of
+            two appear as six targets. This says how much real capacity there is,
+            because that is the number a supervisor plans a shift with.
+          */}
+          {!loading && (
+            <p className="text-[11px] font-semibold text-brand-800 mt-1.5 tabular">
+              {(() => {
+                const counts = capacityCounts(crews, techniciansOnly, crewLinks);
+                return capacitySentence(counts.crewsWithMembers, counts.loneTechnicians, lang);
+              })()}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {subTab === 'members' && (
@@ -527,6 +635,29 @@ export function TeamAndCrewManager() {
                     )}
                   </div>
 
+                  {/*
+                    What they are holding, right now.
+
+                    This is the number that decides whether they can go off duty,
+                    so it belongs on the card rather than only in the refusal.
+                  */}
+                  {(() => {
+                    const held = jobsForUser(m.id);
+                    const line = workloadLine(
+                      held.length,
+                      held.filter((row) => row.status === 'in_progress').length,
+                      lang,
+                    );
+                    return line ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-500 shrink-0">
+                          {lang === 'so' ? 'Shaqo:' : 'Work:'}
+                        </span>
+                        <span className="font-bold text-slate-800 tabular">{line}</span>
+                      </div>
+                    ) : null;
+                  })()}
+
                   {m.role === 'technician' && (
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-slate-500 shrink-0">Crew:</span>
@@ -590,6 +721,26 @@ export function TeamAndCrewManager() {
                     <Edit3 className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/*
+                  The crew's own jobs are counted separately from its members'.
+                  Both block retirement, and only this one is easy to forget.
+                */}
+                {(() => {
+                  const held = jobsForCrew(c.id);
+                  if (held.length === 0) return null;
+                  const active = held.filter((row) => row.status === 'in_progress').length;
+                  return (
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 px-2.5 py-1.5">
+                      <span className="text-[11px] font-semibold text-slate-600">
+                        {lang === 'so' ? 'Shaqooyin halkan ku xiran' : 'Jobs held by this crew'}
+                      </span>
+                      <span className="text-[11px] font-extrabold text-slate-900 tabular">
+                        {workloadLine(held.length, active, lang)}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 <div className="pt-3 border-t border-slate-100">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
@@ -786,6 +937,30 @@ export function TeamAndCrewManager() {
                 </div>
               </div>
 
+              {/*
+                The refusal, said before the click.
+
+                A supervisor changing this dropdown to "Inactive" while the person
+                holds three faults is about to be refused; telling them now, with
+                the line numbers, turns a surprise into a decision.
+              */}
+              {editingMember &&
+                editingMember.is_active &&
+                !mActive &&
+                (() => {
+                  const held = jobsForUser(editingMember.id);
+                  const check = retirementProblem(held);
+                  if (check.ok) return null;
+                  return (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                      <p className="text-[11px] font-bold text-amber-900">{check.message![lang]}</p>
+                      <p className="mt-0.5 text-[10px] font-semibold text-amber-800 tabular">
+                        {lineNumbersOf(held)}
+                      </p>
+                    </div>
+                  );
+                })()}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   {editingMember ? t('pinResetLabel') : t('pinNewLabel')}
@@ -888,6 +1063,43 @@ export function TeamAndCrewManager() {
                 />
               </div>
 
+              {/*
+                The crew's own status.
+
+                It was a variable the form set on create and then never exposed
+                again (`setCActive` was only ever called by `openAddCrew` and
+                `openEditCrew`), so a crew could not be taken off duty from this
+                screen at all — the retirement rule had no door to guard.
+              */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t('status')}</label>
+                <select
+                  value={cActive ? 'active' : 'inactive'}
+                  onChange={(e) => setCActive(e.target.value === 'active')}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-brand-600"
+                >
+                  <option value="active">{t('statusActive')}</option>
+                  <option value="inactive">{t('statusInactive')}</option>
+                </select>
+              </div>
+
+              {editingCrew &&
+                editingCrew.is_active &&
+                !cActive &&
+                (() => {
+                  const held = jobsForCrew(editingCrew.id);
+                  const check = crewRetirementProblem(held);
+                  if (check.ok) return null;
+                  return (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                      <p className="text-[11px] font-bold text-amber-900">{check.message![lang]}</p>
+                      <p className="mt-0.5 text-[10px] font-semibold text-amber-800 tabular">
+                        {lineNumbersOf(held)}
+                      </p>
+                    </div>
+                  );
+                })()}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   {t('selectCrewMembers')}
@@ -904,14 +1116,21 @@ export function TeamAndCrewManager() {
                             : 'bg-white border-slate-200 text-slate-700'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleCrewMemberSelection(tech.id)}
                             className="rounded text-brand-600 focus:ring-brand-500"
                           />
-                          <span>{tech.full_name}</span>
+                          <span className="truncate">{tech.full_name}</span>
+                          {/* Choosing somebody off duty would build a crew that
+                              cannot take work. Say it on the row, not on save. */}
+                          {!tech.is_active && (
+                            <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-900">
+                              {t('statusInactive')}
+                            </span>
+                          )}
                         </div>
                         <span className="text-[11px] text-slate-500">{tech.phone || ''}</span>
                       </label>

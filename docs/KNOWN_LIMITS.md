@@ -846,3 +846,61 @@ an edit is somebody's decision recorded against the job.
 The client mirror (`whyNoDelete`) takes the count it is given, so every caller must
 pass non-`imported` rows. `delete_task` applies the filter itself; a client that
 counts all rows will be more conservative than the server, never less.
+
+## 9a. Taking somebody off duty used to hide their work
+
+`dispatch_load` builds the board's lanes from technicians and crews where
+`is_active = true`. `upsert_team_member` and `upsert_crew` set `is_active` from the
+form and checked nothing else.
+
+So deactivating a person, or retiring a crew, **removed their open jobs from every
+lane** while leaving them `assigned` in the database. The job stayed somebody's
+responsibility, stayed counted by `today_summary` as work in hand, and appeared on
+no screen a supervisor could act from.
+
+Confirmed on the live project on 24/11/2026, in rolled-back transactions:
+deactivating a technician holding 2 assigned jobs succeeded silently, and so did
+retiring a crew holding 2.
+
+Migration 034 refuses both. The rule is **move the work, then retire the person** —
+in that order, decided by a supervisor, because choosing who inherits two faults is
+a dispatch decision with a cost attached and the roster screen has no shift in front
+of it. A job `in_progress` or `blocked` gets a harder message than one merely
+assigned: somebody is at the customer's house.
+
+## 9b. An active crew could contain somebody off duty
+
+`upsert_crew` capped a crew at two and refused an empty active crew. It said
+nothing about whether the members were on duty. Somebody inactive could be saved
+into an active crew: the roster showed a staffed vehicle, `dispatch_load` listed it
+as capacity, and half of it could not take a job. Verified live — the save
+succeeded.
+
+Refused now when the crew is active, naming the person. An **inactive** crew may
+still hold inactive people: that is retiring a crew and its roster together, and
+blocking it would make the correct order impossible.
+
+## 9c. The board's lane count is not the department's capacity
+
+`dispatch_load` lists every active crew **and** every active technician, because
+`assign_tasks` accepts either. A roster of two crews of two therefore produces six
+lanes, and a supervisor reading six plans a shift as if there were six units.
+
+The team screen now prints the real figure — "2 crews — 2 real units of capacity" —
+computed by `capacityCounts`, which counts a technician only when they are in no
+active crew. The lanes are not wrong and are not changing: a supervisor genuinely
+can send work to a crew or to a person. The number next to them was the misleading
+part.
+
+## 9d. A person cannot be deleted, only retired
+
+Every reference from `tasks`, `task_work_logs`, `task_photos`, `task_materials`,
+`import_batches`, `sheet_images`, `cablebox_logs`, `dispatch_log` and
+`user_sessions` to `users` is `NO ACTION` — deliberately, so history cannot be
+destroyed by removing a person. Only `crew_members`, `user_credentials` and
+`user_sessions` cascade.
+
+The consequence is that a person who has ever worked cannot be removed from the
+system at all, only deactivated. That is the intended behaviour, and it is why the
+retirement rule matters: deactivation is the *only* way a person leaves, so it must
+not take their work out of sight with them.
