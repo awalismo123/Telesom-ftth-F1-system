@@ -11,10 +11,14 @@ import {
   UserCheck,
   Users,
   MessageCircle,
+  Trash2,
+  // `History` collides with the DOM `History` type, which TypeScript then
+  // refuses as a JSX component. Aliased at the import so the call site reads.
+  History as HistoryIcon,
 } from 'lucide-react';
 import { useLanguage } from '../../../lib/i18n';
 import { CANCEL_REASONS, cancelReasonText, statusLabel, type Lang } from '../../../lib/ops';
-import { cancelTask, fetchTask, reopenTask, setTaskSchedule } from '../../../lib/opsService';
+import { cancelTask, deleteTask, fetchTask, reopenTask, setTaskSchedule } from '../../../lib/opsService';
 import { assignTasks, unassignTasks } from '../../../lib/dispatchService';
 import type { DispatchTarget } from '../../../lib/dispatch';
 import type { Task } from '../../../types/database';
@@ -22,7 +26,7 @@ import { describeError } from '../../../lib/useErrorMessage';
 import { Alert } from '../../ui/Alert';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
-import { Select, Textarea } from '../../ui/Field';
+import { Input, Select, Textarea } from '../../ui/Field';
 import { Sheet } from '../../ui/Sheet';
 import { Skeleton } from '../../ui/Skeleton';
 import { useToast } from '../../ui/Toast';
@@ -35,6 +39,8 @@ import { DirectionsButton } from '../../ui/DirectionsButton';
 import { copyPlainText, todayKey } from '../../../lib/format';
 import { photoSizeLabel } from '../../../lib/photo';
 import { PhotoViewer } from '../../ui/PhotoViewer';
+import { JobHistory } from './JobHistory';
+import { whyNoDelete, faultTypeLabel, taskKind } from '../../../lib/faults';
 
 /**
  * Everything a supervisor can do to one job, in one place.
@@ -75,6 +81,8 @@ export function JobActionsSheet({
   const [cancelNote, setCancelNote] = useState('');
   const [reopenNote, setReopenNote] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [photos, setPhotos] = useState<TaskPhotoMeta[]>([]);
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
   const [plannedDay, setPlannedDay] = useState('');
@@ -181,6 +189,35 @@ export function JobActionsSheet({
     void run('cancel', async () => {
       await cancelTask({ token, taskId: task.id, reason });
       toast.success(so ? 'Shaqada waa la joojiyay' : 'Job cancelled', { description: reason });
+      onClose();
+    });
+  };
+
+  /**
+   * Delete a job nobody has worked on.
+   *
+   * Two taps, because there is no undo and no soft-delete row to recover from.
+   * The server refuses if the job turns out to have history the client could not
+   * see, and that refusal is shown as the server wrote it — a supervisor reading
+   * "this job has photos" learns something the client could not have told them.
+   */
+  const remove = () => {
+    if (!task) return;
+    const reason = deleteReason.trim();
+    if (reason.length < 3) {
+      setError(so ? 'Qor sababta tirtirista' : 'Write why this job is being deleted');
+      return;
+    }
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+
+    void run('delete', async () => {
+      await deleteTask({ token, taskId: task.id, reason });
+      toast.success(so ? 'Shaqada waa la tirtiray' : 'Job deleted', {
+        description: `${task.line_number} · ${reason}`,
+      });
       onClose();
     });
   };
@@ -317,6 +354,11 @@ export function JobActionsSheet({
                 {statusLabel(status, lang)}
               </Badge>
               {task.priority === 'urgent' && <Badge tone="rose">{so ? 'Degdeg' : 'Urgent'}</Badge>}
+              {taskKind(task) === 'fault' && (
+                <Badge tone={task.fault_type ? 'amber' : 'slate'}>
+                  {faultTypeLabel(task.fault_type, lang) ?? (so ? 'Nooc ma leh' : 'No type')}
+                </Badge>
+              )}
               {task.reopened_count > 0 && (
                 <Badge tone="amber">
                   {so ? `dib loo furay ${task.reopened_count}` : `reopened ${task.reopened_count}×`}
@@ -652,6 +694,77 @@ export function JobActionsSheet({
               {so ? 'Weli lama qoondeyn qof.' : 'Nobody is assigned yet.'}
             </p>
           )}
+
+          {/* What happened, so the delete rule below is something a supervisor
+              can check rather than take on trust. */}
+          <section className="space-y-2 border-t border-slate-200 pt-4">
+            <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+              <HistoryIcon className="w-3.5 h-3.5" aria-hidden="true" />
+              {so ? 'Taariikhda shaqada' : 'What happened'}
+            </h3>
+            <JobHistory token={token} taskId={task.id} />
+          </section>
+
+          {/*
+            The niche control.
+
+            A job that has never been touched is a typo in an import, and
+            deleting it is the honest fix. Everything else is evidence. The
+            policy lives in `whyNoDelete` so the sentence here and the sentence
+            in the bulk sheet cannot disagree.
+          */}
+          <section className="space-y-2 border-t border-slate-200 pt-4">
+            <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+              {so ? 'Tirtir' : 'Delete'}
+            </h3>
+
+            {(() => {
+              const reason = whyNoDelete(task, 0);
+              if (reason) {
+                return (
+                  <p className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-[11px] leading-snug text-slate-600">
+                    {reason[lang]}
+                  </p>
+                );
+              }
+              return (
+                <>
+                  <p className="text-[11px] leading-snug text-slate-600">
+                    {so
+                      ? 'Qofna weli ma shaqeyn shaqadan, marka waa la tirtiri karaa. Tani lama noqon karo.'
+                      : 'Nobody has worked on this job, so it can be deleted. This cannot be undone.'}
+                  </p>
+                  <Input
+                    aria-label={so ? 'Sababta' : 'Reason'}
+                    value={deleteReason}
+                    onChange={(event) => {
+                      setDeleteReason(event.target.value);
+                      setConfirmDelete(false);
+                    }}
+                    placeholder={so ? 'Sababta tirtirista' : 'Why delete it'}
+                    maxLength={200}
+                  />
+                  <Button
+                    variant="danger"
+                    onClick={remove}
+                    disabled={busy !== null || deleteReason.trim().length < 3}
+                    loading={busy === 'delete'}
+                    fullWidth
+                  >
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
+                    {confirmDelete
+                      ? so
+                        ? 'Riix mar labaad — weligeed'
+                        : 'Tap again — permanently'
+                      : so
+                        ? 'Tirtir shaqadan'
+                        : 'Delete this job'}
+                  </Button>
+                </>
+              );
+            })()}
+          </section>
         </div>
       )}
 

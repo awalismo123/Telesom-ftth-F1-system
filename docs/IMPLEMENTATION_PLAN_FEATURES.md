@@ -763,9 +763,11 @@ now call `orderPool`, which wraps `compareTasks`, and a test asserts they can ne
 **Defect 2 — auto-cluster would build a "route" out of nothing.**
 
 `clusterTasks` groups by cablebox, then by neighbourhood. A job with neither lands in one bucket with
-every other such job. On the live data **8 of 19** jobs are in that state — including **both urgent
-jobs**. Auto-cluster would have handed one crew a batch spanning the city under the heading
-"No area / box", and nothing on the board said so before the plan was made.
+every other such job. On the live data **6 of 19** open jobs are in that state — including **both
+urgent jobs**. (This figure was first written as 8 and corrected in Phase 16: the census counts 13
+open jobs in the group, six of them with neither an area nor a box.) Auto-cluster would have handed
+one crew a batch spanning the city under the heading "No area / box", and nothing on the board said
+so before the plan was made.
 
 The board now counts routable vs unroutable work, names the offending line numbers, and states the
 consequence in both languages.
@@ -839,3 +841,75 @@ Plus, where a migration is involved: applied to the live project **read-first**,
 
 Production data is not modified. Where a probe needs a write, it runs inside a transaction that is
 always rolled back.
+
+### Phase 16 — Faults get their own system, and a job becomes editable — ✅ DONE 24/11/2026
+
+**Effort:** ~5 hours. **Depends on:** Phase 15. **Migration:** 033 (applied).
+**Result:** `npm run verify` green at **677/677 tests**.
+
+> **Scope note.** This phase was opened as "enhance the dispatch page once more
+> before Team". It turned into a data-model change, because two of the four things
+> asked for — a fixed fault type and a 48-hour fault clock — cannot live in a
+> component. They live in `task_sla_days` and a CHECK constraint, and everything
+> else reads them from there.
+
+**What the user asked for, and what it became.**
+
+| Asked | Built |
+|---|---|
+| Installations and faults separated, each manageable | A two-tab split, two promises on the tabs, a fault board with its own queue and counts |
+| Delete, edit, and see jobs one by one | `delete_task` + `edit_task` in SQL, the history panel and the delete section in the action sheet, `EditJobSheet` |
+| Select all / multi-select → delete, edit, retype | `bulkDeletePlan`, `deleteTasksBulk`, `setFaultTypeBulk`, `setPriorityBulk`, select-all scoped to the active tab |
+| Both kinds to one technician, several at once | Already true of assignment; the *route* now shows why: `technician_route_split` |
+| Faults must be "best and perfect" | 48 h clock, 8 fixed types, breach-first ordering, an untyped count that is actionable |
+| Anything else the agent judges missing | The job history panel (logs, materials, photos) and the delete-policy explanation |
+
+**The four decisions, and why each went the way it did.**
+
+**Delete is strict.** A job is deletable only if nobody has touched it: no assignee,
+no timer, no work log, no photo, no material, no box log, no child. Everything else
+must be cancelled instead. The reasoning is that a cancelled job is still evidence —
+it says "we knew about this and here is why we stopped" — while a deleted one says
+nothing. Completed jobs are never deletable at all. The rule is enforced in
+`delete_task` and mirrored in `whyNoDelete`, and a test asserts the two agree on
+every status.
+
+**Two clocks, not one.** A fault is promised in 48 hours and an installation in 72.
+The user rejected a single three-day promise, and the reasoning holds up: an
+installation is a booking, and a fault is a customer who is already paying and whose
+service has stopped. The cost of the second kind of lateness compounds hourly. Both
+windows are defined once, in `task_sla_days(task_type)`, and every new consumer
+reads that function. The four older report functions still type `interval '3 days'`;
+`tests/sla.test.ts` was updated to follow the promise to its new home and to pin
+that `today_summary` now calls the function rather than a literal.
+
+**Fault types are a fixed list.** Eight values: no signal, slow speed, cut cable,
+faulty box, damaged port, loose connector, power, other. Free text was rejected, and
+correctly — a free-text field on a phone produces `cusub`, `cusbo`, `Cusub` and
+`something` for the same job, and none of them can be counted. `NULL` means "not
+recorded", never "unknown fault"; there is a real difference between a fault nobody
+classified and a fault classified as "other", and collapsing them would make the
+untyped count lie. A CHECK refuses a fault type on an installation.
+
+**Ordering: breach first, then the urgent flag.** `faultQueue` sorts breached faults
+before merely-due ones, and only then by the urgent flag and age. The one live
+urgent fault is also the oldest breach, so the order does not change today — but if a
+supervisor flags a fault urgent *this morning*, it must not jump ahead of one that
+breached three days ago. Being late is a fact; being flagged is an opinion.
+
+**The reconnaissance finding that mattered most:** six of the nine live faults have
+**no area and no box**, and `clusterTasks` groups on exactly those two fields. Those
+six could never be planned. Phase 15 could only *warn* about them, because there was
+no way to supply the missing place short of a database console. This phase adds the
+way, which is why the edit sheet is the most valuable control on the page even though
+"edit" sounds like the least interesting item on the list.
+
+**What this phase deliberately did not do.** It did not rewrite the four
+`SECURITY DEFINER` report functions to use the per-type clock (see LIMITS 8n), did
+not add coordinates or distances (LIMITS 8i), and did not make the fault type a
+diagnosis field (LIMITS 8m).
+
+**Tests added:** 33 in `tests/faults.test.ts` (clock parity read out of the
+migration, queue ordering and stability, labels in both languages, the summary
+sentence, the delete mirror against every status, the bulk plan), 3 render tests,
+3 wiring guards, and the corrected SLA scan.

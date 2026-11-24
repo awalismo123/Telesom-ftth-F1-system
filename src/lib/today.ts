@@ -41,6 +41,19 @@ export interface TodaySummary {
   crews_empty: number;
   people_out: number;
   /**
+   * The backlog split by kind (migration 033).
+   *
+   * Optional because a manager's saved payloads and older responses predate it;
+   * every screen that uses them falls back to counting the loaded list and says
+   * when that list may be short.
+   */
+  open_faults?: number;
+  open_installs?: number;
+  late_faults?: number;
+  late_installs?: number;
+  /** Open faults with no fault type recorded. `null` on a fault means exactly this. */
+  faults_untyped?: number;
+  /**
    * The last day anything was recorded, `YYYY-MM-DD`, or null when the feed
    * holds no events at all.
    *

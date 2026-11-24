@@ -196,3 +196,146 @@ export async function setTaskSchedule(params: {
     p_day: params.day,
   });
 }
+
+export interface EditTaskParams {
+  token: string;
+  taskId: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  xaafada?: string | null;
+  cableboxCodeRaw?: string | null;
+  portNumber?: number | null;
+  priority?: 'normal' | 'urgent' | null;
+  faultType?: string | null;
+  reportedDate?: string | null;
+  /** Explicitly wipe the fault type. Separate from `faultType` because passing
+   *  `null` there means "leave it alone", and clearing is a distinct intent. */
+  clearFaultType?: boolean;
+}
+
+/**
+ * Correct a job.
+ *
+ * Every parameter is optional and `null` means "leave it alone", so a form can
+ * send only what the supervisor actually changed. The database refuses the
+ * things a form cannot be trusted with — a completed job, a fault type on an
+ * installation, a date in the future — and logs the previous values.
+ */
+export async function editTask(params: EditTaskParams): Promise<Task> {
+  return rpc<Task>('edit_task', {
+    p_token: params.token,
+    p_task_id: params.taskId,
+    p_customer_name: params.customerName ?? null,
+    p_customer_phone: params.customerPhone ?? null,
+    p_xaafada: params.xaafada ?? null,
+    p_cablebox_code_raw: params.cableboxCodeRaw ?? null,
+    p_port_number: params.portNumber ?? null,
+    p_priority: params.priority ?? null,
+    p_fault_type: params.faultType ?? null,
+    p_reported_date: params.reportedDate ?? null,
+    p_clear_fault_type: params.clearFaultType ?? false,
+  });
+}
+
+export interface DeleteTaskResult {
+  ok: boolean;
+  deleted: number;
+  line_number: string;
+  reason: string;
+}
+
+/**
+ * Delete a job permanently.
+ *
+ * The server refuses anything that has been worked on, has logs, photos,
+ * materials or a box record — so a refusal here is a policy decision, not a bug,
+ * and the message it returns is the one to show.
+ */
+export async function deleteTask(params: {
+  token: string;
+  taskId: string;
+  reason: string;
+}): Promise<DeleteTaskResult> {
+  return rpc<DeleteTaskResult>('delete_task', {
+    p_token: params.token,
+    p_task_id: params.taskId,
+    p_reason: params.reason,
+  });
+}
+
+/**
+ * Delete many, one at a time, collecting what refused.
+ *
+ * Deliberately sequential rather than parallel: each call takes a row lock, and
+ * eleven simultaneous deletes on the same group is a lock queue for no gain.
+ * Failures are collected rather than thrown, because "7 deleted, 3 refused" is
+ * the truthful outcome of a bulk action and an exception would lose six of them.
+ */
+export async function deleteTasksBulk(params: {
+  token: string;
+  taskIds: string[];
+  reason: string;
+  onProgress?: (done: number, total: number) => void;
+}): Promise<{ deleted: string[]; refused: { taskId: string; message: string }[] }> {
+  const deleted: string[] = [];
+  const refused: { taskId: string; message: string }[] = [];
+
+  let done = 0;
+  for (const taskId of params.taskIds) {
+    try {
+      await deleteTask({ token: params.token, taskId, reason: params.reason });
+      deleted.push(taskId);
+    } catch (err) {
+      refused.push({
+        taskId,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+    done += 1;
+    params.onProgress?.(done, params.taskIds.length);
+  }
+
+  return { deleted, refused };
+}
+
+/** Set the fault type on many faults at once — the fix for "not recorded". */
+export async function setFaultTypeBulk(params: {
+  token: string;
+  taskIds: string[];
+  faultType: string;
+}): Promise<{ updated: number; refused: { taskId: string; message: string }[] }> {
+  let updated = 0;
+  const refused: { taskId: string; message: string }[] = [];
+
+  for (const taskId of params.taskIds) {
+    try {
+      await editTask({ token: params.token, taskId, faultType: params.faultType });
+      updated += 1;
+    } catch (err) {
+      refused.push({ taskId, message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  return { updated, refused };
+}
+
+/** Raise or lower the urgency of many jobs at once. */
+export async function setPriorityBulk(params: {
+  token: string;
+  taskIds: string[];
+  priority: 'normal' | 'urgent';
+}): Promise<{ updated: number; refused: { taskId: string; message: string }[] }> {
+  let updated = 0;
+  const refused: { taskId: string; message: string }[] = [];
+
+  for (const taskId of params.taskIds) {
+    try {
+      await editTask({ token: params.token, taskId, priority: params.priority });
+      updated += 1;
+    } catch (err) {
+      refused.push({ taskId, message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  return { updated, refused };
+}

@@ -24,7 +24,7 @@ import {
   serverOffsetMs,
   sortRoute,
 } from '../../lib/execution';
-import { fetchRoute, resumeTask, startTask } from '../../lib/executionService';
+import { fetchRouteSplit, resumeTask, startTask } from '../../lib/executionService';
 import { useNow } from '../../lib/useNow';
 import { useTableChanges, useVisibleInterval } from '../../lib/realtime';
 import { RouteCard } from './RouteCard';
@@ -83,9 +83,18 @@ export function RouteView({
       if (!silent) setLoading(true);
       try {
         const receivedAt = Date.now();
-        const data = await fetchRoute(token);
+        /**
+         * The split route, so faults lead.
+         *
+         * `fetchRouteSplit` returns the same jobs in the same array plus the two
+         * sorted groups; the array is ordered faults-first so a technician who
+         * opens the list sees the customer whose paid service is down before the
+         * booking that has been waiting. The view still renders one list — two
+         * lists on a phone would mean the second one never scrolls into view.
+         */
+        const data = await fetchRouteSplit(token);
         if (!mounted.current) return;
-        setTasks(data.tasks);
+        setTasks([...(data.faults ?? []), ...(data.installs ?? [])]);
         setOffset(serverOffsetMs(data.server_now, receivedAt));
         setError(null);
       } catch (err) {

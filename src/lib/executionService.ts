@@ -50,6 +50,28 @@ export async function fetchRoute(token: string): Promise<RouteResponse> {
 }
 
 /**
+ * The route, with faults and installations kept apart.
+ *
+ * `technician_route_split` is the same route as `fetchRoute` plus two sorted
+ * arrays. It exists as a separate call rather than a change to `technician_route`
+ * so the phone keeps working against a database that has not been migrated yet
+ * — the fallback below orders the flat list itself, which is what the phone did
+ * before this existed.
+ */
+export async function fetchRouteSplit(token: string): Promise<RouteResponse> {
+  const payload = await rpcRead<RouteResponse>('technician_route_split', { p_token: token });
+  const tasks = (payload.tasks ?? []) as RouteTask[];
+
+  return {
+    ...payload,
+    tasks,
+    faults: (payload.faults ?? tasks.filter((task) => task.task_type === 'cilada')) as RouteTask[],
+    installs: (payload.installs ??
+      tasks.filter((task) => task.task_type !== 'cilada')) as RouteTask[],
+  };
+}
+
+/**
  * `confirm` = false performs a dry run that only reports the jobs already
  * running, so the app can warn before the technician has two clocks going.
  */

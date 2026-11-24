@@ -144,6 +144,14 @@ export interface Task {
   cancel_reason: string | null;
   reopened_count: number;
   last_reopened_at: string | null;
+  /**
+   * What kind of fault, from a fixed list (migration 033).
+   *
+   * `null` means **not recorded** — never "unknown fault". Every fault imported
+   * before 033 has no type, and the screens say so rather than guessing. Only
+   * meaningful when `task_type` is `cilada`; the database refuses it otherwise.
+   */
+  fault_type?: string | null;
   /** The latest completion photo, or null when the job has no proof yet. */
   proof_photo_id?: string | null;
   scheduled_date: string;

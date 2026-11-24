@@ -189,6 +189,38 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.17.0 (24/11/2026) — faults are their own system
+
+* **Faults and installations are two screens now.** They keep different
+  promises — 2 days and 3 — and they cost the business different amounts when
+  late. Mixing them in one list meant a fault with a paying customer whose
+  service had stopped waited behind a booking whose only pressure was a
+  calendar. Each tab shows its own count, and each says its own promise on it.
+* **A job can be corrected.** Name, phone, area, box, port, priority, fault
+  type and reported date. This is the one that unblocks real work: six of the
+  nine live faults have no area and no box, and the planner groups on exactly
+  those two, so those six could never be routed. Before this, the only way to
+  fill them in was a database console.
+* **A job can be deleted — only if nobody touched it.** No assignee, no timer,
+  no work log, no photo, no materials, no box log. Anything else must be
+  cancelled instead, because a cancelled job is evidence and a deleted one is
+  silence. Completed jobs are never deletable. The database enforces it; the
+  screen explains it before you press.
+* **Multi-select, then act on the selection.** Give a batch of faults a type,
+  raise or lower urgency, or delete what can be deleted — and the sheet tells you
+  up front how many of your selection will actually go ("1 can go · 1 will be
+  kept"), then reports the real split afterwards.
+* **The job sheet finally shows what happened.** Work logs, materials and
+  photos in one panel, next to the delete rule they justify.
+* **An eight-value fault type** — no signal, slow speed, cut cable, faulty box,
+  damaged port, loose connector, power, other. Unknown is "not recorded", which
+  is not the same as "other", and the board counts the difference.
+* **Faults lead the technician's route.** One person can hold a fault and an
+  installation at once; the route now puts the fault first and says so.
+* **The report functions still count everything against three days.** See
+  LIMITS 8n — a fault over 48 hours shows on the board and the daily summary
+  but not yet in the older period report's overdue figure.
+
 ### v1.16.0 (24/11/2026) — the dispatch board is ordered, and it warns you
 
 * **The board now shows jobs in the order they should be worked** — urgent

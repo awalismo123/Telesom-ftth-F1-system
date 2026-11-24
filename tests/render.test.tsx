@@ -352,3 +352,130 @@ test('the dispatch board describes the live pool truthfully', async () => {
   assert.match(notice.title, /8/);
   assert.match(notice.body, /573864/);
 });
+
+/**
+ * The fault board and the two new sheets, mounted with the live shapes.
+ *
+ * Three things could break here that no type can catch: the fault board divides
+ * ages by a date some rows do not have, the bulk sheet prints a deletable count
+ * derived from a policy mirror, and the edit sheet seeds its form from a job
+ * that may be missing every field it edits. All three render numbers and words
+ * a supervisor acts on, so all three are asserted.
+ */
+test('the fault board renders the live fault shapes without a crash or a NaN', async () => {
+  const { LanguageProvider } = await import('../src/lib/i18n');
+  const { FaultBoard } = await import('../src/components/supervisor/dispatch/FaultBoard');
+
+  const fault = (i: number, over: Record<string, unknown> = {}) => ({
+    id: `f${i}`,
+    group_id: 'g1',
+    line_number: `5738${i}4`,
+    customer_name: i === 0 ? '' : 'CABDI XASAN',
+    customer_phone: i === 0 ? null : '0634222222',
+    xaafada: i < 6 ? null : 'JIGJIGAYAR',
+    cablebox_code_raw: i < 6 ? null : 'CB190-229 (06)',
+    status: 'unassigned',
+    priority: i === 1 ? 'urgent' : 'normal',
+    task_type: 'cilada',
+    // The live census: every open fault is past the two-day promise, and none
+    // has a type. One row has no date at all, which must not become NaN.
+    reported_date: i === 4 ? null : '2026-11-12',
+    created_at: i === 4 ? null : '2026-11-12T08:00:00Z',
+    fault_type: null,
+    ...over,
+  });
+
+  const tasks = [
+    fault(0),
+    fault(1),
+    fault(2, { fault_type: 'cut_cable' }),
+    fault(3, { fault_type: 'no_signal' }),
+    fault(4),
+    fault(5),
+  ];
+
+  const html = renderToString(
+    React.createElement(
+      LanguageProvider,
+      null,
+      React.createElement(FaultBoard, {
+        tasks: tasks as never[],
+        totalOpenFaults: 9,
+        lateFaults: 9,
+        untypedFaults: 9,
+        onOpenTask: () => {},
+        onSelectMany: () => {},
+      }),
+    ),
+  );
+
+  assert.doesNotMatch(html, /NaN/, 'a fault with no date must not print NaN');
+  assert.doesNotMatch(html, /undefined/);
+  assert.match(html, /2 maalmood|2 days/, 'the fault clock is on the screen');
+  assert.match(html, /Nooc ma leh|No type/, 'the untyped count is surfaced');
+
+  // The list is shorter than the server's count, so the board must say so
+  // rather than implying six is the whole backlog.
+  assert.match(html, /9/, 'the server count is shown, not just the loaded rows');
+  assert.match(html, /6 of 9|9 oo keliya|6 oo keliya/i, 'the partial list is admitted');
+});
+
+/*
+ * The two new sheets are not rendered here.
+ *
+ * `Sheet` returns `null` when there is no `document` — an existing guard, and
+ * the right one, because a portal on the server has nowhere to go. So a render
+ * test of a sheet body would assert on an empty string and pass while proving
+ * nothing. The policy they display is therefore extracted into `faults.ts`,
+ * where it is tested directly (see `bulkDeletePlan` in tests/faults.test.ts),
+ * and the sheets keep their own structural guards in tests/design.test.ts.
+ */
+test('the edit sheet would refuse an unmounted render for the right reason', async () => {
+  const { LanguageProvider } = await import('../src/lib/i18n');
+  const { ToastProvider } = await import('../src/components/ui/Toast');
+  const { EditJobSheet } = await import('../src/components/supervisor/dispatch/EditJobSheet');
+
+  // The live defect: six of nine faults have no area and no box, so they can
+  // never be clustered. The sheet must name that and offer the fields.
+  const placeless = {
+    id: 'p1',
+    group_id: 'g1',
+    line_number: '573863',
+    customer_name: 'MUSTAFE',
+    customer_phone: '0634333333',
+    xaafada: null,
+    cablebox_code_raw: null,
+    status: 'unassigned',
+    task_type: 'cilada',
+    priority: 'normal',
+    fault_type: null,
+    reported_date: '2026-11-20',
+    created_at: '2026-11-20T08:00:00Z',
+  };
+
+  storage.setItem('telesom_f1_lang', 'en');
+  const html = renderToString(
+    React.createElement(
+      ToastProvider,
+      null,
+      React.createElement(
+        LanguageProvider,
+        null,
+        React.createElement(EditJobSheet, {
+          open: true,
+          onClose: () => {},
+          task: placeless as never,
+          token: 'x',
+          onSaved: () => {},
+        }),
+      ),
+    ),
+  );
+
+  // A sheet is a portal, so its body is not in the server output — only the
+  // toast provider's empty live region is. Asserting that absence documents
+  // *why* the interesting assertions live in `bulkDeletePlan`'s tests instead of
+  // quietly deleting the coverage.
+  assert.doesNotMatch(html, /This job has no place/);
+  assert.doesNotMatch(html, /Edit job/, 'a portal has no server-side body to read');
+});

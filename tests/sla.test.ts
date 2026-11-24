@@ -51,6 +51,19 @@ const migrationFiles = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql
  */
 const SLA_COMPARISON = /<[^;\n]*-\s*interval\s+'(\d+)\s+days?'/i;
 
+/**
+ * The promise has a single home since 033.
+ *
+ * `today_summary` no longer types a number into an interval literal; it calls
+ * `task_sla_days(task_type)`, which answers 2 for a fault and 3 for an
+ * installation. Without this pattern the scan below would report fewer sites
+ * than exist and pass while missing the one that matters most.
+ *
+ * Pinned here rather than trusted, because "we unified it" and "it is still
+ * unified" are different claims.
+ */
+const SLA_FUNCTION = /WHEN\s+p_task_type\s*=\s*'cilada'\s+THEN\s+(\d+)\s+ELSE\s+(\d+)/i;
+
 interface SlaSite {
   file: string;
   line: number;
@@ -120,6 +133,28 @@ test('every overdue check uses the same number as the screen', () => {
   );
 });
 
+test('the promise has exactly one definition, and it is parameterised by kind', () => {
+  // Assembled from pieces so this test does not itself look like a fourth site.
+  const defs = migrationFiles.filter((f) =>
+    readFileSync(join(migrationsDir, f), 'utf8').includes('CREATE OR REPLACE FUNCTION public.task_sla_days'),
+  );
+  assert.deepEqual(defs, ['033_faults_and_job_editing.sql']);
+
+  const sql = readFileSync(join(migrationsDir, '033_faults_and_job_editing.sql'), 'utf8');
+  const match = sql.match(SLA_FUNCTION);
+  assert.ok(match, 'task_sla_days must define both windows');
+
+  // A fault is the tighter promise: 2 days against 3.
+  const faultDays = Number(match![1]);
+  const installDays = Number(match![2]);
+  assert.equal(installDays, SLA_DAYS, 'the installation window is the original promise');
+  assert.equal(faultDays, installDays - 1, 'a fault is promised one day tighter than an installation');
+
+  // And every consumer reads it rather than typing a number.
+  const summary = sql.slice(sql.indexOf('FUNCTION public.today_summary'));
+  assert.match(summary, /make_interval\(days => public\.task_sla_days\(t\.task_type\)\)/);
+});
+
 test('the scan still finds every site', () => {
   // If a query is refactored and stops matching, the test above would pass by
   // finding nothing. Asserting the *set of functions* rather than a bare count
@@ -129,11 +164,14 @@ test('the scan still finds every site', () => {
   // because it is defined in 012 and replaced in 013, and only the 013 copy is
   // live. Counting only live definitions gives four.
   const live = [...new Set(sites.filter((site) => site.fn).map((site) => site.fn))].sort();
+  // `today_summary` left this list in 033: it no longer types a number, it calls
+  // `task_sla_days`, which is pinned by its own test above. The four remaining
+  // numeric sites are the report functions that were not rewritten, because a
+  // mistake inside a SECURITY DEFINER report fails silently.
   assert.deepEqual(live, [
     'internal_period_stats',
     'manager_portfolio',
     'period_report',
-    'today_summary',
   ]);
 });
 
@@ -144,9 +182,13 @@ test('a redefined function is counted once, at its newest definition', () => {
   const todaySummarySites = rawSites.filter((site) => site.fn === 'today_summary');
   assert.ok(todaySummarySites.length > 1, 'expected today_summary in more than one migration');
 
+  // It contributes no sites to the numeric scan now — see the test above — so
+  // this asserts the superseded copies are correctly excluded rather than that
+  // a site survives.
   const counted = todaySummarySites.filter((site) => sites.includes(site));
-  assert.equal(counted.length, 1, 'today_summary must contribute exactly one live site');
-  assert.equal(counted[0].file, '023_crew_size_rules.sql');
+  assert.equal(counted.length, 0, 'the newest today_summary types no number');
+  // ...and the newest copy is the one in 033, not the 023 one that typed three.
+  assert.equal(latestDefinition.get('today_summary'), '033_faults_and_job_editing.sql');
 });
 
 test('the client constant is a whole number of days', () => {
