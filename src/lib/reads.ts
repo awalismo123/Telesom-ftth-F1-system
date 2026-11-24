@@ -479,3 +479,29 @@ export async function fetchManagerTasks(token: string, groupId: string): Promise
     p_group_id: groupId,
   })) as Task[];
 }
+
+/**
+ * Open jobs per person and per crew (migration 034).
+ *
+ * The roster needs this to refuse taking somebody off duty while they hold work,
+ * because `dispatch_load` stops listing an inactive technician — so their jobs
+ * would leave every lane while staying assigned. Reading them here is what lets
+ * the screen say *which* jobs before the write is attempted.
+ */
+export interface TeamWorkloadJob {
+  id: string;
+  line_number: string;
+  customer_name: string;
+  status: string;
+  task_type: string;
+  assigned_user_id: string | null;
+  assigned_crew_id: string | null;
+}
+
+export async function fetchTeamWorkload(token: string, groupId: string): Promise<TeamWorkloadJob[]> {
+  const payload = await rpcRead<{ jobs?: TeamWorkloadJob[] } | null>('team_workload', {
+    p_token: token,
+    p_group_id: groupId,
+  });
+  return payload?.jobs ?? [];
+}

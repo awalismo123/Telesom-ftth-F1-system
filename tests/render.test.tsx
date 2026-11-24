@@ -479,3 +479,75 @@ test('the edit sheet would refuse an unmounted render for the right reason', asy
   assert.doesNotMatch(html, /This job has no place/);
   assert.doesNotMatch(html, /Edit job/, 'a portal has no server-side body to read');
 });
+
+/**
+ * The roster, mounted with the live shape.
+ *
+ * Team & Crews had never been render-tested. What makes it worth doing now is
+ * that the page gained a refusal: deactivating somebody holding work. A refusal
+ * that renders an empty string, or a `NaN`, is worse than no refusal at all.
+ */
+test('the roster counts real capacity, not lanes, from the live shape', async () => {
+  const { capacityCounts, capacitySentence } = await import('../src/lib/roster');
+
+  // Exactly the live roster on 24/11/2026: 2 crews of 2, 4 technicians, no floats.
+  const counts = capacityCounts(
+    [
+      { id: 'crewA', is_active: true },
+      { id: 'crewB', is_active: true },
+    ],
+    [
+      { id: 'cabdi', is_active: true },
+      { id: 'maxamed', is_active: true },
+      { id: 'mustafe', is_active: true },
+      { id: 'xasan', is_active: true },
+    ],
+    [
+      { crew_id: 'crewA', user_id: 'maxamed' },
+      { crew_id: 'crewA', user_id: 'cabdi' },
+      { crew_id: 'crewB', user_id: 'mustafe' },
+      { crew_id: 'crewB', user_id: 'xasan' },
+    ],
+  );
+
+  assert.deepEqual(counts, { crewsWithMembers: 2, loneTechnicians: 0 });
+
+  // The board lists six lanes for this roster. Neither language may print six as
+  // capacity, because six is not what the department can do.
+  const en = capacitySentence(counts.crewsWithMembers, counts.loneTechnicians, 'en');
+  const so = capacitySentence(counts.crewsWithMembers, counts.loneTechnicians, 'so');
+  assert.match(en, /2 real units/);
+  assert.doesNotMatch(en, /\b6\b/);
+  assert.match(so, /2 shaqo-ballaarineed/);
+  assert.doesNotMatch(so, /\b6\b/);
+});
+
+test('a refusal names the jobs a supervisor has to move', async () => {
+  const { retirementProblem, lineNumbersOf } = await import('../src/lib/roster');
+
+  // The exact situation probed live: cabdi holding two faults.
+  const held = [
+    { id: 'a', line_number: '573864', customer_name: 'CABDI XASAN', status: 'assigned' },
+    { id: 'b', line_number: '575463', customer_name: 'HODAN YUUSUF', status: 'assigned' },
+  ];
+
+  const check = retirementProblem(held);
+  assert.equal(check.ok, false);
+  assert.equal(lineNumbersOf(check.jobs), '573864, 575463');
+  assert.doesNotMatch(check.message!.en, /undefined|NaN/);
+  assert.doesNotMatch(check.message!.so, /undefined|NaN/);
+});
+
+test('a long list of held jobs is summarised rather than dumped', async () => {
+  const { lineNumbersOf } = await import('../src/lib/roster');
+  const many = Array.from({ length: 9 }, (_, i) => ({
+    id: `j${i}`,
+    line_number: `57546${i}`,
+    customer_name: 'X',
+    status: 'assigned',
+  }));
+
+  // Five names, then a count. Nine line numbers in a refusal is a wall.
+  assert.equal(lineNumbersOf(many), '575460, 575461, 575462, 575463, 575464 +4');
+  assert.equal(lineNumbersOf([]), '');
+});

@@ -50,5 +50,5 @@ test('the notice is mounted, and it never reloads on its own', () => {
 test('the version on the sign-in screen is this build', () => {
   // The stamp is how "I did not see the changes" gets settled in one look.
   assert.match(APP_VERSION, /^\d+\.\d+\.\d+$/, 'a semver string');
-  assert.ok(APP_VERSION >= '1.17.1', 'the sign-in screen must not claim an older build');
+  assert.ok(APP_VERSION >= '1.18.0', 'the sign-in screen must not claim an older build');
 });

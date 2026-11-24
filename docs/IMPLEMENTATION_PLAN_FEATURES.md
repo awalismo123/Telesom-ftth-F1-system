@@ -913,3 +913,48 @@ diagnosis field (LIMITS 8m).
 migration, queue ordering and stability, labels in both languages, the summary
 sentence, the delete mirror against every status, the bulk plan), 3 render tests,
 3 wiring guards, and the corrected SLA scan.
+
+### Phase 17 — Team & Crews: a roster that cannot lose work — ✅ DONE 24/11/2026
+
+**Effort:** ~3 hours. **Depends on:** Phases 15–16. **Migration:** 034 (applied).
+**Result:** `npm run verify` green at **721/721 tests**.
+
+**The reconnaissance finding.** This page looked complete and mostly was: members,
+crews, groups, PIN flagging, a two-person cap, an empty-crew warning, live
+updates. Six things were wrong, and three of them shared one cause — `is_active`.
+
+That single column is what `dispatch_load` filters on to build the board's lanes.
+It is also what both upsert functions set from a form, checking nothing.
+
+**What was broken.**
+
+| Found | Why it mattered |
+|---|---|
+| Deactivating a technician holding 2 open jobs succeeded silently | Their jobs left every lane while staying `assigned` — invisible work |
+| Retiring a crew holding 2 open jobs did the same | Same, for a whole vehicle |
+| An active crew could contain somebody off duty | A staffed-looking vehicle that cannot take a job |
+| Six lanes presented as capacity for a two-vehicle department | A supervisor plans a shift against a number that is double |
+| A crew's status could never be changed after creation | `setCActive` was only ever called on open, so the retirement rule had no door |
+| Two members imported each got a crew; two shared one | Not a bug — but the roster never showed who was holding what, so it read like one |
+
+**The rule, and why it refuses instead of helping.** Deactivating a person with work
+is refused: *move the work, then retire the person.* Reassigning automatically was
+considered and rejected — choosing who inherits two faults is a dispatch decision
+made against a shift, and the roster has no shift in front of it. Inventing an
+answer to that question is worse than refusing to answer it.
+
+A job `in_progress` or `blocked` gets its own, harder sentence: somebody is standing
+at the customer's house, which is not the same situation as a job waiting to be
+picked up.
+
+**Deliberately not done.** No bulk reassignment from the roster (it belongs on the
+dispatch board, where the destination is chosen), and no deletion of people —
+every historical reference is `NO ACTION`, so a person who has worked can only be
+retired. `crew_members` was left as the one cascading link, which is right: a crew
+link is not evidence.
+
+**Tests added:** 26 in `tests/roster.test.ts` — the live failure reproduced exactly,
+pluralisation, in-progress wording, the crew path, capacity counting including a
+retired crew's members, and three guards that the *database* enforces the rule
+rather than only the screen, because a client-side check is what another
+supervisor's stale tab will bypass.
