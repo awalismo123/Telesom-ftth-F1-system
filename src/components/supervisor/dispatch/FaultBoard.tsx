@@ -124,6 +124,28 @@ export function FaultBoard({
           )}
         </p>
 
+        {/*
+          The placeless count, with the way out attached.
+
+          On 24/11 thirteen of fifteen faults had neither an area nor a box, and
+          `clusterTasks` groups on exactly those two — so they could not be
+          planned at all. Reporting that without offering the fix was the whole
+          of Phase 15's contribution; this button is the difference.
+        */}
+        {summary.unplaceable > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              onSelectMany(rows.filter((row) => !row.place).map((row) => row.task.id))
+            }
+            className="mt-2 w-full min-h-11 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-300/40 text-[11px] font-bold text-amber-100 transition cursor-pointer"
+          >
+            {so
+              ? `Ku dar goob ${summary.unplaceable} cilado aan la jihayn karin`
+              : `Place the ${summary.unplaceable} ${summary.unplaceable === 1 ? 'fault' : 'faults'} that cannot be routed`}
+          </button>
+        )}
+
         {untypedCount > 0 && (
           <button
             type="button"

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, Check, Trash2, Wrench } from 'lucide-react';
+import { AlertTriangle, Check, MapPin, Trash2, Wrench } from 'lucide-react';
 import { useLanguage } from '../../../lib/i18n';
 import { describeError } from '../../../lib/useErrorMessage';
 import type { Task } from '../../../types/database';
@@ -11,7 +11,8 @@ import {
   taskKind,
   whyNoDelete,
 } from '../../../lib/faults';
-import { setFaultTypeBulk, setPriorityBulk } from '../../../lib/opsService';
+import { setFaultTypeBulk, setPlacementBulk, setPriorityBulk } from '../../../lib/opsService';
+import { hasRoute } from '../../../lib/dispatchBoard';
 import { Alert } from '../../ui/Alert';
 import { Button } from '../../ui/Button';
 import { Input, Select } from '../../ui/Field';
@@ -37,7 +38,7 @@ import { cx } from '../../ui/cx';
  *     and reports "7 deleted, 3 kept" afterwards rather than pretending.
  */
 
-export type BulkAction = 'type' | 'priority' | 'delete';
+export type BulkAction = 'type' | 'priority' | 'place' | 'delete';
 
 export function BulkEditSheet({
   open,
@@ -60,12 +61,23 @@ export function BulkEditSheet({
   const [action, setAction] = useState<BulkAction>('type');
   const [faultType, setFaultType] = useState<string>('no_signal');
   const [priority, setPriority] = useState<'normal' | 'urgent'>('urgent');
+  const [area, setArea] = useState('');
+  const [box, setBox] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const faults = useMemo(() => tasks.filter((task) => taskKind(task) === 'fault'), [tasks]);
+
+  /**
+   * The jobs a bulk placement would actually help.
+   *
+   * `hasRoute` is the same test `clusterTasks` uses, so this count is the number
+   * of jobs that will become plannable — not the number of jobs that look
+   * incomplete.
+   */
+  const placeless = useMemo(() => tasks.filter((task) => !hasRoute(task)), [tasks]);
 
   /**
    * Which of the selection can actually be deleted.
@@ -84,6 +96,7 @@ export function BulkEditSheet({
     tasks.length > 0 &&
     (!needsReason || reason.trim().length >= 3) &&
     (action !== 'type' || faults.length > 0) &&
+    (action !== 'place' || area.trim().length > 0 || box.trim().length > 0) &&
     (action !== 'delete' || deletable.length > 0);
 
   const run = async () => {
@@ -122,6 +135,19 @@ export function BulkEditSheet({
             : so
               ? `${result.updated} loo celiyay caadi`
               : `${result.updated} set to normal`,
+        );
+      } else if (action === 'place') {
+        const result = await setPlacementBulk({
+          token,
+          taskIds: tasks.map((task) => task.id),
+          xaafada: area,
+          cableboxCodeRaw: box,
+        });
+        toast.success(
+          so ? `${result.updated} shaqo goobta la geliyay` : `${result.updated} jobs placed`,
+          {
+            description: [area.trim(), box.trim()].filter(Boolean).join(' · ') || undefined,
+          },
         );
       } else {
         /**
@@ -224,6 +250,22 @@ export function BulkEditSheet({
             body={so ? `${tasks.length} shaqo` : `${tasks.length} ${tasks.length === 1 ? 'job' : 'jobs'}`}
           />
           <ActionChoice
+            selected={action === 'place'}
+            onSelect={() => setAction('place')}
+            icon={<MapPin className="w-4 h-4" />}
+            title={so ? 'Goobta' : 'Area and box'}
+            body={
+              placeless.length > 0
+                ? so
+                  ? `${placeless.length} shaqo goob ma leh`
+                  : `${placeless.length} ${placeless.length === 1 ? 'job has' : 'jobs have'} no place`
+                : so
+                  ? 'Dhammaan goob bay leeyihiin'
+                  : 'These all have a place'
+            }
+            disabled={placeless.length === 0}
+          />
+          <ActionChoice
             selected={action === 'delete'}
             onSelect={() => setAction('delete')}
             icon={<Trash2 className="w-4 h-4" />}
@@ -273,6 +315,35 @@ export function BulkEditSheet({
             <option value="urgent">{so ? 'Degdeg' : 'Urgent'}</option>
             <option value="normal">{so ? 'Caadi' : 'Normal'}</option>
           </Select>
+        )}
+
+        {action === 'place' && (
+          <div className="space-y-2">
+            <p className="text-[11px] leading-snug text-slate-600">
+              {so
+                ? 'Waxaad buuxinaysaa goobta shaqooyinka aan la jihayn karin. Mid ka mid ah ku filan yahay in la jihayn karo.'
+                : 'Fills in the place on jobs that cannot be routed. Either field alone is enough to plan them.'}
+            </p>
+            <Input
+              label={so ? 'Xaafada' : 'Area (xaafada)'}
+              value={area}
+              onChange={(e) => setArea(e.target.value)}
+              placeholder="Jigjigayar"
+              maxLength={80}
+            />
+            <Input
+              label={so ? 'Sanduuqa (cablebox)' : 'Cable box'}
+              value={box}
+              onChange={(e) => setBox(e.target.value)}
+              placeholder="CB190-229 (06)"
+              maxLength={40}
+              hint={
+                so
+                  ? 'Mid keliya buuxi haddii aadan labadaba garanayn.'
+                  : 'Fill in only one if you do not know both.'
+              }
+            />
+          </div>
         )}
 
         {action === 'delete' && (

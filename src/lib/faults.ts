@@ -139,12 +139,33 @@ export function asFaultType(value: unknown): FaultType | null {
 
 export type FaultUrgency = 'breach' | 'due' | 'soon' | 'fresh';
 
+/**
+ * Whether a job says where it is.
+ *
+ * Deliberately the same test `hasRoute` in `dispatchBoard` uses, and written the
+ * same way — an area or a box, trimming whitespace that a pasted sheet leaves
+ * behind. It is duplicated rather than imported so `faults.ts` stays free of the
+ * board's dependencies; `tests/faults.test.ts` asserts the two agree.
+ */
+export function hasPlace(task: Task): boolean {
+  return Boolean(task.xaafada?.trim() || task.cablebox_code_raw?.trim());
+}
+
 export interface FaultRow {
   task: Task;
   /** Whole days since the customer reported it. `null` when there is no date. */
   days: number | null;
   urgency: FaultUrgency;
   type: FaultType | null;
+  /**
+   * Whether the job can be put on a route at all.
+   *
+   * The same test `clusterTasks` uses — an area or a box, nothing more. On
+   * 24/11 thirteen of fifteen open faults failed it, which is why it is on the
+   * row rather than left to the board to recompute: the count and the rows it
+   * refers to must not be able to disagree.
+   */
+  place: boolean;
 }
 
 /**
@@ -210,6 +231,7 @@ export function faultQueue(tasks: readonly Task[], today: string): FaultRow[] {
       days: faultAgeDays(task, today),
       urgency: faultUrgency(task, today),
       type: asFaultType(task.fault_type),
+      place: hasPlace(task),
     }))
     .sort((a, b) => {
       if (rank[a.urgency] !== rank[b.urgency]) return rank[a.urgency] - rank[b.urgency];
@@ -242,9 +264,10 @@ export function summariseFaults(rows: readonly FaultRow[]): FaultSummary {
     if (row.urgency === 'breach') breached += 1;
     if (row.urgency === 'due') due += 1;
     if (row.type === null) untyped += 1;
-    const box = (row.task.cablebox_code_raw ?? '').trim();
-    const area = (row.task.xaafada ?? '').trim();
-    if (!box && !area) unplaceable += 1;
+    // Reads the row's own verdict rather than re-deriving it: the button that
+    // selects these rows filters on `row.place`, so a second test here could
+    // count something the button does not select.
+    if (!row.place) unplaceable += 1;
   }
 
   return { open: rows.length, breached, due, untyped, unplaceable };
@@ -294,6 +317,14 @@ export function faultSentence(summary: FaultSummary, lang: 'en' | 'so'): string 
 
 /** Why a fault cannot be deleted, or null when it can. Mirrors `delete_task`. */
 export function whyNoDelete(task: Task, logCount: number): { en: string; so: string } | null {
+  /**
+   * `logCount` is **work** logs, not provenance.
+   *
+   * The importer writes an `imported` row for every job it creates. Counting
+   * those would make every freshly imported job undeletable, which is the exact
+   * situation delete exists for — a bad import. Callers pass the number of
+   * non-`imported` rows; the server applies the same filter.
+   */
   if (task.status === 'completed' || task.completed_at) {
     return {
       en: 'A completed job can never be deleted. It is the record of work somebody did.',

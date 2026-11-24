@@ -339,3 +339,56 @@ export async function setPriorityBulk(params: {
 
   return { updated, refused };
 }
+
+/**
+ * Give many jobs the same area and/or box.
+ *
+ * ## Why this exists
+ *
+ * The 24/11 fault sheet arrived with **13 of its 15 open faults having neither
+ * an area nor a box**, and `clusterTasks` groups on exactly those two fields. So
+ * two thirds of the backlog could not be planned, and the only way to fix it was
+ * one job at a time through the edit sheet — thirteen openings, thirteen saves.
+ *
+ * Placement is also the one bulk edit that is *safe*: it changes where a job is,
+ * never what happened to it. It cannot assign, start a timer, or complete
+ * anything, so it runs no risk of skipping a flow that has its own rules.
+ *
+ * Empty strings mean "leave this field alone", so a supervisor can set just the
+ * area across a neighbourhood and leave the box codes to a second pass.
+ */
+export async function setPlacementBulk(params: {
+  token: string;
+  taskIds: string[];
+  xaafada?: string;
+  cableboxCodeRaw?: string;
+}): Promise<{ updated: number; refused: { taskId: string; message: string }[] }> {
+  const area = params.xaafada?.trim() ?? '';
+  const box = params.cableboxCodeRaw?.trim() ?? '';
+
+  // Nothing to do: refuse loudly rather than "succeed" having changed nothing.
+  if (!area && !box) {
+    throw new Error('Say the area or the box code to apply.');
+  }
+
+  let updated = 0;
+  const refused: { taskId: string; message: string }[] = [];
+
+  for (const taskId of params.taskIds) {
+    try {
+      await editTask({
+        token: params.token,
+        taskId,
+        // `null` means "leave alone" in edit_task; an empty string would blank
+        // the field, which is the opposite of what a partial bulk edit wants.
+        xaafada: area || null,
+        cableboxCodeRaw: box || null,
+      });
+      updated += 1;
+    } catch (err) {
+      refused.push({ taskId, message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  return { updated, refused };
+}

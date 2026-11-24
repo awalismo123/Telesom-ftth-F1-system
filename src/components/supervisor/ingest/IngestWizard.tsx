@@ -681,6 +681,27 @@ export function IngestWizard() {
               : 'Every row that already exists in the system is listed below — choose what happens to each one.'}
           </Alert>
 
+          {/*
+            A sheet that lists one customer twice is a sheet problem, not a
+            database problem — the ordinary conflict list cannot say that,
+            because every row with this fault is "new". It used to import both
+            copies and report "0 duplicates"; line 575666 was dispatched twice.
+          */}
+          {plan.counts.duplicatesInSheet > 0 && (
+            <Alert
+              tone="warning"
+              title={
+                so
+                  ? `${plan.counts.duplicatesInSheet} sadar ayaa labo jeer ku qoran xaashidan`
+                  : `${plan.counts.duplicatesInSheet} ${plan.counts.duplicatesInSheet === 1 ? 'row is' : 'rows are'} listed twice in this sheet`
+              }
+            >
+              {so
+                ? 'Sadarka hore ayaa la soo gelinayaa, kan dambe waa la dhaafi doonaa. Haddii ay tahay labo shaqo oo dhab ah, waa in xaashida la saxo oo dib loo soo dejiyo.'
+                : 'The earlier row is imported and the later one is skipped, so one customer gets one visit. If these are genuinely two jobs, correct the sheet and import it again.'}
+            </Alert>
+          )}
+
           <ConflictPanel plan={plan} onChange={setPlan} />
 
           <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl border border-slate-200 p-4">
