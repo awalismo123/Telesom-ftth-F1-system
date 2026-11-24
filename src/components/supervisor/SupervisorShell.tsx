@@ -1,26 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   LayoutDashboard,
-  FileSpreadsheet,
   Route,
   Server,
   Users,
   Camera,
   Wifi,
-  Truck,
   BarChart3,
   History,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../lib/i18n';
-import type { Cablebox } from '../../types/database';
 import { ActivityLog } from './ActivityLog';
-import { fetchGroupOverview, fetchTodaySummary } from '../../lib/reads';
-import type { TodaySummary } from '../../lib/today';
-import { todayKey } from '../../lib/format';
-import { TodayPanel } from './TodayPanel';
 import { Tabs, type TabItem } from '../ui/Tabs';
-import { Stat } from '../ui/Stat';
 import { cx } from '../ui/cx';
 import { LazyPanel } from '../ui/LazyPanel';
 import { preload, type PreloadKey } from '../../lib/preload';
@@ -47,9 +39,21 @@ const BoxRegistry = React.lazy(() =>
 const Analytics = React.lazy(() =>
   import('./Analytics').then((m) => ({ default: m.Analytics })),
 );
+/**
+ * The command page is its own chunk.
+ *
+ * It is the landing screen, so it will almost always be fetched — but it is
+ * still split, because a technician or a manager signing in should not pay for
+ * a supervisor's dashboard. `PRELOAD.overview` warms it on hover for everybody
+ * else.
+ */
+const CommandOverview = React.lazy(() =>
+  import('./overview/CommandOverview').then((m) => ({ default: m.CommandOverview })),
+);
 
 /** Which chunk a module lives in, so a hover can fetch it before the click. */
 const PRELOAD: Partial<Record<SupervisorTab, PreloadKey>> = {
+  overview: 'supervisor-overview',
   team: 'supervisor-team',
   ingest: 'supervisor-ingest',
   dispatch: 'supervisor-dispatch',
@@ -65,13 +69,18 @@ export function SupervisorShell() {
   const so = lang === 'so';
 
   const [activeTab, setActiveTab] = useState<SupervisorTab>('overview');
-  const [techCount, setTechCount] = useState(0);
-  const [crewCount, setCrewCount] = useState(0);
-  const [taskCount, setTaskCount] = useState(0);
-  const [unassignedCount, setUnassignedCount] = useState(0);
-  const [cableboxes, setCableboxes] = useState<Cablebox[]>([]);
-  const [today, setToday] = useState<TodaySummary | null>(null);
-  const [todayLoading, setTodayLoading] = useState(true);
+
+  /**
+   * The landing chunk is fetched immediately rather than on hover.
+   *
+   * `overview` is the default tab, so its chunk is needed on every load and a
+   * hover-based preload never fires for it. Kicking it off here in parallel with
+   * the session check means the page is usually ready by the time the first
+   * render asks for it.
+   */
+  useEffect(() => {
+    preload('supervisor-overview');
+  }, []);
   const [focusTask, setFocusTask] = useState<{ id: string; nonce: number } | null>(null);
   const [focusBox, setFocusBox] = useState<{ id: string; nonce: number } | null>(null);
   const { intent, consume } = useNavigation();
@@ -98,33 +107,6 @@ export function SupervisorShell() {
     // 'route' is the technician's shell; the supervisor ignores it.
   }, [intent, consume]);
 
-  const loadSummary = useCallback(async () => {
-    if (!activeGroup?.id || !session?.token) return;
-    try {
-      // One token-checked call replaces five table reads. The database decides
-      // what this supervisor may see; the browser only names its own group.
-      const overview = await fetchGroupOverview(session.token, activeGroup.id);
-      setTechCount(overview.counts.technicians);
-      setCrewCount(overview.counts.crews);
-      setTaskCount(overview.counts.open_tasks);
-      setUnassignedCount(overview.counts.unassigned);
-      setCableboxes(overview.cableboxes);
-
-      // The day is the supervisor's own, not the server's: Hargeisa is UTC+3,
-      // so a job closed just after midnight would land in yesterday otherwise.
-      setToday(await fetchTodaySummary(session.token, activeGroup.id, todayKey()));
-    } catch {
-      // A summary that cannot load must not blank the shell; the tabs inside
-      // load their own data and will show the real error if there is one.
-    } finally {
-      setTodayLoading(false);
-    }
-  }, [activeGroup?.id, session?.token]);
-
-  useEffect(() => {
-    void loadSummary();
-  }, [loadSummary, activeTab]);
-
   const navItems: TabItem<SupervisorTab>[] = [
     { id: 'overview', label: t('navOverview'), icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'team', label: t('navTeam'), icon: <Users className="w-4 h-4" /> },
@@ -132,12 +114,9 @@ export function SupervisorShell() {
     { id: 'dispatch', label: t('navDispatch'), icon: <Route className="w-4 h-4" /> },
     { id: 'insights', label: t('navInsights'), icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'activity', label: t('navActivity'), icon: <History className="w-4 h-4" /> },
-    {
-      id: 'cableboxes',
-      label: t('navCablebox'),
-      icon: <Server className="w-4 h-4" />,
-      badge: cableboxes.length,
-    },
+    // No count badge: it was the only reason the shell loaded the whole group
+    // overview, and the box registry shows its own total.
+    { id: 'cableboxes', label: t('navCablebox'), icon: <Server className="w-4 h-4" /> },
   ];
 
   const activeLabel = navItems.find((item) => item.id === activeTab)?.label ?? '';
@@ -219,49 +198,15 @@ export function SupervisorShell() {
             className="space-y-5 sm:space-y-6"
           >
             {activeTab === 'overview' && (
-              <div className="space-y-5 sm:space-y-6">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <Stat
-                    label={t('activeTechs')}
-                    value={techCount}
-                    icon={<Users className="w-4 h-4" />}
-                    hint={`${t('groupFieldReady')} ${activeGroup?.code ?? 'F1'}`}
-                  />
-                  <Stat
-                    label={t('fieldCrews')}
-                    value={crewCount}
-                    icon={<Truck className="w-4 h-4" />}
-                    tone="sky"
-                    hint={so ? 'Farsamayaqaan ama gaadiid laba qof' : 'Individual or 2-tech vehicle'}
-                  />
-                  <Stat
-                    label={t('openTasks')}
-                    value={taskCount}
-                    icon={<FileSpreadsheet className="w-4 h-4" />}
-                    tone="amber"
-                    hint={`${unassignedCount} ${t('dispatchUnassignedShort')}`}
-                    onClick={() => setActiveTab('dispatch')}
-                  />
-                  <Stat
-                    label={t('trackedBoxes')}
-                    value={cableboxes.length}
-                    icon={<Server className="w-4 h-4" />}
-                    tone="violet"
-                    hint={so ? 'Taariikhda sanduuq kasta' : 'History per cablebox'}
-                  />
-                </div>
-
-                {/*
-                  This space used to hold a five-line build-progress roadmap.
-                  It now holds the only thing a supervisor opening the app at
-                  07:30 needs: what is open, what is stuck, and who is out.
-                */}
-                <TodayPanel
-                  summary={today}
-                  loading={todayLoading}
+              <LazyPanel shape="board" label={t('navOverview')}>
+                <CommandOverview
                   onNavigate={(tab) => setActiveTab(tab)}
+                  onOpenTask={(taskId) => {
+                    setFocusTask({ id: taskId, nonce: Date.now() });
+                    setActiveTab('dispatch');
+                  }}
                 />
-              </div>
+              </LazyPanel>
             )}
 
             {activeTab === 'team' && (

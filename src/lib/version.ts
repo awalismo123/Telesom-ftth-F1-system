@@ -11,7 +11,7 @@
  * bundle for a label would be a poor trade.
  */
 
-export const APP_VERSION = '1.14.0';
+export const APP_VERSION = '1.15.0';
 
 /**
  * The date this build was published.
@@ -23,6 +23,6 @@ export const APP_VERSION = '1.14.0';
  * that a head manager files is worth nothing if nobody can tell which build
  * produced it.
  */
-export const BUILD_DATE = '2026-11-15';
+export const BUILD_DATE = '2026-11-24';
 
 export const BUILD_LABEL = `v${APP_VERSION} · ${BUILD_DATE}`;

@@ -32,6 +32,7 @@ const day = (over: Partial<TodaySummary> = {}): TodaySummary => ({
   in_progress: 0,
   blocked: 0,
   over_sla: 0,
+  due_today: 0,
   created_today: 0,
   completed_today: 0,
   crews_out: 0,
@@ -70,6 +71,22 @@ test('a clear day says so, and counts the crews out', () => {
 
   const nothing = day();
   assert.match(todayHeadline(nothing, 'en'), /Nobody is out/i);
+});
+
+test('a stalled queue is said out loud, not left as a reassuring total', () => {
+  // On the live database on 24 Nov: 19 open, every one past the promise by any
+  // honest reading, and nothing recorded for eight days. "None past the
+  // promise" is arithmetic on a day boundary, not the truth a supervisor needs.
+  const text = todayHeadline(day({ open_now: 19, last_activity: '2026-11-16' }), 'en');
+  assert.match(text, /19 jobs open/);
+  assert.match(text, /2026-11-16/);
+});
+
+test('last movement is only mentioned when nothing louder is happening', () => {
+  // A blocked job still wins: somebody is standing still right now.
+  const text = todayHeadline(day({ blocked: 2, open_now: 19, last_activity: '2026-11-16' }), 'en');
+  assert.match(text, /blocked/i);
+  assert.doesNotMatch(text, /2026-11-16/);
 });
 
 test('the two languages never produce the same sentence', () => {

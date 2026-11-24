@@ -189,6 +189,39 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.15.0 (24/11/2026) — the supervisor's screen now shows the work
+
+The first screen a supervisor opens used to be four numbers and a dark panel.
+It now shows the jobs themselves.
+
+* **The page was hiding its own best number.** The database has been sending
+  "due today" — jobs that reach the three-day promise *today*, the one group a
+  supervisor can still save — since November. No screen read it, because the
+  TypeScript type left the field out.
+* **Nineteen open jobs were invisible.** Every one of them past the promise,
+  including two urgent. They are now listed by line number, customer, area and
+  age, oldest first with urgent ahead, and each one has a **call button**.
+* **Who is carrying what.** Every technician and crew, alphabetical, with open,
+  running, urgent and closed-today. Never sorted by output — the question is
+  "who is free", not "who is winning", and the page says so at the bottom.
+* **Two crews cannot be dispatched to.** Both exist with nobody in them. The
+  page shows them and flags them instead of hiding them, because assigning work
+  to an empty crew looks like it was sent.
+* **Two real defects, found by asking the live database rather than the code.**
+  1. The activity feed was set to seven days. The newest real event was from
+     **16 November** and the clock said **24 November**, so the feed would have
+     rendered blank — honestly, correctly, and uselessly. It now covers thirty
+     days and names the last day anything happened.
+  2. The headline would have said *"19 open, none past the promise"*. That is
+     arithmetic on a date boundary and it was false: all nineteen were past it.
+* **It updates itself**, and it tells you when a part failed to load instead of
+  quietly showing zeros. A page that reports "no blocked jobs" during an outage
+  is worse than a page that reports nothing.
+* **Taking a job from a phone call can be done from here**, without switching
+  tabs mid-call.
+
+No database migration. No production data was touched.
+
 ### v1.14.0 (15/11/2026) — before and after
 
 A technician can now photograph the state they found, not only the work they

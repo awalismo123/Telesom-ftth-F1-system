@@ -27,6 +27,11 @@ export interface TodaySummary {
   in_progress: number;
   blocked: number;
   over_sla: number;
+  /**
+   * Open jobs that reach the three-day promise today — the one group a
+   * supervisor can still save, and until this page existed no screen read it.
+   */
+  due_today: number;
   created_today: number;
   completed_today: number;
   crews_out: number;
@@ -35,6 +40,14 @@ export interface TodaySummary {
   /** Active crews with nobody in them. Cannot be dispatched; a roster problem. */
   crews_empty: number;
   people_out: number;
+  /**
+   * The last day anything was recorded, `YYYY-MM-DD`, or null when the feed
+   * holds no events at all.
+   *
+   * Not returned by the server: the command page computes it from the activity
+   * it already loads, so the headline can tell a quiet week from a dead feed.
+   */
+  last_activity?: string | null;
 }
 
 export type TodayTone = 'calm' | 'attention' | 'urgent';
@@ -90,6 +103,15 @@ export function todayHeadline(summary: TodaySummary, lang: Language): string {
     return so
       ? `Ma jiro shaqo furan. ${crews_out > 0 ? `${formatNumber(crews_out)} crew ayaa duurka ku jira.` : 'Cidna duurka ma jirto.'}`
       : `No open jobs. ${crews_out > 0 ? `${formatNumber(crews_out)} ${plural(crews_out, 'crew is', 'crews are')} out.` : 'Nobody is out.'}`;
+  }
+
+  if (summary.last_activity) {
+    // Nothing is blocked, nothing is late, nothing is unassigned, but the queue
+    // is not moving. Saying "19 open, none past the promise" here would be
+    // reassuring and false: they are all past it, the day is just wrong.
+    return so
+      ? `${jobCount(open_now, 'so')} oo furan. Dhaqaaqkii ugu dambaysay: ${summary.last_activity}.`
+      : `${jobCount(open_now, 'en')} open. Last movement was ${summary.last_activity}.`;
   }
 
   return so

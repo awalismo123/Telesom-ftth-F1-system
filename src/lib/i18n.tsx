@@ -41,10 +41,6 @@ const translations = {
     techProfile: 'My Crew & PIN',
 
     // Overview KPIs
-    activeTechs: 'Active Technicians',
-    fieldCrews: '2-Tech Crews',
-    trackedBoxes: 'Tracked Cableboxes',
-    openTasks: 'Open F1 Tasks',
 
     // Shared interface words — used by more than one screen
     close: 'Close',
@@ -144,10 +140,8 @@ const translations = {
     dispatchAssignSkipped: 'skipped (already started or finished)',
     dispatchNoTargets: 'Add a technician or a crew first — see Team & Crews.',
     dispatchEmptyMessage: 'Assign some jobs first — then the message writes itself.',
-    dispatchUnassignedShort: 'unassigned',
     dispatchInProgressShort: 'in progress',
     // Roadmap Banner
-    groupFieldReady: 'Field ready ·',
   },
   so: {
     appName: 'Nidaamka FTTH Telesom',
@@ -209,10 +203,6 @@ const translations = {
     techProfile: 'Kooxdayda & PIN',
 
     // Overview KPIs
-    activeTechs: 'Farsamayaqaannada F1',
-    fieldCrews: 'Kooxaha Gaadiidka (Crews)',
-    trackedBoxes: 'Cablebox-yada Diwaangashan',
-    openTasks: 'Shaqooyinka Furan (F1)',
 
     // Team & Crews Management
     teamHeader: 'Maamulka Shaqaalaha, Lammaanaha Gaadiidka & Kooxaha FBB',
@@ -290,11 +280,9 @@ const translations = {
     dispatchAssignSkipped: 'la booday (horaa loo bilaabay ama waa dhammaaday)',
     dispatchNoTargets: 'Marka hore ku dar farsamayaqe ama koox — eeg Shaqaalaha & Gaadiidka.',
     dispatchEmptyMessage: 'Marka hore shaqooyin qaybi — fariintu iskeed ayay u qormaysaa.',
-    dispatchUnassignedShort: 'aan la qaybin',
     dispatchInProgressShort: 'socda',
 
     // Roadmap Banner
-    groupFieldReady: 'Goobta diyaar ·',
   },
 } as const;
 

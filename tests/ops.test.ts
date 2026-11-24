@@ -251,7 +251,15 @@ test('open-work queries ask for the open statuses explicitly', () => {
   // longer issues the query at all — so the guard follows it there and also
   // proves the client did not quietly grow its own filter back.
   assert.doesNotMatch(repo('src/lib/dispatchService.ts'), /neq\('status', 'completed'\)/);
-  assert.doesNotMatch(repo('src/components/supervisor/SupervisorShell.tsx'), /neq\('status', 'completed'\)/);
+  // The command page moved out of the shell into its own module, and the guard
+  // follows the fetch rather than the file that used to hold it.
+  for (const file of [
+    'src/components/supervisor/SupervisorShell.tsx',
+    'src/components/supervisor/overview/CommandOverview.tsx',
+    'src/lib/overviewService.ts',
+  ]) {
+    assert.doesNotMatch(repo(file), /neq\('status', 'completed'\)/, file);
+  }
 
   const migration = repo('supabase/migrations/011_batch_b_access_control.sql');
   const openList = "status IN ('unassigned', 'assigned', 'in_progress', 'blocked')";
@@ -263,7 +271,14 @@ test('open-work queries ask for the open statuses explicitly', () => {
 
   // Both screens read through the token-checked functions that hold the filter.
   assert.match(repo('src/lib/dispatchService.ts'), /fetchOpenTasks\(token, groupId\)/);
-  assert.match(repo('src/components/supervisor/SupervisorShell.tsx'), /fetchGroupOverview/);
+
+  // The command page reads the open jobs through the same token-checked
+  // function, and the roster/boxes through `fetchGroupOverview`. It must not
+  // reach for a table of its own.
+  const page = repo('src/lib/overviewService.ts');
+  assert.match(page, /fetchDispatchTasks\(token, groupId\)/);
+  assert.match(page, /fetchGroupOverview\(token, groupId\)/);
+  assert.doesNotMatch(page, /from\('tasks'\)|from\('users'\)|from\('cableboxes'\)/);
 });
 
 test('the importer does not treat a cancelled job as already open', () => {
