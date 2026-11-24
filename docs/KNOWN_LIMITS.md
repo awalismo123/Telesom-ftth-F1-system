@@ -707,13 +707,21 @@ does not know yet. Refresh is always one tap away in the header.
 `clusterTasks` groups work by cablebox first, then by neighbourhood. A job with
 neither lands in a single "No area / box" bucket with every other such job.
 
-On 24/11/2026 that was **8 of 19 open jobs**, including **both urgent ones**.
-Auto-cluster would have handed one crew a batch spanning the city under that one
-heading.
+On 24/11/2026 that was **6 of 19 open jobs**, including **both urgent ones**.
+(This was first recorded as 8 and corrected in Phase 16 — see the note at the
+end of this section.) Auto-cluster would have handed one crew a batch spanning the
+city under that one heading.
 
 The board now says this before the plan is made, not after it is sent. What it
 **cannot** do is invent the missing place: a job's area or box has to be added by
 somebody who knows the address. The banner says exactly that.
+
+**Phase 16 added the way to supply it.** The edit sheet
+(`EditJobSheet.tsx` → `edit_task`) takes the area, the box code and the port, so
+a supervisor who knows the address can make the job routable instead of reading a
+warning about it. The warning still points at the edit control; the difference is
+that the fix is now inside the app rather than in a database console. The screenshot
+of six place-less faults is therefore a *stale* state, not a permanent one.
 
 ## 8i. The dispatch pool is ordered by promise, not by distance
 
@@ -735,3 +743,67 @@ around it at all.
 
 That is the honest lower bound: it is the difference between a plan that can be
 made and one that cannot.
+
+## 8k. A fault clock is not a clock on the customer's outage
+
+The board counts a fault's age from `reported_date`, falling back to
+`created_at`. That is when **the company heard about it**, not when the customer's
+service actually stopped. A customer whose line broke on Friday and who called on
+Sunday has a two-day-old fault on this screen and a four-day-old outage at home.
+
+The `reported_date` column is filled from the import, and an import can be late.
+Nothing in the data distinguishes "the customer called late" from "the call was
+logged late".
+
+This is why the board shows the raw age and the promise rather than a countdown
+with a green tick: the honest statement is "we have known for two days and
+promised two", which is what `faultSentence` writes.
+
+## 8l. Deleting a job leaves its import batch row alone
+
+`delete_task` writes the deletion into the import's `decision_summary` before the
+row goes, so the batch still totals correctly and the reason survives. What it
+does **not** do is decrement any count *derived* from the batch on read.
+
+A supervisor who deletes nine imported jobs sees the batch's row and column counts
+drop — those are computed from `tasks`. Any figure that was snapshotted at import
+time will still include the deleted rows. In practice nothing on a screen reads
+those snapshots; this is written down so nobody adds one without noticing.
+
+## 8m. The fault type describes the symptom, not the cause
+
+The eight types are what the customer reports — "no signal", "slow", "cut cable",
+"box", "port", "connector", "power", "other". They are **not** a diagnosis and
+are not evidence. A technician who finds a faulty connector on a job typed "no
+signal" should correct the type, and the edit is logged.
+
+The type exists to route work: a cut cable needs a splicer, a power problem needs
+the customer's building checked. Reading it as a root-cause field would put a
+plausible label on a job whose real cause nobody has looked at yet, which is worse
+than the honest "not recorded".
+
+## 8n. Two clocks, one board
+
+Faults are promised in **2 days** and installations in **3**. Both are defined once,
+in `task_sla_days(task_type)`, and both the board and the daily summary read that
+function. The four older report functions still type `interval '3 days'`
+themselves — they are pinned to agree by `tests/sla.test.ts`, not refactored,
+because a mistake inside a `SECURITY DEFINER` report fails silently.
+
+The consequence: a fault's 2-day promise is visible on the dispatch board and on
+the today summary, but **a fault over 48 hours does not yet appear in the older
+period reports' `waiting_over_sla` figure**, which counts everything against 3
+days. Until those functions are rewritten they will under-report fault breaches by
+one day. This is a known and deliberate gap; closing it means touching four report
+functions with their own tests.
+
+## 8o. A technician's split route is ordered, not scheduled
+
+`technician_route_split` puts faults before installations. It does **not** decide
+travel order, and it does not know that the fault and the installation are in the
+same neighbourhood — the phone still shows both and the technician chooses.
+
+Faults come first because the business cost of a late fault compounds hourly and a
+late installation does not. If a technician is standing next to an installation
+and a mile from the next fault, the sensible order is the opposite of the list.
+The list is a default, not an instruction, and nothing in the app enforces it.

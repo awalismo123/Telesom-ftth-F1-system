@@ -19,6 +19,8 @@ import { useLanguage } from '../../../lib/i18n';
 import { truncatedNotice, OPEN_TASK_CAP } from '../../../lib/lists';
 import { plannedJobs, shortDay } from '../../../lib/schedule';
 import { todayKey } from '../../../lib/format';
+import { fetchTodaySummary } from '../../../lib/reads';
+import type { TodaySummary } from '../../../lib/today';
 import { SLA_DAYS } from '../../../lib/activity';
 import type { Task } from '../../../types/database';
 import {
@@ -54,6 +56,11 @@ import {
   unroutableJobs,
   unroutableNotice,
 } from '../../../lib/dispatchBoard';
+import { FaultBoard } from './FaultBoard';
+import { BulkEditSheet } from './BulkEditSheet';
+import { EditJobSheet } from './EditJobSheet';
+import { taskKind, faultQueue } from '../../../lib/faults';
+import { CheckSquare, Pencil } from 'lucide-react';
 import { TaskCard } from './TaskCard';
 import { ClusterPlanSheet } from './ClusterPlanSheet';
 import { DispatchMessageSheet } from './DispatchMessageSheet';
@@ -93,6 +100,14 @@ export function DispatchBoard({
   // rather than printing the cap as though it were the backlog.
   const truncated = truncatedNotice(tasks.length, OPEN_TASK_CAP, lang);
   const [load, setLoad] = useState<DispatchLoad>({ users: [], crews: [] });
+  /**
+   * The group's own counts.
+   *
+   * The loaded task list is capped at 600 rows, so a fault behind the cap would
+   * be invisible on this screen while `today_summary` still counts it. The fault
+   * header reads its totals from here and says so when the list is shorter.
+   */
+  const [summary, setSummary] = useState<TodaySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +124,10 @@ export function DispatchBoard({
   const [messageOpen, setMessageOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [actionTaskId, setActionTaskId] = useState<string | null>(null);
+  /** Faults and installations are two systems; this chooses which one is shown. */
+  const [kind, setKind] = useState<'faults' | 'installs'>('faults');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [boxCodes, setBoxCodes] = useState<{ box_code: string; total_ports: number }[]>([]);
 
   const token = session?.token ?? '';
@@ -120,12 +139,16 @@ export function DispatchBoard({
     setLoading(true);
     setError(null);
     try {
-      const [taskRows, loadData] = await Promise.all([
+      const [taskRows, loadData, day] = await Promise.all([
         fetchDispatchTasks(token, groupId),
         fetchDispatchLoad(token, groupId),
+        // A summary failure must not blank the board: the counts degrade to
+        // what the loaded list can prove, which the fault header says.
+        fetchTodaySummary(token, groupId, todayKey()).catch(() => null),
       ]);
       setTasks(taskRows);
       setLoad(loadData);
+      setSummary(day);
     } catch (err) {
       setError(describeError(err, lang));
     } finally {
@@ -136,12 +159,14 @@ export function DispatchBoard({
   const silentRefresh = useCallback(async () => {
     if (!token || !groupId) return;
     try {
-      const [taskRows, loadData] = await Promise.all([
+      const [taskRows, loadData, day] = await Promise.all([
         fetchDispatchTasks(token, groupId),
         fetchDispatchLoad(token, groupId),
+        fetchTodaySummary(token, groupId, todayKey()).catch(() => null),
       ]);
       setTasks(taskRows);
       setLoad(loadData);
+      if (day) setSummary(day);
     } catch {
       // A background refresh must never replace the board with an error.
     }
@@ -223,6 +248,14 @@ export function DispatchBoard({
 
   const plannedIds = useMemo(() => new Set(planned.map((task) => task.id)), [planned]);
 
+  /**
+   * Work waiting to be assigned, split by kind.
+   *
+   * `pool` keeps its old meaning — everything unassigned and due today — because
+   * auto-cluster, the message and the assignment flow all read it. The screen
+   * shows one kind at a time from `poolOfKind`, and the other kind's count is
+   * still visible on its tab so nothing is hidden.
+   */
   const pool = useMemo(
     () =>
       tasks.filter(
@@ -230,6 +263,10 @@ export function DispatchBoard({
       ),
     [tasks, plannedIds],
   );
+
+  const faultPool = useMemo(() => pool.filter((task) => taskKind(task) === 'fault'), [pool]);
+  const installPool = useMemo(() => pool.filter((task) => taskKind(task) === 'install'), [pool]);
+  const poolOfKind = kind === 'faults' ? faultPool : installPool;
 
   /**
    * Typing on a phone keyboard is bursty: "FAT48" is five keystrokes and five
@@ -247,16 +284,22 @@ export function DispatchBoard({
    * better ordered than the screen it was written from.
    */
   const visiblePool = useMemo(() => {
-    let rows = searchTasks(pool, debouncedQuery);
+    let rows = searchTasks(poolOfKind, debouncedQuery);
     if (filter === 'urgent') rows = rows.filter((task) => task.priority === 'urgent');
     return orderPool(rows);
-  }, [pool, debouncedQuery, filter]);
+  }, [poolOfKind, debouncedQuery, filter]);
 
-  /** What the pool contains, and what of it can actually be routed. */
-  const triage = useMemo(() => triagePool(pool), [pool]);
-  const unroutable = useMemo(() => unroutableJobs(pool), [pool]);
+  /** What the active tab's pool contains, and what of it can actually be routed. */
+  const triage = useMemo(() => triagePool(poolOfKind), [poolOfKind]);
+  const unroutable = useMemo(() => unroutableJobs(poolOfKind), [poolOfKind]);
   const unroutableBanner = unroutableNotice(unroutable, lang);
-  const state = boardState(pool.length, targets.length);
+  const state = boardState(poolOfKind.length, targets.length);
+
+  /** The ticked jobs, resolved to rows so the bulk sheet can explain itself. */
+  const selectedTasks = useMemo(
+    () => tasks.filter((task) => selected.includes(task.id)),
+    [tasks, selected],
+  );
 
   const lanes: MessageLane[] = useMemo(
     () =>
@@ -277,6 +320,12 @@ export function DispatchBoard({
   const toggleSelect = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  /**
+   * Select every job on the active tab.
+   *
+   * Scoped deliberately: "select all" that silently reached into the other tab
+   * would let a bulk delete take installations the supervisor never saw.
+   */
   const selectAllVisible = () =>
     setSelected((prev) => {
       const ids = visiblePool.map((task) => task.id);
@@ -460,6 +509,53 @@ export function DispatchBoard({
         </div>
       </div>
 
+      {/*
+        Faults and installations are two systems with two clocks. Running them
+        through one pool means a 48-hour fault waits behind a booking whose only
+        pressure is a calendar — and the fault is the one with a paying customer
+        whose service has stopped.
+      */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-1.5">
+        <div className="grid grid-cols-2 gap-1.5" role="tablist" aria-label={so ? 'Nooca shaqada' : 'Work type'}>
+          <KindTab
+            active={kind === 'faults'}
+            onClick={() => {
+              setKind('faults');
+              setSelected([]);
+            }}
+            label={so ? 'Cilado' : 'Faults'}
+            count={faultPool.length}
+            promise={so ? '2 maalmood' : '2 days'}
+            tone="fault"
+          />
+          <KindTab
+            active={kind === 'installs'}
+            onClick={() => {
+              setKind('installs');
+              setSelected([]);
+            }}
+            label={so ? 'Rakid' : 'Installations'}
+            count={installPool.length}
+            promise={so ? '3 maalmood' : '3 days'}
+            tone="install"
+          />
+        </div>
+      </div>
+
+      {kind === 'faults' && (
+        <FaultBoard
+          tasks={tasks}
+          totalOpenFaults={summary?.open_faults ?? null}
+          lateFaults={summary?.late_faults ?? null}
+          untypedFaults={summary?.faults_untyped ?? null}
+          onOpenTask={(taskId) => setActionTaskId(taskId)}
+          onSelectMany={(ids) => {
+            setSelected(ids);
+            setBulkOpen(true);
+          }}
+        />
+      )}
+
       <LiveStrip />
 
       <FirstRunHint
@@ -516,6 +612,7 @@ export function DispatchBoard({
         </Alert>
       )}
 
+      {kind === 'installs' && (
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         {/* -------------------------------------------------------------- */}
         {/* Pool                                                           */}
@@ -797,6 +894,7 @@ export function DispatchBoard({
           )}
         </section>
       </div>
+      )}
 
       {/* ---------------------------------------------------------------- */}
       {/* Sticky selection bar                                              */}
@@ -814,7 +912,33 @@ export function DispatchBoard({
             >
               {t('dispatchClear')}
             </button>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1.5">
+              {/*
+                The bulk edits. Assignment keeps its own confirm flow beside
+                them; these three are the corrections a dispatcher does to a
+                selection, and a single-job edit that opens on the only ticked
+                row rather than making them hunt for it.
+              */}
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={() => setBulkOpen(true)}
+              >
+                <CheckSquare className="w-4 h-4" aria-hidden="true" />
+                {so ? 'Koox' : 'Bulk'}
+              </Button>
+              {selected.length === 1 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => setEditTaskId(selected[0])}
+                >
+                  <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                  {so ? 'Beddel' : 'Edit'}
+                </Button>
+              )}
               <Button
                 variant="success"
                 size="sm"
@@ -980,6 +1104,25 @@ export function DispatchBoard({
         targets={targets}
       />
 
+      <BulkEditSheet
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        tasks={selectedTasks}
+        token={token}
+        onDone={() => {
+          setSelected([]);
+          void refresh();
+        }}
+      />
+
+      <EditJobSheet
+        open={Boolean(editTaskId)}
+        onClose={() => setEditTaskId(null)}
+        task={editTaskId ? (tasks.find((task) => task.id === editTaskId) ?? null) : null}
+        token={token}
+        onSaved={() => void refresh()}
+      />
+
       <ClusterPlanSheet
         open={planOpen}
         onClose={() => setPlanOpen(false)}
@@ -1026,5 +1169,54 @@ function HeaderStat({
       </div>
       <div className={`text-xl font-extrabold tabular ${valueTone}`}>{value}</div>
     </div>
+  );
+}
+
+/**
+ * One of the two work systems.
+ *
+ * The promised window is printed on the tab itself, because the whole reason
+ * the two lists exist is that they keep different promises. A supervisor
+ * switching between them must not have to remember which clock they are on.
+ */
+function KindTab({
+  active,
+  onClick,
+  label,
+  count,
+  promise,
+  tone,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  promise: string;
+  tone: 'fault' | 'install';
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={
+        active
+          ? tone === 'fault'
+            ? 'min-h-11 rounded-xl bg-rose-600 text-white px-2.5 py-2 text-left transition cursor-pointer'
+            : 'min-h-11 rounded-xl bg-brand-700 text-white px-2.5 py-2 text-left transition cursor-pointer'
+          : 'min-h-11 rounded-xl bg-slate-50 text-slate-700 px-2.5 py-2 text-left hover:bg-slate-100 transition cursor-pointer'
+      }
+    >
+      <span className="flex items-baseline gap-1.5">
+        <span className="text-[12px] font-extrabold truncate">{label}</span>
+        <span className={'text-sm font-extrabold tabular ml-auto ' + (active ? 'text-white' : 'text-slate-900')}>
+          {count}
+        </span>
+      </span>
+      <span className={'block text-[10px] font-semibold ' + (active ? 'text-white/80' : 'text-slate-500')}>
+        {promise}
+      </span>
+    </button>
   );
 }

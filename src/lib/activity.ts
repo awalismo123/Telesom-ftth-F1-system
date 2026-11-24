@@ -28,7 +28,15 @@ export type ActivityKind =
   | 'dispatched'
   | 'manual_created'
   | 'scheduled'
-  | 'en_route';
+  | 'en_route'
+  /**
+   * A supervisor corrected a job's details (migration 033).
+   *
+   * Distinct from `assigned`/`scheduled` because this is the only kind that
+   * can change *where* a job is, and "who changed the area" is a question
+   * dispatch actually asks when a route looks wrong.
+   */
+  | 'edited';
 
 export interface ActivityEvent {
   at: string;
@@ -67,6 +75,7 @@ const KNOWN_KINDS: ActivityKind[] = [
   'manual_created',
   'scheduled',
   'en_route',
+  'edited',
 ];
 
 export function isKnownKind(kind: string): kind is ActivityKind {
@@ -87,6 +96,7 @@ const LABELS: Record<ActivityKind, { en: string; so: string }> = {
   manual_created: { en: 'Added by phone', so: 'Telefoon lagu daray' },
   scheduled: { en: 'Moved to another day', so: 'Maalin kale loo raray' },
   en_route: { en: 'On the way', so: 'Wadada u socda' },
+  edited: { en: 'Details corrected', so: 'Faahfaahin la saxsay' },
 };
 
 export function activityLabel(kind: string, lang: Language): string {
@@ -107,6 +117,7 @@ export function activityTone(kind: string): ActivityTone {
     case 'paused':
     case 'reopened':
     case 'manual_created':
+    case 'edited':
       return 'warn';
     default:
       return 'neutral';

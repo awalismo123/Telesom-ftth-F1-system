@@ -209,3 +209,69 @@ test('wiring: the report is reachable from Analytics, and print hides the app', 
   const shell = read('src/components/supervisor/SupervisorShell.tsx');
   assert.match(shell, /ActivityLog/, 'the Record tab must be mounted');
 });
+
+/**
+ * Phase 16 wiring.
+ *
+ * Every one of these is a component or a capability that exists but would be
+ * dead if nothing mounted it — the exact failure mode that let a built report
+ * sheet sit unopened for two phases.
+ */
+test('wiring: faults, bulk edits and job editing are all reachable from dispatch', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const read = (rel: string) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
+
+  const board = read('src/components/supervisor/dispatch/DispatchBoard.tsx');
+
+  assert.match(board, /import \{ FaultBoard \}/, 'the fault board must be mounted');
+  assert.match(board, /<FaultBoard/, 'and actually rendered');
+  assert.match(board, /import \{ BulkEditSheet \}/, 'bulk edits must be mounted');
+  assert.match(board, /<BulkEditSheet/, 'and actually rendered');
+  assert.match(board, /import \{ EditJobSheet \}/, 'single-job editing must be mounted');
+  assert.match(board, /<EditJobSheet/, 'and actually rendered');
+
+  // A control that cannot be pressed is not a feature either.
+  assert.match(board, /setBulkOpen\(true\)/, 'something must open the bulk sheet');
+  assert.match(board, /setEditTaskId\(/, 'something must open the job editor');
+
+  // The two kinds are a real split, not a label on one list.
+  assert.match(board, /kind === 'faults'/, 'the fault tab must show the fault board');
+  assert.match(board, /kind === 'installs' &&/, 'the installation pool must be gated by the tab');
+
+  // And the action sheet carries the history and the delete rule.
+  const actions = read('src/components/supervisor/dispatch/JobActionsSheet.tsx');
+  assert.match(actions, /import \{ JobHistory \}/, 'the job history must be mounted');
+  assert.match(actions, /<JobHistory token=/, 'and given the token it needs');
+  assert.match(actions, /whyNoDelete\(task, 0\)/, 'the delete section must ask the policy');
+  assert.match(actions, /deleteTask\(\{ token, taskId: task\.id, reason \}\)/, 'and be able to delete');
+});
+
+test('wiring: the technician route asks for the split order', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const read = (rel: string) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
+
+  const view = read('src/components/technician/RouteView.tsx');
+  assert.match(view, /fetchRouteSplit/, 'the route view must use the split');
+  assert.match(view, /data\.faults/, 'and must put faults first');
+});
+
+test('every function migration 033 adds is called by the client', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const read = (rel: string) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
+
+  const calls = [
+    read('src/lib/opsService.ts'),
+    read('src/lib/executionService.ts'),
+    read('src/lib/reads.ts'),
+  ].join('\n');
+
+  for (const fn of ['edit_task', 'delete_task', 'technician_route_split']) {
+    assert.ok(
+      calls.includes(`'${fn}'`),
+      `${fn} is defined in the database and never called — either wire it or drop it`,
+    );
+  }
+});

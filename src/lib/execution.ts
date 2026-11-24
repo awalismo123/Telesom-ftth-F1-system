@@ -36,6 +36,20 @@ export interface RouteResponse {
   crews: string[];
   server_now: string;
   user: { id: string; full_name: string; role: string };
+  /**
+   * The same jobs, split by kind (migration 033).
+   *
+   * A technician can hold a fault and an installation at once, and the order
+   * they are worked in is not the order they were assigned. `tasks` stays as the
+   * flat list everything already reads; these two are the split the phone sorts
+   * by, so a technician is never sent to a booking while a customer's paid
+   * service is down.
+   *
+   * Absent from an older server, so both are optional and the caller falls back
+   * to sorting `tasks` itself.
+   */
+  faults?: RouteTask[];
+  installs?: RouteTask[];
 }
 
 /* -------------------------------------------------------------------------- */
