@@ -664,6 +664,81 @@ Recorded in `KNOWN_LIMITS` §8c. If volume grows, the honest fix is object stora
 
 ---
 
+### Phase 14 — The supervisor's command page — ✅ DONE 24/11/2026
+
+**Effort:** ~3 hours. **Depends on:** nothing. **No migration.**
+
+> **Result:** `npm run verify` green at **605/605 tests, 193.4 kB** (it went *down* from 195.8).
+
+**The brief:** *"enhance every page of the system one by one … start with the command overview page
+of the supervisor, make it best and it must have everything it needs."* This is the first page.
+
+**What the page was.** Four tiles — technicians, crews, open jobs, box count — and a single dark
+panel. Every one of those is a number a supervisor reads once and already knows. The nineteen open
+jobs, two of them urgent and *all nineteen past the promise*, were not on the screen at all.
+
+**What it is.** The page now answers, in reading order:
+
+| Section | Question it answers |
+|---|---|
+| Shift header + headline | What is today about, and how fresh is this? |
+| Attention rail (5 tiles) | What needs a decision, right now? |
+| Work queue | Which jobs, whose, how old, and can I phone them? |
+| Load board | Who is carrying what, and who is free? |
+| Movement | Is the week going anywhere? |
+| Live feed | What just happened? |
+| SLA watch | The existing card, kept |
+
+**What the reconnaissance found.** Nothing here needed a new table. `today_summary` has returned
+`due_today` since migration 023 — the most actionable number on the screen — and **no component ever
+read it**, because the TypeScript interface simply omitted the field. `dispatch_load` already carried
+per-person and per-crew `open_jobs / active_jobs / urgent_jobs / done_today` and was used only on the
+dispatch board. `group_activity` was only on the Record tab.
+
+**Two defects found by probing the live database, not by testing the code.**
+
+1. **A seven-day activity window was empty.** The live data's newest event is 16 Nov and the database
+   clock read 24 Nov. The chart and the feed would have rendered correctly, honestly, and completely
+   blank — and a supervisor would have had no way to tell a quiet week from a dead feed. The window
+   is now thirty days (the chart still draws seven), and both panels name the **last day anything
+   happened** when the window is silent.
+2. **`todayHeadline` would have said "19 open, none past the promise."** That is arithmetic on the
+   `reported_date <= today` boundary, and on the live data it was false: all nineteen were past it.
+   The headline now reports the last real movement when the queue has stopped moving.
+
+**What it refuses to do**
+
+* **Show zeros when it does not know.** The old loader wrapped everything in `catch {}`, so a failed
+  request left the page showing zero blocked jobs — a false all-clear. Each source now settles
+  independently and the page **names the part that did not load**. A false zero is the most expensive
+  kind of wrong on this screen.
+* **Rank people.** Crews and technicians are alphabetical, and the footer says so. Sorting by open
+  jobs would be a leaderboard under another name.
+* **Hide an unroutable crew.** Two crews with zero members exist on the live database. A crew nobody
+  is in is shown and flagged `no members`, because assigning work to it looks like it was sent.
+
+**Live load is now real.** The page subscribes to `tasks` and `crew_members` and refetches debounced;
+freshness is ticked every five seconds. Previously it read data on tab change and nothing else, so a
+supervisor who left it open all shift read a stale screen.
+
+**Adding a job from a phone call** is on the page, because the supervisor is on the line and making
+them switch to Dispatch first is how the call ends up on a scrap of paper.
+
+**Bundle.** The page is its own lazy chunk (31.2 kB / 9.5 kB gzip), warmed at shell mount. First-load
+gzip **fell** from 195.8 to 193.4 kB, because the landing screen's weight left the entry bundle.
+
+**Tests (48 new).** Ordering rules (urgent before oldest, ties broken by line number so the list never
+reshuffles); unknown age sorts *after* dated jobs, never above them; a person inside a crew is not
+listed twice; alphabetical rather than by workload; a stranded crew is never counted as available; a
+quiet week names its last activity; a silent window does not fire the fallback when one day has data;
+fourteen panels mounted through `renderToString` with the live shapes, asserting no `NaN` and that the
+`tel:` link is present.
+
+**Data protection.** No migration, no writes to production, no schema change. Every probe ran in a
+`BEGIN … ROLLBACK`.
+
+---
+
 ## 3. Decisions I need from you
 
 I have made conservative choices on all of these and will proceed with them unless told otherwise.

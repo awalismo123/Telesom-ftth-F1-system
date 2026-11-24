@@ -11,6 +11,13 @@
  */
 
 const LOADERS = {
+  /**
+   * The landing screen.
+   *
+   * Splitting it keeps a technician or a manager from downloading a supervisor's
+   * dashboard — but a supervisor will land on it, so it is warmed at sign-in.
+   */
+  'supervisor-overview': () => import('../components/supervisor/overview/CommandOverview'),
   'supervisor-ingest': () => import('../components/supervisor/ingest/IngestWizard'),
   'supervisor-dispatch': () => import('../components/supervisor/dispatch/DispatchBoard'),
   'supervisor-analytics': () => import('../components/supervisor/Analytics'),

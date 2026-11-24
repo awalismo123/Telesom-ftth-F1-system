@@ -169,3 +169,121 @@ test('the manager shell opens on a read-only portfolio', async () => {
   assert.match(html, /akhris kaliya|read only/i, 'the read-only promise must be on the screen');
   assert.doesNotMatch(html, /Qoondee|Assign to/, 'a manager must not be offered an assign control');
 });
+
+/**
+ * The command page's panels.
+ *
+ * `tsc` cannot see a panel that divides by a field the server never sends, and
+ * a unit test on a pure function cannot see one that renders `NaN`. These mount
+ * each panel with the shape the live database actually returns — nineteen open
+ * jobs, every one past the promise, two crews with no members, and an activity
+ * window with nothing in it — and assert on the words a supervisor would read.
+ */
+test('the command page panels render the live shapes without a crash or a NaN', async () => {
+  const { LanguageProvider } = await import('../src/lib/i18n');
+  const { AttentionRail } = await import('../src/components/supervisor/overview/AttentionRail');
+  const { LoadBoard } = await import('../src/components/supervisor/overview/LoadBoard');
+  const { WorkQueue } = await import('../src/components/supervisor/overview/WorkQueue');
+  const { MovementPanel } = await import('../src/components/supervisor/overview/MovementPanel');
+  const { LiveFeed } = await import('../src/components/supervisor/overview/LiveFeed');
+
+  const tasks = Array.from({ length: 19 }, (_, i) => ({
+    id: `t${i}`,
+    group_id: 'g1',
+    line_number: `57537${i}`,
+    customer_name: 'HOODO IDIRIS',
+    customer_phone: '0634111111',
+    xaafada: 'JIGJIGAYAR',
+    status: 'unassigned',
+    priority: i < 2 ? 'urgent' : 'normal',
+    task_type: 'cilada',
+    reported_date: '2026-11-12',
+    created_at: '2026-11-12T08:00:00Z',
+  })) as never[];
+
+  const railInput = { blocked: 0, over_sla: 19, due_today: 0, unassigned: 19, urgent_open: 2 };
+  const load = {
+    users: [
+      {
+        id: 'u1',
+        full_name: 'Xasan Cali Nuur',
+        username: 'xasan',
+        phone: null,
+        open_jobs: 0,
+        active_jobs: 0,
+        done_today: 0,
+        urgent_jobs: 0,
+      },
+    ],
+    crews: [
+      {
+        id: 'c1',
+        name: 'F1 - Crew A',
+        vehicle_tag: 'A-1',
+        zone_focus: null,
+        members: [],
+        open_jobs: 0,
+        active_jobs: 0,
+        done_today: 0,
+        urgent_jobs: 0,
+      },
+    ],
+  };
+
+  /** The provider reads its language at mount, so the storage is set first. */
+  const wrap = (lang: 'en' | 'so', node: React.ReactElement) => {
+    storage.setItem('telesom_f1_lang', lang);
+    return renderToString(React.createElement(LanguageProvider, null, node));
+  };
+
+  const rail = wrap(
+    'en',
+    React.createElement(AttentionRail, { input: railInput, loading: false, onOpen: () => {} }),
+  );
+  assert.match(rail, /19/, 'the overdue and unassigned counts should be on screen');
+  assert.doesNotMatch(rail, /NaN/);
+
+  const board = wrap(
+    'en',
+    React.createElement(LoadBoard, { load, loading: false, onOpenTeam: () => {} }),
+  );
+  assert.match(board, /F1 - Crew A/);
+  assert.match(board, /Xasan Cali Nuur/);
+  // A crew nobody is in cannot be dispatched to, and the screen must say so.
+  assert.match(board, /no members/);
+
+  const queue = wrap(
+    'en',
+    React.createElement(WorkQueue, {
+      tasks,
+      today: '2026-11-24',
+      loading: false,
+      totalOpen: 19,
+      onOpenTask: () => {},
+      onOpenDispatch: () => {},
+    }),
+  );
+  assert.match(queue, /575370/, 'the queue should name a job, not only count them');
+  assert.match(queue, /tel:0634111111/, 'a supervisor must be able to call from the list');
+
+  const movement = wrap(
+    'en',
+    React.createElement(MovementPanel, { events: [], today: '2026-11-24', loading: false }),
+  );
+  assert.match(movement, /No movement/, 'a silent week says so');
+  assert.doesNotMatch(movement, /NaN|Infinity/);
+
+  const feed = wrap(
+    'en',
+    React.createElement(LiveFeed, { events: [], loading: false, onOpenAll: () => {} }),
+  );
+  assert.match(feed, /Nothing has been recorded yet/);
+
+  // The same panels in Somali: a missing translation surfaces as a raw key here.
+  const somali = wrap(
+    'so',
+    React.createElement(AttentionRail, { input: railInput, loading: false, onOpen: () => {} }),
+  );
+  assert.doesNotMatch(somali, /NaN/);
+  assert.doesNotMatch(somali, /\bblocked\b/, 'the rail must speak Somali on the Somali screen');
+});

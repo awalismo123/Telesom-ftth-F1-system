@@ -662,3 +662,42 @@ worse than no photo.
 
 It is also optional: nothing in the completion path waits for one, so a
 technician without a working camera can still close a job.
+
+## 8e. The command page shows up to 600 open jobs, and says so when it might be more
+
+`list_open_tasks` returns at most **600** rows. The attention rail's counts come
+from `today_summary`, which counts *every* open job in the database, so those
+numbers are always exact. The **work queue** and the **urgent** figure are
+counted from the loaded list, so at exactly 600 rows they mean "at least this
+many". The page detects that case and replaces the "N more waiting" line with
+the standard truncation notice rather than an understated number.
+
+600 open jobs is roughly a year of work for this group. The check exists so the
+day it stops being true is a notice, not a wrong number.
+
+## 8f. The activity window is thirty days, not seven
+
+The chart draws seven days but the data behind it covers thirty.
+
+This is not padding. On 24/11/2026 the newest event in the live database was
+from 16/11 — the department had not recorded anything for eight days, and a
+seven-day window was **empty**. A correct, blank panel is indistinguishable from
+a broken one, so:
+
+* the window is thirty days, and
+* when the drawn week is silent, both panels **name the last day anything
+  happened**.
+
+A supervisor can now tell a quiet week from a feed that has stopped. Neither
+panel invents activity.
+
+## 8g. The command page's "updated N ago" is honest about failure
+
+If a load fails, the page says **"Partly out of date"** and names the parts that
+did not arrive — it does not show the last-known numbers as if they were current,
+and it does not show zeros.
+
+The one thing it cannot do is keep retrying forever: a failed realtime
+subscription recovers on the next change or the next manual refresh. If a
+supervisor sees stale numbers and no banner, the connection is down and the page
+does not know yet. Refresh is always one tap away in the header.
