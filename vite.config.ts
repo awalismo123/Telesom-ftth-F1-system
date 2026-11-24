@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { APP_VERSION } from './src/lib/version';
 
 /**
  * Build shape.
@@ -17,7 +18,29 @@ import tailwindcss from '@tailwindcss/vite';
  *    `scripts/vendor-tesseract.mjs` — nothing about them is in the first paint.
  */
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    /**
+     * Stamp the version into the built HTML.
+     *
+     * `useStaleBuildNotice` fetches `/index.html` and compares this tag with the
+     * version compiled into the running JavaScript. Without the tag the check
+     * silently does nothing — the notice would never appear, and a supervisor
+     * would keep using yesterday's build with no way to tell.
+     *
+     * Read from `src/lib/version.ts` so there is one number, not two.
+     */
+    {
+      name: 'app-version-meta',
+      transformIndexHtml(html: string) {
+        return html.replace(
+          '</head>',
+          `  <meta name="app-version" content="${APP_VERSION}" />\n  </head>`,
+        );
+      },
+    },
+  ],
   server: {
     host: '0.0.0.0',
     port: 5173,

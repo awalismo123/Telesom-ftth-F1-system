@@ -11,17 +11,21 @@
  * bundle for a label would be a poor trade.
  */
 
-export const APP_VERSION = '1.16.0';
+export const APP_VERSION = '1.17.1';
 
 /**
  * The date this build was published.
  *
  * 1.0.0 was the batch that closed the security hole; 1.1.0 was the manager pack —
  * the record, photo proof and the read-only manager; 1.2.0 is the Telesom brand
- * and the usability work (larger text, the next-job band, the letterhead). All
- * three are on the sign-in screen and on the printed report, because a report
- * that a head manager files is worth nothing if nobody can tell which build
- * produced it.
+ * and the usability work (larger text, the next-job band, the letterhead); 1.17.0
+ * split faults from installations and made a job editable, and 1.17.1 fixed the
+ * two import bugs that the first live import exposed.
+ *
+ * All of them are on the sign-in screen and on the printed report, because a
+ * report that a head manager files is worth nothing if nobody can tell which
+ * build produced it — and because "I did not see the changes" is usually a stale
+ * tab, which a version number settles in one look.
  */
 export const BUILD_DATE = '2026-11-24';
 

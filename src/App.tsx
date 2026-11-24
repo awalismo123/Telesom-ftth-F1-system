@@ -12,6 +12,7 @@ const ManagerShell = React.lazy(() =>
   import('./components/manager/ManagerShell').then((m) => ({ default: m.ManagerShell })),
 );
 import { ToastProvider } from './components/ui/Toast';
+import { StaleBuildNotice } from './components/ui/StaleBuildNotice';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { OfflineBanner } from './components/ui/OfflineBanner';
 import { Splash } from './components/ui/Splash';
@@ -73,6 +74,12 @@ export default function App() {
           <ConfigGate>
             <AuthProvider>
               <NavigationProvider>
+                {/*
+                  Above the router, inside the language provider so it can speak
+                  both languages, and outside every screen so it appears wherever
+                  the person happens to be when the server moves on.
+                */}
+                <StaleBuildNotice />
                 <AppRouter />
               </NavigationProvider>
             </AuthProvider>
