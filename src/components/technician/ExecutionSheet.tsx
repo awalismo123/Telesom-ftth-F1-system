@@ -44,6 +44,7 @@ import { formatTime, todayKey } from '../../lib/format';
 import { preparePhoto, photoSizeLabel, type PreparedPhoto } from '../../lib/photo';
 import { formatPhoneE164, formatPhoneLocal, whatsappLink } from '../../lib/dispatch';
 import { BoxSheet } from '../registry/BoxSheet';
+import { FaultTypePicker } from './FaultTypePicker';
 import { DirectionsButton } from '../ui/DirectionsButton';
 import { RepeatFaultBadge } from '../ui/RepeatFaultBadge';
 import { LineHistoryPanel } from '../ui/LineHistoryPanel';
@@ -552,6 +553,19 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
             <Printer className="w-3.5 h-3.5" aria-hidden="true" />
             {so ? 'Warqadda shaqada' : 'Job sheet'}
           </button>
+
+          {/* What is actually wrong. A fault arrives with whatever the customer
+              said on the phone — usually the word "fault", or a phone number —
+              so the person at the box is the one who can answer it. */}
+          {task.task_type === 'cilada' && (
+            <FaultTypePicker
+              taskId={task.id}
+              token={token}
+              current={task.fault_type}
+              lang={lang}
+              onChanged={onChanged}
+            />
+          )}
 
           {/* a photo of what was found, before anything was done */}
           {!completed && <BeforePhoto token={token} taskId={task.id} status={task.status} lang={lang} />}

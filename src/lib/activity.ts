@@ -36,7 +36,15 @@ export type ActivityKind =
    * can change *where* a job is, and "who changed the area" is a question
    * dispatch actually asks when a route looks wrong.
    */
-  | 'edited';
+  | 'edited'
+  /**
+   * Somebody said what the fault actually is (migration 035).
+   *
+   * Its own kind rather than a flavour of `edited`: it changes what the job
+   * *is*, it can be set by the technician on site, and "who first said cut
+   * cable" is a question the deprecation review asks.
+   */
+  | 'fault_type_set';
 
 export interface ActivityEvent {
   at: string;
@@ -76,6 +84,7 @@ const KNOWN_KINDS: ActivityKind[] = [
   'scheduled',
   'en_route',
   'edited',
+  'fault_type_set',
 ];
 
 export function isKnownKind(kind: string): kind is ActivityKind {
@@ -97,6 +106,7 @@ const LABELS: Record<ActivityKind, { en: string; so: string }> = {
   scheduled: { en: 'Moved to another day', so: 'Maalin kale loo raray' },
   en_route: { en: 'On the way', so: 'Wadada u socda' },
   edited: { en: 'Details corrected', so: 'Faahfaahin la saxsay' },
+  fault_type_set: { en: 'Fault type recorded', so: 'Nooca cilada la qoray' },
 };
 
 export function activityLabel(kind: string, lang: Language): string {
@@ -118,6 +128,7 @@ export function activityTone(kind: string): ActivityTone {
     case 'reopened':
     case 'manual_created':
     case 'edited':
+    case 'fault_type_set':
       return 'warn';
     default:
       return 'neutral';

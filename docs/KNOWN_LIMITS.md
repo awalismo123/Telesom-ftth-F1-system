@@ -904,3 +904,100 @@ The consequence is that a person who has ever worked cannot be removed from the
 system at all, only deactivated. That is the intended behaviour, and it is why the
 retirement rule matters: deactivation is the *only* way a person leaves, so it must
 not take their work out of sight with them.
+
+## 10a. A supervisor-issued PIN now works — the old one was three bugs stacked
+
+Found by using the live project rather than reading the code, and each layer hid
+the next.
+
+**The lock.** `authenticate_pin` locks an account for fifteen minutes after five
+wrong PINs. `upsert_team_member` wrote a new hash and cleared nothing else. So the
+exact thing a supervisor does — "he cannot get in, give him a new PIN" — produced a
+correct new PIN on an account that still refused to sign in. Verified live:
+`{"ok": false, "reason": "locked"}` for a PIN that was byte-for-byte correct. It now
+clears `failed_attempts` and `locked_until`, and the roster shows who is currently
+locked so the reason is visible before anyone guesses.
+
+**The flag.** `stalePinMembers` counted every active member whose `must_change_pin`
+was not `true` — but `false` is the *finished* state, the one you reach by choosing
+your own PIN. It reported the people who had done the right thing. On 24/11 the
+supervisor was the only account with the flag `false`, so the banner said "1 person
+can still sign in with the PIN the department set" about him, and no action on the
+screen could change it. The rule now reads `users.seed_pin_flag`, set when a
+supervisor issues a PIN and cleared when the person replaces it.
+
+**The one-way door.** The only button could set the flag, never clear it
+(`flag_department_pins` updated `WHERE must_change_pin = false`, which is a
+different flag from the one it set, so it also reported 0 forever). There is now a
+counterpart, `set_department_pin_flag(token, false)`, and a second button that uses
+it.
+
+The standing caveat: a person who never signs in again keeps their PIN flagged
+forever. That is correct — they are still using a department PIN — but it means the
+banner clears by people signing in, not by the supervisor pressing things. The
+second button exists for the case where the flag is simply stale.
+
+## 10b. Thirteen faults were labelled "No signal" that nobody had classified
+
+`BulkEditSheet` defaulted its action to "Fault type" **and** its select to
+`'no_signal'`. Opening the sheet and pressing the primary button therefore stamped
+"No signal" on every ticked fault without anybody choosing it.
+
+The audit log has it exactly: at 22:49 on 24/11 every one of the thirteen open
+faults was edited within three seconds, each with `fault_type` going from `null` to
+`no_signal`. A fault type is a fact about a customer's connection; a default is a
+guess wearing the same clothes.
+
+The sheet now starts with no type chosen and refuses to apply an empty choice. The
+thirteen were reset to "not recorded", which is what they were before somebody
+pressed the button.
+
+**This cannot be recovered further.** `no_signal` is indistinguishable from a type
+somebody genuinely chose, so the audit log is the only evidence, and it exists only
+because `edit_task` logs the previous values. Any future bulk action must keep
+doing that.
+
+## 10c. The complaint column is the customer's words, not a fault type
+
+All fifteen open faults arrived with a complaint and none with a type:
+
+`CILAD` ×2, `DEG DEG` ×2, `Cilad DSL`, `deg deg`, `degdeg`, `wuu naga xun`, `das`,
+`dadji`, `636345542`, `c`, `dd`, `degdeg cabash`, `ok`
+
+"CILAD" is the sheet's word for *fault* (the job is already one) and "degdeg" is
+*urgent* — category and urgency, written where the cause belongs. One is a phone
+number. So `fault_type_from_complaint` is deliberately conservative: it maps what
+it recognises and returns **NULL** for everything else, including "other", because
+"other" is a real answer somebody chose and filling it in for them hides that
+nobody has looked yet.
+
+`tasks.complaint_raw` keeps the sheet's words verbatim. Nothing is lost when a
+value cannot be mapped, and a later import never overwrites a type somebody set by
+hand.
+
+Consequence to be aware of: the type is *usually* blank at import, and stays blank
+until a supervisor or the technician on site answers it. That is the intended
+workflow — the customer often cannot say whether it is slow speed or a cut cable
+until somebody calls them back.
+
+## 10d. A fault type can be set by two people, and cleared by either
+
+`set_fault_type` accepts a supervisor for any job in the group and a technician for
+their own job only. `edit_task` is still supervisor-only — it changes *where* a job
+is, which is a dispatch decision, not a field observation.
+
+Clearing to `null` is allowed and is a real correction, not a delete: the previous
+value survives in the work log under `fault_type_set`, so "who first said cut
+cable" stays answerable.
+
+## 10e. Team & Crews can edit and delete a job, but shows the open ones only
+
+The person panel lists the jobs `team_workload` returns — assigned or blocked, and
+not completed or cancelled. A supervisor who needs to correct a *finished* job still
+has to go to the dispatch board's search.
+
+Both the edit and the action sheets are the dispatch board's own components, not
+copies, so validation and refusals cannot drift between the two screens. Deleting
+from here is the same `delete_task` with the same rule: a job that has been worked
+on, has photos, materials or a box record is refused, and the refusal is shown
+rather than worked around.
