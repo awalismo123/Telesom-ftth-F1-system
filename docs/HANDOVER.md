@@ -189,6 +189,15 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.17.2 (24/11/2026) — the app tells you when your tab is old
+
+* **A quiet bar at the top when the deployment has moved on** — "You are on
+  1.17.1 · the server has 1.17.2" with a Reload button. It never reloads on its
+  own: a technician with a timer running must not lose the page.
+* **The version is stamped on the sign-in screen**, so "which build are you on"
+  takes one look rather than a guess. That is how "I did not see the changes"
+  gets settled — usually it is an old tab, not a failed deploy.
+
 ### v1.17.1 (24/11/2026) — two import bugs the fresh data exposed
 
 Deployed on the same day as v1.17.0, after the first real import under the new
