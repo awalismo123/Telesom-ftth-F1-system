@@ -19,6 +19,7 @@ import { useLanguage } from '../../../lib/i18n';
 import { truncatedNotice, OPEN_TASK_CAP } from '../../../lib/lists';
 import { plannedJobs, shortDay } from '../../../lib/schedule';
 import { todayKey } from '../../../lib/format';
+import { SLA_DAYS } from '../../../lib/activity';
 import type { Task } from '../../../types/database';
 import {
   assignTasks,
@@ -44,6 +45,15 @@ import {
   type DispatchTarget,
   type MessageLane,
 } from '../../../lib/dispatch';
+import {
+  POOL_ORDER_NOTE,
+  boardState,
+  orderPool,
+  triagePool,
+  triageSentence,
+  unroutableJobs,
+  unroutableNotice,
+} from '../../../lib/dispatchBoard';
 import { TaskCard } from './TaskCard';
 import { ClusterPlanSheet } from './ClusterPlanSheet';
 import { DispatchMessageSheet } from './DispatchMessageSheet';
@@ -228,11 +238,25 @@ export function DispatchBoard({
    */
   const debouncedQuery = useDebouncedValue(query, 200);
 
+  /**
+   * The pool in dispatch order.
+   *
+   * `searchTasks` filters and `orderPool` sorts, and the sort is `compareTasks`
+   * — the same comparison the WhatsApp message uses. The board used to inherit
+   * whatever order the server returned, which meant the crew's message was
+   * better ordered than the screen it was written from.
+   */
   const visiblePool = useMemo(() => {
     let rows = searchTasks(pool, debouncedQuery);
     if (filter === 'urgent') rows = rows.filter((task) => task.priority === 'urgent');
-    return rows;
+    return orderPool(rows);
   }, [pool, debouncedQuery, filter]);
+
+  /** What the pool contains, and what of it can actually be routed. */
+  const triage = useMemo(() => triagePool(pool), [pool]);
+  const unroutable = useMemo(() => unroutableJobs(pool), [pool]);
+  const unroutableBanner = unroutableNotice(unroutable, lang);
+  const state = boardState(pool.length, targets.length);
 
   const lanes: MessageLane[] = useMemo(
     () =>
@@ -249,7 +273,6 @@ export function DispatchBoard({
   );
 
   const assignedCount = lanes.reduce((sum, lane) => sum + lane.tasks.length, 0);
-  const urgentCount = pool.filter((task) => task.priority === 'urgent').length;
 
   const toggleSelect = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -383,26 +406,38 @@ export function DispatchBoard({
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-xl bg-white/10 p-2.5">
-            <div className="text-[10px] uppercase tracking-wide text-brand-200/80 font-bold">
-              {so ? 'Aan la qaybin' : 'Unassigned'}
-            </div>
-            <div className="text-xl font-extrabold">{pool.length}</div>
-          </div>
-          <div className="rounded-xl bg-white/10 p-2.5">
-            <div className="text-[10px] uppercase tracking-wide text-brand-200/80 font-bold">
-              {so ? 'Degdeg' : 'Urgent'}
-            </div>
-            <div className="text-xl font-extrabold text-rose-300">{urgentCount}</div>
-          </div>
-          <div className="rounded-xl bg-white/10 p-2.5">
-            <div className="text-[10px] uppercase tracking-wide text-brand-200/80 font-bold">
-              {so ? 'La qaybiyay' : 'Dispatched'}
-            </div>
-            <div className="text-xl font-extrabold">{assignedCount}</div>
-          </div>
+        {/*
+          The pool's state, in the order a dispatcher works it: what is waiting,
+          what of it is urgent, what is late, and how much of it can actually be
+          put on a route. The last figure is the one that was missing — a brace
+          of urgent jobs with no area and no box cannot be clustered, and no
+          screen said so before the plan was already made.
+        */}
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          <HeaderStat label={so ? 'Aan la qaybin' : 'Unassigned'} value={triage.total} />
+          <HeaderStat
+            label={so ? 'Degdeg' : 'Urgent'}
+            value={triage.urgent}
+            tone={triage.urgent > 0 ? 'rose' : 'plain'}
+          />
+          <HeaderStat
+            label={so ? `Ka baxay ${SLA_DAYS}` : `Past ${SLA_DAYS} days`}
+            value={triage.late}
+            tone={triage.late > 0 ? 'amber' : 'plain'}
+          />
+          <HeaderStat
+            label={so ? 'La jihayn karo' : 'Can be routed'}
+            value={`${triage.routable}/${triage.total}`}
+            tone={triage.unroutable > 0 ? 'amber' : 'plain'}
+          />
+          {/* Kept from the old header: how much work is already out with crews.
+              Without it a dispatcher cannot tell whether to send more. */}
+          <HeaderStat label={so ? 'La qaybiyay' : 'Dispatched'} value={assignedCount} />
         </div>
+
+        <p className="mt-2.5 text-[11px] font-semibold text-brand-100/90 leading-snug">
+          {triageSentence(triage, lang)}
+        </p>
 
         <div className="mt-3 flex flex-wrap gap-2">
           <Button
@@ -447,6 +482,37 @@ export function DispatchBoard({
         <Alert tone="warning">
           {t('dispatchNoTargets')}{' '}
           {so ? 'Ku dar farsamayaqaan ama crew Team-ga.' : 'Add a technician or crew in Team.'}
+        </Alert>
+      )}
+
+      {/*
+        Work that cannot be put on a route.
+
+        `clusterTasks` groups by box, then by neighbourhood. A job with neither
+        lands in one bucket with every other such job, so auto-cluster will
+        cheerfully hand one crew a "route" of jobs in opposite corners of the
+        city. The board says so before the plan is made rather than after it is
+        sent.
+      */}
+      {unroutableBanner && (
+        <Alert tone="warning" title={unroutableBanner.title}>
+          {unroutableBanner.body}
+        </Alert>
+      )}
+
+      {/*
+        A board with jobs but nobody to send them to is blocked, not finished.
+        It used to render a small note above an empty grid, which reads like a
+        quiet afternoon.
+      */}
+      {state === 'no-targets' && (
+        <Alert
+          tone="danger"
+          title={so ? 'Ma jiro cid la diri karo' : 'Nobody can be dispatched to'}
+        >
+          {so
+            ? `${pool.length} shaqo ayaa sugaysa, laakiin ma jiro farsamayaqaan ama koox diyaar ah. Kooxaha cidna ku jirin lama diri karo — ku dar farsamayaqaan Team & Crews.`
+            : `${pool.length} ${pool.length === 1 ? 'job is' : 'jobs are'} waiting, but no technician or crew can take them. A crew with nobody in it cannot be dispatched — add a technician in Team & Crews.`}
         </Alert>
       )}
 
@@ -495,6 +561,15 @@ export function DispatchBoard({
               onChange={setFilter}
               label={t('dispatchPool')}
             />
+
+            {/*
+              The order is stated rather than implied. It used to be whatever the
+              server happened to return, and the one control that changed it was
+              a filter you had to tap first.
+            */}
+            <p className="text-[10px] leading-snug text-slate-500 border-t border-slate-100 pt-1.5">
+              {POOL_ORDER_NOTE[lang]}
+            </p>
           </div>
 
           {planned.length > 0 && (
@@ -922,6 +997,34 @@ export function DispatchBoard({
         groupId={groupId}
       />
 
+    </div>
+  );
+}
+
+/**
+ * One figure in the dark header.
+ *
+ * `tone` is about attention, not decoration: a zero in amber would train a
+ * dispatcher to ignore amber.
+ */
+function HeaderStat({
+  label,
+  value,
+  tone = 'plain',
+}: {
+  label: string;
+  value: number | string;
+  tone?: 'plain' | 'rose' | 'amber';
+}) {
+  const valueTone =
+    tone === 'rose' ? 'text-rose-300' : tone === 'amber' ? 'text-amber-300' : 'text-white';
+
+  return (
+    <div className="rounded-xl bg-white/10 p-2.5">
+      <div className="text-[10px] uppercase tracking-wide text-brand-200/80 font-bold truncate">
+        {label}
+      </div>
+      <div className={`text-xl font-extrabold tabular ${valueTone}`}>{value}</div>
     </div>
   );
 }
