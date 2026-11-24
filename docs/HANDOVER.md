@@ -189,6 +189,27 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.16.0 (24/11/2026) — the dispatch board is ordered, and it warns you
+
+* **The board now shows jobs in the order they should be worked** — urgent
+  first, then jobs carried over from yesterday, then the oldest. Before, it
+  showed whatever order the server sent, and the only way to see urgent jobs on
+  top was to tap a filter first.
+* **The crew's WhatsApp message was already in this order.** The board was not.
+  That meant the message a crew received was better sorted than the screen it
+  was written from. They now share one comparison, and a test holds it.
+* **Eight of your nineteen jobs cannot be routed at all** — no area, no box —
+  and **both urgent jobs are among them.** Auto-cluster would have silently
+  gathered them into one batch called "No area / box" and handed it to a crew.
+  The board now tells you this *before* you make the plan, names the line
+  numbers, and says what to do.
+* **A board you cannot dispatch from no longer looks like a finished day.**
+  Both crews have nobody in them, so the board could not offer a single lane. It
+  rendered as an empty grid under a small note. It now says plainly that work is
+  waiting and nobody can take it.
+
+No database migration. No production data was touched.
+
 ### v1.15.0 (24/11/2026) — the supervisor's screen now shows the work
 
 The first screen a supervisor opens used to be four numbers and a dark panel.

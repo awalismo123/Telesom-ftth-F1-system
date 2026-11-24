@@ -701,3 +701,37 @@ The one thing it cannot do is keep retrying forever: a failed realtime
 subscription recovers on the next change or the next manual refresh. If a
 supervisor sees stale numbers and no banner, the connection is down and the page
 does not know yet. Refresh is always one tap away in the header.
+
+## 8h. Auto-cluster cannot route a job with no area and no box
+
+`clusterTasks` groups work by cablebox first, then by neighbourhood. A job with
+neither lands in a single "No area / box" bucket with every other such job.
+
+On 24/11/2026 that was **8 of 19 open jobs**, including **both urgent ones**.
+Auto-cluster would have handed one crew a batch spanning the city under that one
+heading.
+
+The board now says this before the plan is made, not after it is sent. What it
+**cannot** do is invent the missing place: a job's area or box has to be added by
+somebody who knows the address. The banner says exactly that.
+
+## 8i. The dispatch pool is ordered by promise, not by distance
+
+The board's order is urgent → carried-over → oldest → line number. That is the
+order customers are served in, and the same order the crew reads in the WhatsApp
+message.
+
+It is **not** a shortest-route order. There are no coordinates for these jobs and
+none are invented; the only geography is the box code and the neighbourhood name,
+which is what `clusterTasks` groups on. A crew that wants the shortest drive
+still needs the map link in the job sheet.
+
+## 8j. "Routable" means "has a box or an area", nothing more
+
+The header's routable/total figure counts a job as routable when it carries a
+cablebox code or a neighbourhood. It does **not** mean the address is correct, nor
+that the cluster it lands in is close by — only that a cluster can be formed
+around it at all.
+
+That is the honest lower bound: it is the difference between a plan that can be
+made and one that cannot.

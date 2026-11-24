@@ -739,6 +739,61 @@ fourteen panels mounted through `renderToString` with the live shapes, asserting
 
 ---
 
+### Phase 15 — The dispatch board: one order, and work that cannot be routed — ✅ DONE 24/11/2026
+
+**Effort:** ~2 hours. **Depends on:** nothing. **No migration.**
+
+> **Result:** `npm run verify` green at **638/638 tests, 193.4 kB**.
+
+**The reconnaissance finding:** the dispatch board is already the most complete screen in the app.
+It has lane cards, auto-cluster, confirm-before-commit, message composition, job actions
+(reassign / cancel / reopen / reschedule / photo proof / customer message), a live field strip, and
+stranded-crew warnings. There was very little to "add". What it had was three specific defects.
+
+**Defect 1 — the board was ordered worse than its own WhatsApp message.**
+
+`compareTasks` (urgent → carried-over → oldest → line number) already existed, was already tested, and
+was used to order `buildBlock` — the message a crew receives. The board never called it. The visible
+pool was `searchTasks(pool)`, i.e. the server's order re-filtered in the browser, and the only control
+that changed it was an *Urgent* tab you had to tap first.
+
+The message a crew received was therefore **better ordered than the screen it was written from**. Both
+now call `orderPool`, which wraps `compareTasks`, and a test asserts they can never diverge.
+
+**Defect 2 — auto-cluster would build a "route" out of nothing.**
+
+`clusterTasks` groups by cablebox, then by neighbourhood. A job with neither lands in one bucket with
+every other such job. On the live data **8 of 19** jobs are in that state — including **both urgent
+jobs**. Auto-cluster would have handed one crew a batch spanning the city under the heading
+"No area / box", and nothing on the board said so before the plan was made.
+
+The board now counts routable vs unroutable work, names the offending line numbers, and states the
+consequence in both languages.
+
+**Defect 3 — a blocked board looked like a quiet afternoon.**
+
+Both live crews have zero members, so `toTargets` returns nothing. The board rendered **zero lanes**,
+a small amber note, and an empty grid. A day with work but nobody to send it to now has its own
+blocking state that says why and what to do.
+
+**New:** a triage sentence in the header, and four figures — waiting, urgent, past the promise,
+routable/total. The sentence leads with **unroutability when nothing can be routed**, because being
+late is a symptom the supervisor already understands while having no area is the obstacle in front of
+them. When only some jobs are unroutable, urgency leads and the banner carries the caveat.
+
+**Tests (29 new).** Board order ≡ message order; urgent → carried → oldest; the sort does not mutate
+its input; identical jobs keep a stable order; carried-over is flagged even when fresh; age bands agree
+with `SLA_DAYS`; triage counts each job once under its strongest reason; whitespace is not a place;
+`Jigjigayar` / `JIGJIGAYAR` / `Jigjigayar ` are one area; an unroutable pool leads with unroutability
+and a partly unroutable one does not; banner truncation; and the whole live pool (19 jobs, 2 urgent,
+8 unroutable) driven through the pure layer in `render.test.tsx`.
+
+**Not done, deliberately:** drag-and-drop between lanes (thumb-hostile on a phone, and the picker
+already exists), per-lane manual ordering, and a new clustering algorithm. `clusterTasks` and
+`autoPlan` work and are tested; replacing them is risk without a request.
+
+---
+
 ## 3. Decisions I need from you
 
 I have made conservative choices on all of these and will proceed with them unless told otherwise.

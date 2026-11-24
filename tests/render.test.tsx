@@ -287,3 +287,68 @@ test('the command page panels render the live shapes without a crash or a NaN', 
   assert.doesNotMatch(somali, /NaN/);
   assert.doesNotMatch(somali, /\bblocked\b/, 'the rail must speak Somali on the Somali screen');
 });
+
+/**
+ * The dispatch board's header and banners, against the live pool.
+ *
+ * The live database on 24/11/2026 held nineteen unassigned jobs: two urgent,
+ * none carried over, all past the promise, and **eighteen with neither an area
+ * nor a box**. Every one of those facts changes what the board must say, and
+ * none of them is visible to `tsc`.
+ */
+test('the dispatch board describes the live pool truthfully', async () => {
+  const { triagePool, triageSentence, unroutableJobs, unroutableNotice, orderPool } = await import(
+    '../src/lib/dispatchBoard'
+  );
+
+  const live = [
+    // Two urgent cilada jobs, no area, no box.
+    { id: 'u1', line_number: '573864', priority: 'urgent', status: 'unassigned', xaafada: null, cablebox_code_raw: null, reported_date: '2026-11-14', carryover_count: 0 },
+    { id: 'u2', line_number: '588114', priority: 'urgent', status: 'unassigned', xaafada: null, cablebox_code_raw: null, reported_date: '2026-11-14', carryover_count: 0 },
+    // One job with a box.
+    { id: 'b1', line_number: '575373', priority: 'normal', status: 'unassigned', xaafada: null, cablebox_code_raw: 'CB190-229 (06)', reported_date: '2026-11-12', carryover_count: 0 },
+    // Ten installations with an area.
+    ...['Jigjigayar', 'KOODBUUR', 'SHEEDAHA', 'XERO AWR', 'Idaacada'].flatMap((area, i) => [
+      { id: `i${i}a`, line_number: `57546${i}`, priority: 'normal', status: 'unassigned', xaafada: area, cablebox_code_raw: null, reported_date: '2026-11-14', carryover_count: 0 },
+      { id: `i${i}b`, line_number: `57547${i}`, priority: 'normal', status: 'unassigned', xaafada: area, cablebox_code_raw: null, reported_date: '2026-11-14', carryover_count: 0 },
+    ]),
+    // Six cilada with neither.
+    ...Array.from({ length: 6 }, (_, i) => ({
+      id: `n${i}`,
+      line_number: `58866${i}`,
+      priority: 'normal',
+      status: 'unassigned',
+      xaafada: null,
+      cablebox_code_raw: null,
+      reported_date: '2026-11-14',
+      carryover_count: 0,
+    })),
+  ] as never[];
+
+  const now = new Date('2026-11-24T09:00:00Z');
+  const triage = triagePool(live, now);
+
+  assert.equal(triage.total, 19, 'the live pool is nineteen jobs');
+  assert.equal(triage.urgent, 2, 'two were urgent');
+  // Of the nineteen: the two urgent jobs and six cilada have neither an area
+  // nor a box. The ten installations do carry an area, and one job carries a
+  // box, so those eleven can be routed.
+  assert.equal(triage.unroutable, 8, 'two urgent + six area-less cilada');
+  assert.equal(triage.routable, 11, 'the box job and the ten area installations');
+  assert.equal(triage.routable + triage.unroutable, 19);
+
+  // Urgent first: the two urgent line numbers must lead the ordered pool.
+  const ordered = orderPool(live);
+  assert.deepEqual(
+    ordered.slice(0, 2).map((job) => job.line_number),
+    ['573864', '588114'],
+  );
+
+  // The sentence must not claim a route exists for work that has no place.
+  const sentence = triageSentence(triage, 'en');
+  assert.match(sentence, /urgent/i);
+
+  const notice = unroutableNotice(unroutableJobs(live), 'en')!;
+  assert.match(notice.title, /8/);
+  assert.match(notice.body, /573864/);
+});
