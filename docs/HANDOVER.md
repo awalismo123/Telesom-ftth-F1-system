@@ -189,6 +189,76 @@ Supabase dashboard can end sessions.
 
 ## 4. Release notes
 
+### v1.20.0 (26/11/2026) — The customer hears from us, on any phone
+
+Before this, a customer knew nothing between their first call and a knock on the
+door — or no knock at all. They waited all day, then rang the office, and the
+office rang the supervisor, and the supervisor rang the technician.
+
+The app only offered WhatsApp, which assumed everyone has a smartphone with data.
+The customer this is for often does not.
+
+**Every job now offers three ways to reach them**, with the same message:
+
+- **WhatsApp** — reads best, needs data
+- **SMS** — works on any phone at all, and costs us nothing (staff SMS is free)
+- **Call** — the only one that works when the customer cannot read
+
+**Four moments a customer can be told about:**
+
+1. *"A technician is on the way today."* — sent by the technician as they set off.
+2. *"Your job is planned for this day; we cannot give an exact time."* — sent by
+   the supervisor once the job is assigned.
+3. *"Your line has been fixed, thank you."* — offered when the technician closes
+   the job. Skippable.
+4. *"We came today but could not finish; we will come back."* — offered when a job
+   is blocked. Skippable.
+
+**Nothing sends itself.** Every one is a person pressing a button. The message
+opens in their own WhatsApp or messaging app, and they press send.
+
+**We do not know whether it was sent.** The app records that the button was
+pressed. It cannot see what happened in WhatsApp after that, and it never claims
+otherwise.
+
+**The delay message does not give a new day.** Nobody has agreed one yet. That is
+the same rule as never promising a time.
+
+**For the trainer:** the SMS button is the important one. Most customers have a
+phone number; not all have WhatsApp. Show technicians that button specifically.
+
+### v1.19.0 (25/11/2026) — A PIN that signs in, a fault that says what it is
+
+Two things were reported and five were broken.
+
+**"When I change a PIN in the supervisor it doesn't apply."** It did not, for three
+reasons stacked on each other. The account was locked after wrong sign-ins and
+issuing a PIN left the lock in place — so a correct new PIN was refused. The banner
+counted people who had already chosen their own PIN and named the supervisor, so it
+could never reach zero. And its button could only set the flag, never clear it.
+
+A supervisor can now change anybody's PIN from their card on Team & Crews. It clears
+any lock, signs in immediately, and asks the person to choose their own next time.
+Accounts that are locked out are listed on the screen, so nobody has to guess why a
+correct PIN was refused.
+
+**"The fault type must come from the sheet's complain-type."** It already did; the
+column was the problem. The fifteen open faults carried `CILAD`, `DEG DEG`, a phone
+number, `c`, `dd`, `ok` — not one of them says what is wrong with the connection.
+Those words are kept, and mapped to a real fault type when they can be. Anything
+unrecognised is left blank rather than guessed at.
+
+**And a fourth thing nobody had asked about.** All thirteen open faults were marked
+"No signal" — and all thirteen had `null` a moment before, inside the same three
+seconds. The bulk-edit sheet had "No signal" pre-selected, so opening it and pressing
+the main button relabelled every fault that had not been classified. A fault type is
+a fact about a customer's connection. They are back to "not recorded".
+
+**What the technician does now:** opens a fault and answers "Nooca cilada" — the
+eight choices, each with a line saying what it means. That is saved on that job. The
+supervisor can change it too, from Team & Crews, along with editing or removing the
+job itself.
+
 ### v1.18.0 (24/11/2026) — Team & Crews cannot lose work
 
 * **Deactivating somebody with open jobs is refused.** It used to succeed silently,
