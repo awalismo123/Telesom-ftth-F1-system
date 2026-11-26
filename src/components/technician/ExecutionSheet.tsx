@@ -39,10 +39,11 @@ import {
   resumeTask,
   startTask,
 } from '../../lib/executionService';
-import { buildCustomerUpdate } from '../../lib/customerUpdate';
+import type { CustomerUpdateKind } from '../../lib/customerUpdate';
+import { ContactCustomerPanel } from '../ui/ContactCustomerPanel';
 import { formatTime, todayKey } from '../../lib/format';
 import { preparePhoto, photoSizeLabel, type PreparedPhoto } from '../../lib/photo';
-import { formatPhoneE164, formatPhoneLocal, whatsappLink } from '../../lib/dispatch';
+import { formatPhoneE164, formatPhoneLocal } from '../../lib/dispatch';
 import { BoxSheet } from '../registry/BoxSheet';
 import { FaultTypePicker } from './FaultTypePicker';
 import { DirectionsButton } from '../ui/DirectionsButton';
@@ -130,6 +131,14 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
   const [completionNotes, setCompletionNotes] = useState('');
   const [portInput, setPortInput] = useState('');
   const [done, setDone] = useState<CompleteResult | null>(null);
+  /**
+   * Which customer message is on offer, if any.
+   *
+   * A single slot rather than three flags: a technician is in one situation at a
+   * time, and showing "we are coming" next to "it is finished" would invite the
+   * wrong one to be sent.
+   */
+  const [contactKind, setContactKind] = useState<CustomerUpdateKind | null>(null);
 
   // proof photo (Batch H): prepared on the phone, uploaded after the job closes
   const [photo, setPhoto] = useState<PreparedPhoto | null>(null);
@@ -239,15 +248,12 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
     try {
       const result = await markEnRoute(token, task.id);
 
-      const text = buildCustomerUpdate(task, {
-        kind: 'en_route',
-        lang,
-        today: todayKey(),
-      });
-
-      // A popup blocker is not an error the technician can act on, and telling
-      // them "failed" when the time WAS recorded would be a false error.
-      const opened = window.open(whatsappLink(text), '_blank', 'noopener,noreferrer');
+      // Record first, offer the message second. The record is the thing with
+      // operational value — dispatch, the SLA clock and the customer's line
+      // history all read it — while the message is a courtesy that can be sent,
+      // re-sent or skipped. Doing it the other way round loses the record
+      // whenever a popup is blocked.
+      setContactKind('en_route');
 
       toast.success(
         result.already_marked
@@ -255,14 +261,12 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
             ? 'Hore ayaa loo calaamadeeyay'
             : 'Already marked as on the way'
           : so
-            ? 'Waa la diiwaan geliyay — fariinta WhatsApp fur'
-            : 'Recorded — WhatsApp is open with the message',
+            ? 'Waa la diiwaan geliyay'
+            : 'Recorded — you are on the way',
         {
-          description: opened
-            ? undefined
-            : so
-              ? 'Fariinta lama furin (browser-ka ayaa xannibay). Waqtiga waa la kaydiyay.'
-              : 'The message did not open (browser blocked it). The time was still saved.',
+          description: so
+            ? 'Hadda u sheeg macmiilka: WhatsApp, SMS ama wac.'
+            : 'Now tell the customer: WhatsApp, SMS or call.',
         },
       );
 
@@ -308,6 +312,9 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
       });
       setMode('idle');
       setBlockerNotes('');
+      // The customer waited for a visit that did not finish. They are the one
+      // person who cannot see the blocker we just recorded.
+      setContactKind('delayed');
       toast.success(so ? 'Caqabadda waa la diiwaangeliyay' : 'Blocker saved', {
         description: so ? 'Saacaddu way joogsatay.' : 'The clock has stopped.',
       });
@@ -386,6 +393,9 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
         portNumber: port,
       });
       setDone(result);
+      // Offer, never assume: the job is closed either way, and skipping the
+      // message loses nothing.
+      setContactKind('completed');
       setMode('idle');
       clearCompletionDraft(task.id);
       setDraftNotice(null);
@@ -491,9 +501,10 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
             )}
           </div>
 
-          {/* on my way — records the time, opens WhatsApp with the text ready.
-              Never sends: the technician still picks the contact and presses
-              send. Hidden for a finished job, where it would be a lie. */}
+          {/* on my way — records the time, then offers the message.
+              Never sends: the technician picks a channel and their own phone
+              composes it, and they press send. Hidden for a finished job, where
+              it would be a lie. */}
           {task.status !== 'completed' && task.status !== 'cancelled' && (
             <div className="space-y-1.5">
               <button
@@ -505,8 +516,8 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                 <MessageCircle className="w-4 h-4" aria-hidden="true" />
                 {task.en_route_at
                   ? so
-                    ? 'Dib u dir fariinta'
-                    : 'Send the message again'
+                    ? 'Dib u sheeg macmiilka'
+                    : 'Tell the customer again'
                   : so
                     ? 'Waan soo socdaa — u sheeg macmiilka'
                     : 'On my way — tell the customer'}
@@ -518,12 +529,50 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                   <span className="font-mono">{formatTime(task.en_route_at)}</span>
                 </p>
               )}
-              <p className="text-[10px] text-slate-500 text-center">
-                {so
-                  ? 'Waxba si toos ah looma diro — WhatsApp ayaa furmaya, adigaa riixaya dir.'
-                  : 'Nothing is sent automatically — WhatsApp opens and you press send.'}
-              </p>
+
+              {/* Already on the way, but the message was skipped or the customer
+                  did not answer — offer it without re-recording the time. */}
+              {blocked && contactKind !== 'delayed' && (
+                <button
+                  type="button"
+                  onClick={() => setContactKind('delayed')}
+                  className="w-full min-h-11 rounded-xl bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-900 cursor-pointer"
+                >
+                  {so ? 'U sheeg macmiilka dib u dhaca' : 'Tell the customer about the delay'}
+                </button>
+              )}
+
+              {task.en_route_at && contactKind !== 'en_route' && (
+                <button
+                  type="button"
+                  onClick={() => setContactKind('en_route')}
+                  className="w-full min-h-11 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 cursor-pointer"
+                >
+                  {so ? 'Fariinta “waan soo socdaa”' : 'Send the “on my way” message'}
+                </button>
+              )}
             </div>
+          )}
+
+          {contactKind && (
+            <ContactCustomerPanel
+              kind={contactKind}
+              phone={task.customer_phone}
+              task={{
+                line_number: task.line_number,
+                customer_name: task.customer_name,
+                scheduled_date: task.scheduled_date,
+                xaafada: task.xaafada,
+                cablebox_code_raw: task.cablebox_code_raw,
+              }}
+              defaultLang={lang}
+              today={todayKey()}
+              onUsed={() => {
+                // The tap, not the message. We cannot see whether they pressed
+                // send, so the note says which channel was offered.
+                setContactKind(null);
+              }}
+            />
           )}
 
           {/* where to go — a map search, never a pin (there are no coordinates
@@ -701,6 +750,20 @@ export function ExecutionSheet({ task, token, lang, nowMs, onClose, onChanged }:
                     </button>
                   )}
                 </div>
+              )}
+
+              {/* "Job done" is only half the story the customer needs. They
+                  waited at home; telling them the work is finished closes the
+                  loop, and it costs one tap. Optional — the job is already
+                  closed. */}
+              {contactKind !== 'completed' && (
+                <button
+                  type="button"
+                  onClick={() => setContactKind('completed')}
+                  className="mt-1 w-full min-h-11 rounded-xl bg-white/15 border border-white/25 text-[11px] font-extrabold text-white cursor-pointer"
+                >
+                  {so ? 'U sheeg macmiilka inay dhammaatay' : 'Tell the customer it is done'}
+                </button>
               )}
 
               {photoState === 'none' && (

@@ -1001,3 +1001,65 @@ copies, so validation and refusals cannot drift between the two screens. Deletin
 from here is the same `delete_task` with the same rule: a job that has been worked
 on, has photos, materials or a box record is refused, and the refusal is shown
 rather than worked around.
+
+## 11a. Three channels, one message — and none of them is automatic
+
+The app offered WhatsApp and nothing else. That quietly decided every customer
+has a smartphone with data, which is false for a good share of the people this
+message exists for: the ones sitting at home with an old phone, waiting for
+somebody who may not come, with no way to find out.
+
+Each job now offers WhatsApp, SMS and a call. The message is identical on all
+three; only the way it leaves the phone changes.
+
+**SMS is a link, not a gateway.** `sms:+252634418376?body=…` opens the phone's own
+messaging app with the number and text filled in. Telesom staff have free SMS, so
+this costs the department nothing and needs no API, no account and no server. The
+consequence is that the app has no idea whether the message was sent — the person
+can close the messaging app without pressing send. So the audit records that the
+**button was pressed**, never that the customer was notified.
+
+**WhatsApp deliberately carries no number.** `wa.me/?text=` opens WhatsApp's own
+contact picker, so the customer's number is chosen on the phone and never sits in
+a URL. The SMS link must carry a number because `sms:` has no picker — that
+asymmetry is intentional.
+
+**The language toggle is the message's language, not the screen's.** A
+Somali-speaking supervisor may be writing to a customer who only reads English,
+and a message about a technician visit in the wrong language is worse than none.
+It defaults to Somali and is one tap from English.
+
+**No phone number means no buttons.** A customer with no number on the job gets a
+line saying so and a prompt to fill it in, rather than three buttons that open a
+blank composer. Roughly half of a fresh import has no phone.
+
+**No clock time, ever.** The rule from `customerUpdate.ts` predates this work and
+still holds for all four message kinds: a promised window that is missed is a
+broken promise, while "we cannot give an exact time" is honest.
+
+## 11b. The delay message does not name the new day
+
+"We tried to visit you today … we will come back another day" is a fact. Naming a
+date means naming one nobody has agreed yet, and that is exactly the promise the
+message module forbids. If the department wants to give a new day, that is the
+"planned" message sent after the job is rescheduled.
+
+## 11c. A supervisor can now see the line's history, not only the technician
+
+`LineHistoryPanel` existed and was reachable only from the technician's job
+sheet — which meant the person deciding *whether to send somebody* could not see
+that this line had been back three times. It is now on the supervisor's job
+actions too. "Same reading three times in a row" is the strongest argument for
+looking at the drop rather than sending the same visit again.
+
+## 11d. What the customer is told, and when
+
+| Moment | Kind | Who can send it |
+|---|---|---|
+| Technician sets off | `en_route` | Technician (records the time first) |
+| Job is assigned for a day | `planned` | Supervisor, from the job's actions |
+| Job is closed | `completed` | Technician, offered once, skippable |
+| Job is blocked | `delayed` | Technician, offered once, skippable |
+
+Every one is optional and every one is a tap. Skipping loses nothing: the job
+state has already changed by the time the offer appears.
