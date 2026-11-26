@@ -33,10 +33,10 @@ import { useToast } from '../../ui/Toast';
 import { countLabel, formatDate } from '../../../lib/format';
 import { fetchTaskPhotos, type TaskPhotoMeta } from '../../../lib/reads';
 import { addDays, scheduleLabel, scheduleProblem, SCHEDULE_PROBLEM_COPY, todayLocal } from '../../../lib/schedule';
-import { buildCustomerUpdatePair } from '../../../lib/customerUpdate';
-import { whatsappLink } from '../../../lib/dispatch';
+import { ContactCustomerPanel } from '../../ui/ContactCustomerPanel';
+import { LineHistoryPanel } from '../../ui/LineHistoryPanel';
 import { DirectionsButton } from '../../ui/DirectionsButton';
-import { copyPlainText, todayKey } from '../../../lib/format';
+import { todayKey } from '../../../lib/format';
 import { photoSizeLabel } from '../../../lib/photo';
 import { PhotoViewer } from '../../ui/PhotoViewer';
 import { JobHistory } from './JobHistory';
@@ -277,45 +277,6 @@ export function JobActionsSheet({
     }
   }
 
-  /**
-   * What this customer would be told, in both languages.
-   *
-   * Both are built at once so the supervisor can check the Somali wording
-   * against the English before sending — the two are written separately on
-   * purpose, and a wrong translation is the kind of mistake that reaches a
-   * customer.
-   */
-  const customerText = useMemo(() => {
-    if (!task) return { so: '', en: '' };
-    return buildCustomerUpdatePair(task, {
-      kind: 'planned',
-      today: todayLocal(),
-      groupCode: null,
-    });
-  }, [task]);
-
-  const copyCustomerText = async (text: string) => {
-    const ok = await copyPlainText(text);
-    if (ok) {
-      toast.success(so ? 'La nuqulay' : 'Copied');
-    } else {
-      toast.error(so ? 'Nuqul ma suurtagalin' : 'Could not copy', {
-        description: so ? 'Dooro qoraalka oo gacanta ku nuqul.' : 'Select the text and copy it by hand.',
-      });
-    }
-  };
-
-  /**
-   * Open WhatsApp's contact picker with the message ready.
-   *
-   * No phone number goes into the URL: `wa.me/?text=` makes WhatsApp ask who to
-   * send to, so the customer's number is chosen on the phone and never travels
-   * through this app. A person still presses send.
-   */
-  const openWhatsapp = (text: string) => {
-    window.open(whatsappLink(text), '_blank', 'noopener,noreferrer');
-  };
-
   /** The next calendar day, as a key. Uses the shared day arithmetic. */
   const tomorrowKey = () => addDays(todayKey(), 1);
 
@@ -422,58 +383,42 @@ export function JobActionsSheet({
 
           {/* A message for this one customer. Built here, copied or opened in
               WhatsApp by hand — this app never sends anything on its own. */}
+          {/* The customer's message, on all three channels.
+           *
+           * This was a WhatsApp-only button plus a copy box. That quietly assumed
+           * every customer has WhatsApp and a smartphone, which is not true of
+           * the people this message exists for — the ones sitting at home with an
+           * old phone waiting for somebody who may not come. */}
           <section className="space-y-2">
-            <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
-              <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" />
-              {so ? 'Fariin macmiilka' : 'Message the customer'}
-            </h3>
-
-            <div className="flex gap-1.5">
-              {(['so', 'en'] as const).map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => setCustomerLang(code)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold cursor-pointer transition ${
-                    customerLang === code
-                      ? 'bg-brand-700 text-white'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                  aria-pressed={customerLang === code}
-                >
-                  {code === 'so' ? 'Somali' : 'English'}
-                </button>
-              ))}
-            </div>
-
-            <pre className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-3 text-[12px] leading-relaxed text-slate-800 font-sans">
-              {customerText[customerLang]}
-            </pre>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void copyCustomerText(customerText[customerLang])}
-              >
-                {so ? 'Nuqul' : 'Copy'}
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => openWhatsapp(customerText[customerLang])}
-              >
-                <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" />
-                {so ? 'WhatsApp ku fur' : 'Open in WhatsApp'}
-              </Button>
-            </div>
-
-            <p className="text-[11px] text-slate-500">
-              {so
-                ? 'Waxba si toos ah looma diro. WhatsApp ayaa furmaya, adigaa dooranaya macmiilka oo riixaya dir.'
-                : 'Nothing is sent automatically. WhatsApp opens, you choose the contact and press send.'}
-            </p>
+            <ContactCustomerPanel
+              kind="planned"
+              phone={task?.customer_phone}
+              task={{
+                line_number: task?.line_number ?? '',
+                customer_name: task?.customer_name,
+                scheduled_date: task?.scheduled_date,
+                xaafada: task?.xaafada,
+                cablebox_code_raw: task?.cablebox_code_raw,
+              }}
+              defaultLang={customerLang}
+              today={todayLocal()}
+              title={so ? 'Fariin macmiilka' : 'Message the customer'}
+            />
           </section>
+
+          {/* The line's own history, which the technician has had all along and
+           * the supervisor — the person deciding whether to send somebody — has
+           * not. "This line has been back three times" is the reason to look at
+           * the drop instead of sending the same visit again. */}
+          {task && (
+            <section className="space-y-2">
+              <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+                <HistoryIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                {so ? 'Taariikhda khadka' : 'Line history'}
+              </h3>
+              <LineHistoryPanel taskId={task.id} lineNumber={task.line_number} lang={lang} />
+            </section>
+          )}
 
           {status !== 'completed' && status !== 'cancelled' && (
             <section className="space-y-2">

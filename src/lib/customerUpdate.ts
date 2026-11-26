@@ -17,11 +17,26 @@
  *    another separate act. There is no code path in this file that transmits.
  * 3. **Both languages carry the same facts.** Not a translation of the same
  *    words — the same claim, the same absence of a promise.
+ * 4. **Three ways out, one message.** A customer with WhatsApp, one with only
+ *    SMS, and one with neither all need to hear the same thing. The text is the
+ *    same for all three; only the way it leaves the phone changes, so the
+ *    wording is built here and the link builders live beside it, in
+ *    `contact.ts`. Nearly every Telesom customer has a phone number; a good
+ *    number of them have no smartphone at all, which is why relying on WhatsApp
+ *    alone was leaving people waiting with no word.
  */
 
 import { formatDateWithWeekday } from './format';
 
-export type CustomerUpdateKind = 'en_route' | 'planned';
+export type CustomerUpdateKind =
+  /** A technician is travelling to the customer now. */
+  | 'en_route'
+  /** The job is planned for a day. */
+  | 'planned'
+  /** The work is finished. */
+  | 'completed'
+  /** We came and could not finish, and will come back. */
+  | 'delayed';
 
 export type CustomerUpdateLang = 'en' | 'so';
 
@@ -64,7 +79,12 @@ export function dayForCustomer(day: string, lang: CustomerUpdateLang): string {
  * must not become "no message").
  */
 export function expectedDay(task: CustomerUpdateTask, kind: CustomerUpdateKind, today: string): string {
-  if (kind === 'en_route') return today;
+  // "On the way" and "done" both happen *now*; the planned day is history by
+  // the time either is sent. Only `planned` and `delayed` talk about a day the
+  // job belongs to, and `delayed` deliberately does not name a new one — we do
+  // not know it yet, and inventing it is the broken promise this file exists to
+  // avoid.
+  if (kind === 'en_route' || kind === 'completed') return today;
   return task.scheduled_date || today;
 }
 
@@ -108,22 +128,42 @@ export function buildCustomerUpdate(
   // is the only honest option left.
   const hasDay = when.length > 0;
 
-  const body =
-    kind === 'en_route'
-      ? so
-        ? `Farsamayaqaan Telesom ah ayaa hadda kuu soo socda line-ka ${line}${
-            hasDay ? ` (${dayPhrase})` : ''
-          }. Fadlan taleefankaaga ha dhawaan.`
-        : `A Telesom technician is on the way to you now for line ${line}${
-            hasDay ? ` (${dayPhrase})` : ''
-          }. Please keep your phone nearby.`
-      : so
-        ? `Shaqada line-kaaga ${line} waxaa loo qorsheeyay${
-            hasDay ? ` ${dayPhrase}` : ''
-          }. Farsamayaqaan ayaa kuu iman doona. Waqti sax ah ma sheegi karno, fadlan guriga joog.`
-        : `Your line ${line} is planned${
-            hasDay ? ` for ${dayPhrase}` : ''
-          }. A technician will visit you. We cannot give an exact time, so please be at home.`;
+  // Each kind says one thing and stops. A "done" message that also asks for a
+  // review, or a delay message that also apologises three times, reads as a
+  // machine. These are written to be readable by somebody who has had a long
+  // day and does not want to parse a paragraph.
+  let body: string;
+
+  if (kind === 'en_route') {
+    body = so
+      ? `Farsamayaqaan Telesom ah ayaa hadda kuu soo socda line-ka ${line}${
+          hasDay ? ` (${dayPhrase})` : ''
+        }. Fadlan taleefankaaga ha dhawaan.`
+      : `A Telesom technician is on the way to you now for line ${line}${
+          hasDay ? ` (${dayPhrase})` : ''
+        }. Please keep your phone nearby.`;
+  } else if (kind === 'planned') {
+    body = so
+      ? `Shaqada line-kaaga ${line} waxaa loo qorsheeyay${
+          hasDay ? ` ${dayPhrase}` : ''
+        }. Farsamayaqaan ayaa kuu iman doona. Waqti sax ah ma sheegi karno, fadlan guriga joog.`
+      : `Your line ${line} is planned${
+          hasDay ? ` for ${dayPhrase}` : ''
+        }. A technician will visit you. We cannot give an exact time, so please be at home.`;
+  } else if (kind === 'completed') {
+    // No day, no time, no invitation to call back. The work is finished; the
+    // only useful thing left to say is which line and thank you.
+    body = so
+      ? `Ciladda line-kaaga ${line} waa la hagaajiyay. Mahadsanid samirkaaga.`
+      : `The issue on your line ${line} has been resolved. Thank you for your patience.`;
+  } else {
+    // A delay admits three things in order: we came, it is not finished, we will
+    // be back. It deliberately does not name the new day, because nobody knows
+    // it yet — a date guessed here is the kind of promise this file forbids.
+    body = so
+      ? `Maanta waxaan isku daynay inaan kuu imaano line-ka ${line} laakiin shaqada ma dhamayn. Maalin kale ayaan dib u iman doonaa. Raali noqo.`
+      : `We tried to visit you today for line ${line} but could not finish the work. We will come back another day. Sorry for the inconvenience.`;
+  }
 
   return [greeting(task, lang), '', body, '', signOff(groupCode, lang)].join('\n');
 }

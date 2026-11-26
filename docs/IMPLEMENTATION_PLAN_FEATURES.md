@@ -1006,3 +1006,39 @@ reaches zero, the PIN length rule, lockout wording, and that the removed sentenc
 gone from the screen), 10 in `tests/faultType.test.ts` (the client list equals the
 database CHECK, junk maps to nothing, a set type is never overwritten by an import,
 the technician can only touch their own job, the bulk sheet cannot invent a type).
+
+### Phase 19 — Close the customer loop: three channels, one message — ✅ DONE 26/11/2026
+
+A customer had no information between the first call and a knock on the door.
+They waited all day, and when nobody came they rang the office, the office rang
+the supervisor, and the supervisor rang the technician. Everyone stopped working.
+
+The app had a WhatsApp button, which assumed every customer has a smartphone with
+data. That assumption excludes precisely the people the message is for.
+
+**Three channels, one message.** WhatsApp, SMS and a call, on the same panel, with
+the same text. SMS is a `sms:` link into the phone's own messaging app — Telesom
+staff have free SMS, so it costs nothing and needs no gateway, no account and no
+server. Call is the last resort and the only one that works when the customer
+cannot read.
+
+**Four moments, not two.** "We are coming today", "your job is planned for this
+day", "it is finished", and "we came, could not finish, we will be back". The last
+two are new: closing a job used to be the end of the story as far as the customer
+knew, and a blocked job left them waiting for a visit that had already been
+abandoned.
+
+**The line's history reaches the supervisor.** It was technician-only, so the
+person deciding whether to send someone could not see that this line had been back
+three times.
+
+**What this deliberately does not do.** It does not send anything by itself, does
+not use a gateway, and does not claim delivery — the app can see a button press
+and nothing beyond it, so that is all it records. The delay message does not name
+a new day, because nobody has agreed one yet.
+
+**Tests added:** 17 in `tests/contact.test.ts` — number normalisation across every
+shape the sheet produces, the SMS URI containing the whole decoded message, a
+missing number refusing all three channels, both new message kinds in both
+languages, no clock time in any of the four, and the ordering guarantee that the
+"on my way" time is recorded before the message is offered.
