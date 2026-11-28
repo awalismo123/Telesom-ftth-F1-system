@@ -307,7 +307,7 @@ test('nothing outside the realtime module creates a channel by hand', async () =
         continue;
       }
       if (!/\.(ts|tsx)$/.test(entry.name)) continue;
-      const relative = full.slice(root.length + 1);
+      const relative = full.slice(root.length + 1).replace(/\\/g, '/');
       if (relative === 'lib/realtime.ts') continue;
       if (/\.channel\(|\.removeChannel\(|removeAllChannels\(/.test(stripComments(readFileSync(full, 'utf8')))) {
         offenders.push(relative);

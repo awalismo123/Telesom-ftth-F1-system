@@ -278,7 +278,7 @@ test('no screen ships copy in only one language', () => {
   const offenders: string[] = [];
 
   for (const file of sourceFiles) {
-    const relative = file.slice(root.length + 1);
+    const relative = file.slice(root.length + 1).replace(/\\/g, '/');
     if (relative === 'lib/i18n.tsx') continue;
     if (BILINGUAL_BY_DESIGN.has(relative)) continue;
     offenders.push(...englishOnlyLiterals(relative));
@@ -298,7 +298,7 @@ test('PIN copy agrees with what the inputs accept', () => {
   const offenders: string[] = [];
 
   for (const file of sourceFiles) {
-    const relative = file.slice(root.length + 1);
+    const relative = file.slice(root.length + 1).replace(/\\/g, '/');
     const source = stripComments(read(relative));
     source.split('\n').forEach((line, index) => {
       if (/4[- ]digit|4\s*lambar|4-ta lambar|4-lambar/i.test(line)) {

@@ -76,7 +76,7 @@ test('no screen reads a table directly', () => {
   // token-checked function; the database now returns nothing otherwise, so this
   // is also the difference between a working screen and a blank one.
   const offenders = sourceFiles
-    .map((file) => file.slice(root.length + 1))
+    .map((file) => file.slice(root.length + 1).replace(/\\/g, '/'))
     .filter((relative) => /\.from\(['"]/.test(stripComments(read(relative))));
 
   assert.deepEqual(offenders, [], 'these files read a table directly:\n' + offenders.join('\n'));
@@ -86,7 +86,7 @@ test('only the read module and the write services may reach the database', () =>
   // The rule is about *using* the client, not importing a helper from the same
   // module — `ConfigGate` legitimately imports the connection probe.
   const offenders = sourceFiles
-    .map((file) => file.slice(root.length + 1))
+    .map((file) => file.slice(root.length + 1).replace(/\\/g, '/'))
     .filter((relative) => {
       if (ALLOWED_TO_CALL_SUPABASE.has(relative)) return false;
       return /\bsupabase\s*\./.test(stripComments(read(relative)));

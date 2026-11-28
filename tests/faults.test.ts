@@ -347,7 +347,9 @@ test('the refusal is explained, in both languages', () => {
 });
 
 test('the migration enforces exactly the policy the client mirrors', () => {
-  const body = migration.slice(migration.indexOf('CREATE OR REPLACE FUNCTION public.delete_task'));
+  const body = migration
+    .slice(migration.indexOf('CREATE OR REPLACE FUNCTION public.delete_task'))
+    .replace(/\r\n/g, '\n');
   const fn = body.slice(0, body.indexOf('$fn$;'));
 
   // Each guard the client mirrors must exist in the function.
